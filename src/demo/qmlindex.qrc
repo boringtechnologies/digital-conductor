@@ -1,0 +1,29 @@
+<!-- THIS FILE IS AUTO-GENERATED. DO NOT EDIT! -->
+
+<RCC>
+  <qresource prefix="/dc">
+    <file>common/common.js</file>
+    <file>Main.qml</file>
+    <file>Main.js</file>
+    <file>components/DCRoundSwitch/DCRoundSwitch.qml</file>
+    <file>components/DCText/DCText.qml</file>
+    <file>components/TrayTabRect/TrayTabRect.qml</file>
+    <file>components/DCComboBox/DCComboBox.qml</file>
+    <file>components/DCTextField/DCTextField.qml</file>
+    <file>components/DCLinkButton/DCLinkButton.qml</file>
+    <file>components/DCTextArea/DCTextArea.qml</file>
+    <file>components/DCButton/DCButton.qml</file>
+    <file>views/AppGui/AppGui.qml</file>
+    <file>views/AppGui/AppGui.js</file>
+    <file>views/PeerListView/PeerList/PeerList.qml</file>
+    <file>views/PeerListView/PeerListView.qml</file>
+    <file>views/PeerListView/PeerListView.js</file>
+    <file>views/ReceiverView/ReceiverView.qml</file>
+    <file>views/ReceiverView/ReceiverView.js</file>
+    <file>views/SenderView/SenderView.qml</file>
+    <file>views/SenderView/SenderView.js</file>
+    <file>views/RegisterLicenseView/RegisterLicenseView.qml</file>
+    <file>views/RegisterLicenseView/RegisterLicenseView.js</file>
+    <file>views/LicenseView/LicenseView.qml</file>
+  </qresource>
+</RCC>
