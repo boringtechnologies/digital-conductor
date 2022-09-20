@@ -14,23 +14,28 @@ LicenseController::~LicenseController()
 
 bool LicenseController::licenseCheck()
 {
-    // return _licenseManager.LicenseCheck();
     qDebug() << "<---- License checking";
-    return false;
+    return _licenseManager.LicenseCheck();
 }
 
 QString LicenseController::generateDeviceToken()
 {
     qDebug() << "<---- Generate device token";
 
-    return "ASDASDAEEFEIWDVCKEVIRGJRVSMDVJCKSRWEFJD";
+    return QString::fromStdString(_licenseManager.GenerateDeviceToken());
 }
 
 bool LicenseController::registerLicense(QString license)
 {
     qDebug() << "<---- Register License: " << license;
 
-    return true;
+    if (_licenseManager.RegisterLicense(license.toStdString())) {
+        return true;
+    }
+    else {
+        return true;
+    }
+    
 }
 
 void LicenseController::copyToClipboard(QString data)

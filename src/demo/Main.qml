@@ -30,7 +30,7 @@ Window {
             
             isLicenseValid = true
         })
-        Logic.delay(5, () => {
+        Logic.delay(10, () => {
             if (!!DC.LicenseController) {
                 isLicenseValid = Logic.licenseCheck()
                 isLicenseChecked = true

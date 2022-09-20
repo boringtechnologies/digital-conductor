@@ -232,6 +232,12 @@ std::string LicenseManager::GenerateDeviceToken() {
     unsigned char *encryptedKey = new unsigned char[keylength];
     unsigned char *UUID = new unsigned char[keylength];
     char *key64 = new char[keylength];
+    for (int j = 0; j < keylength; j++) {
+        generatedKey[j] = 0;
+        encryptedKey[j] = 0;
+        UUID[j] = 0;
+        key64[j] = 0;
+    }
 
     generatedKey = GenerateMacAddress(UUID, 0);
     encryptedKey = aes.EncryptECB(generatedKey, keylength, key);
@@ -302,11 +308,34 @@ std::string LicenseManager::GenerateLicenseKey(std::string deviceToken, int year
     return licenseKey;
 }
 
-void LicenseManager::RegisterLicense(std::string license) {
-    std::ofstream outfile ("digitalconductor.lic");
-    outfile << license << std::endl;
-    outfile.close();
-    return;
+bool LicenseManager::RegisterLicense(std::string license) {
+
+    std::string filePath = std::string(getenv("HOME")) + "/digitalconductor.lic";
+    std::ofstream outfile (filePath);
+
+    if(outfile) {
+        outfile << license << std::endl;
+        outfile.close();
+    }
+    else {
+        std::cout << "Cant open file - " << filePath << std::endl;
+        return false;
+    }
+    if(outfile.bad())
+    {
+        std::cout << "Cant open file - " << filePath << std::endl;
+        return false;
+    }
+
+    if (!LicenseCheck()) {
+        std::cout << "License check failed during registration - " << filePath << std::endl;
+        return false;
+    }
+    else {
+        return true;
+    }
+    
+    return false;
 }
 
 std::string LicenseManager::DecryptKey(std::string deviceToken) {
@@ -325,16 +354,22 @@ std::string LicenseManager::DecryptKey(std::string deviceToken) {
 }
 
 bool LicenseManager::LicenseCheck() {
-
-    std::ifstream file("digitalconductor.lic");
     std::string deviceToken;
 
-    file.seekg(0, std::ios::end);   
-    deviceToken.reserve(file.tellg());
-    file.seekg(0, std::ios::beg);
+    std::string filePath = std::string(getenv("HOME")) + "/digitalconductor.lic";
 
-    deviceToken.assign((std::istreambuf_iterator<char>(file)),
-                std::istreambuf_iterator<char>());
+    std::ifstream file(filePath);
+    
+    if (file) {
+        file.seekg(0, std::ios::end);   
+        deviceToken.reserve(file.tellg());
+        file.seekg(0, std::ios::beg);
+        deviceToken.assign((std::istreambuf_iterator<char>(file)),
+                    std::istreambuf_iterator<char>());
+    }
+    else {
+        return false;
+    }
 
     char *token = new char[keylength];
     unsigned char *decryptedKey = new unsigned char[keylength];
