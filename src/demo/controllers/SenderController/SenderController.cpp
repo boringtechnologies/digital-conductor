@@ -15,7 +15,7 @@ void SenderController::setState(State state)
     qDebug() << "<----- Set Sender State: " << state;
 }
 
-void SenderController::setInputDevice(AudioDirectionValue dir, QString devID)
+void SenderController::setInputDevice(DeviceDirectionValue dir, QString devID)
 {
     qDebug() << "<----- Set Audio OutputDevice: " << devID;
 }

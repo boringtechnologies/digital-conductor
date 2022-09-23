@@ -14,8 +14,8 @@ Window {
     property bool isLicenseValid: false
     property string newDeviceToken: ""
 
-    width: 500
-    height: 300
+    minimumWidth: 530
+    minimumHeight: 350
     visible: true
     title: `Digital Conductor Demo`
     color: Common.primaryColor

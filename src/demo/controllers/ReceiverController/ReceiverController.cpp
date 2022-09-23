@@ -15,7 +15,7 @@ void ReceiverController::setState(State state) const
     qDebug() << "<----- Set Receiver State: " << state;
 }
 
-void ReceiverController::setOutputDevice(AudioDirectionValue dir, QString devID)
+void ReceiverController::setOutputDevice(DeviceDirectionValue dir, QString devID)
 {
     qDebug() << "<----- Set Audio OutputDevice: " << devID;
 }

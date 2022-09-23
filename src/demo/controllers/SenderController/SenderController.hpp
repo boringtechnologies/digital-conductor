@@ -2,7 +2,7 @@
 
 #include "SenderController/SenderController.hpp"
 #include "ControllerBase/ControllerBase.hpp"
-#include "AudioDirection/AudioDirection.hpp"
+#include "DeviceDirection/DeviceDirection.hpp"
 
 #include <QList>
 
@@ -21,7 +21,7 @@ public:
 
     Q_INVOKABLE void setState(State state);
 
-    Q_INVOKABLE void setInputDevice(AudioDirectionValue dir, QString devID);
+    Q_INVOKABLE void setInputDevice(DeviceDirectionValue dir, QString devID);
 
 private:
     friend class ControllerBase;

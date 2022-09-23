@@ -20,14 +20,15 @@ set(CPP_SOURCES
   Main.cpp
 
   controllers/PeerController/PeerController.cpp
-  controllers/DeviceController/DeviceController.cpp
+  controllers/AudioDeviceController/AudioDeviceController.cpp
+  controllers/VideoDeviceController/VideoDeviceController.cpp
   controllers/ReceiverController/ReceiverController.cpp
   controllers/SenderController/SenderController.cpp
   controllers/LicenseController/LicenseController.cpp
 
   gadgets/PeerInfo/PeerInfo.cpp
-  gadgets/AudioDeviceInfo/AudioDeviceInfo.cpp
-  gadgets/AudioDirection/AudioDirection.cpp
+  gadgets/DeviceInfo/DeviceInfo.cpp
+  gadgets/DeviceDirection/DeviceDirection.cpp
 
   qml/QmlEngine/QmlEngine.cpp
   )
@@ -39,6 +40,7 @@ set(QML_SOURCES
   Main.js
 
   components/DCRoundSwitch/DCRoundSwitch.qml
+  components/DCRoundSwitchWithTextField/DCRoundSwitchWithTextField.qml
   components/DCText/DCText.qml
   components/TrayTabRect/TrayTabRect.qml
   components/DCComboBox/DCComboBox.qml
@@ -78,6 +80,7 @@ add_custom_command(
 qt_add_executable(DigitalConductorDemo
   ${CPP_SOURCES}
   "${PROJECT_SOURCE_DIR}/qmlindex.qrc"
+  "${PROJECT_SOURCE_DIR}/images/_images.qrc"
 )
 
 qt_add_qml_module(DigitalConductorDemo

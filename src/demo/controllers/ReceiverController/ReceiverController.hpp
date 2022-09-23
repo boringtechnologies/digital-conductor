@@ -2,7 +2,7 @@
 
 #include "ReceiverController/ReceiverController.hpp"
 #include "ControllerBase/ControllerBase.hpp"
-#include "AudioDirection/AudioDirection.hpp"
+#include "DeviceDirection/DeviceDirection.hpp"
 
 #include <QList>
 
@@ -28,7 +28,7 @@ public:
 
     Q_INVOKABLE void setState(State state) const;
 
-    Q_INVOKABLE void setOutputDevice(AudioDirectionValue dir, QString devID);
+    Q_INVOKABLE void setOutputDevice(DeviceDirectionValue dir, QString devID);
 
     Q_INVOKABLE void setSyncMode(SyncMode syncMode) const;
 

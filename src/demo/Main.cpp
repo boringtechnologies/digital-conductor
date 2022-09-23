@@ -2,6 +2,8 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QIcon>
+
 
 int main(int argc, char *argv[])
 {
@@ -17,6 +19,10 @@ int main(int argc, char *argv[])
             QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
     engine.load(url);
+
+    QPixmap _qPixmapScaled;
+    QPixmap appIcon(":img/app_icon.svg");
+    app.setWindowIcon(_qPixmapScaled);
 
     return app.exec();
 }

@@ -6,6 +6,7 @@
     <file>Main.qml</file>
     <file>Main.js</file>
     <file>components/DCRoundSwitch/DCRoundSwitch.qml</file>
+    <file>components/DCRoundSwitchWithTextField/DCRoundSwitchWithTextField.qml</file>
     <file>components/DCText/DCText.qml</file>
     <file>components/TrayTabRect/TrayTabRect.qml</file>
     <file>components/DCComboBox/DCComboBox.qml</file>

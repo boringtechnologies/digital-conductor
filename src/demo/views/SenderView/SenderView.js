@@ -1,7 +1,11 @@
 .import DC as DC
 
-function getInputDevices() {
-    return DC.DeviceController.getDeviceList(DC.audioDirection.Input)
+function getAudioInputDevices() {
+    return DC.AudioDeviceController.getDeviceList(DC.deviceDirection.Input)
+}
+
+function getVideoInputDevices() {
+    return DC.VideoDeviceController.getDeviceList(DC.deviceDirection.Input)
 }
 
 function setSenderState() {
@@ -21,5 +25,5 @@ function setInputDevice() {
 
     const devId = senderView.inputDevices[index].id
 
-    DC.SenderController.setInputDevice(DC.audioDirection.Input, devId)
+    DC.SenderController.setInputDevice(DC.deviceDirection.Input, devId)
 }

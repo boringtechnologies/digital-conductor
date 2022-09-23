@@ -3,7 +3,7 @@
 #include <QObject>
 #include <QString>
 
-class AudioDeviceInfo
+class DeviceInfo
 {
     Q_GADGET
 
@@ -27,11 +27,11 @@ class AudioDeviceInfo
     Q_PROPERTY(QString label READ getLabel WRITE setLabel USER true)
 
 public:
-    static AudioDeviceInfo toQt(AudioDeviceInfo::DeviceInfoStruct);
-    static AudioDeviceInfo::DeviceInfoStruct fromQt(AudioDeviceInfo);
+    static DeviceInfo toQt(DeviceInfo::DeviceInfoStruct);
+    static DeviceInfo::DeviceInfoStruct fromQt(DeviceInfo);
 
-    AudioDeviceInfo(QString id, QString label);
-    AudioDeviceInfo() = default;
+    DeviceInfo(QString id, QString label);
+    DeviceInfo() = default;
 
     QString getID() const;
     void setID(QString);
@@ -40,7 +40,7 @@ public:
     void setLabel(QString);
 
 private:
-    AudioDeviceInfo::DeviceInfoStruct info_;
+    DeviceInfo::DeviceInfoStruct info_;
 };
 
-Q_DECLARE_METATYPE(AudioDeviceInfo)
+Q_DECLARE_METATYPE(DeviceInfo)

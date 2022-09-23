@@ -16,11 +16,13 @@ RowLayout {
 
     ColumnLayout {
         spacing: 1
+        Layout.fillWidth: true
+        Layout.minimumWidth: 310
 
         Rectangle {
             id: tabContainer
             height: 30
-            width: 280
+            Layout.fillWidth: true
             radius: 2
             Layout.leftMargin: 10
             Layout.topMargin: 10
@@ -76,7 +78,7 @@ RowLayout {
 
         Item {
             Layout.fillHeight: true
-            width: 280
+            Layout.fillWidth: true
             Layout.leftMargin: 10
             Layout.bottomMargin: 10
 
@@ -118,7 +120,7 @@ RowLayout {
     }
 
     PeerListView {
-        Layout.fillWidth: true
+        width: 170
         Layout.fillHeight: true
         Layout.bottomMargin: 10
         Layout.rightMargin: 10

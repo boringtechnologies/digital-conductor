@@ -1,11 +1,12 @@
 // gadgets
 #include "PeerInfo/PeerInfo.hpp"
-#include "AudioDeviceInfo/AudioDeviceInfo.hpp"
-#include "AudioDirection/AudioDirection.hpp"
+#include "DeviceInfo/DeviceInfo.hpp"
+#include "DeviceDirection/DeviceDirection.hpp"
 
 // controllers
 #include "PeerController/PeerController.hpp"
-#include "DeviceController/DeviceController.hpp"
+#include "AudioDeviceController/AudioDeviceController.hpp"
+#include "VideoDeviceController/VideoDeviceController.hpp"
 #include "ReceiverController/ReceiverController.hpp"
 #include "SenderController/SenderController.hpp"
 #include "LicenseController/LicenseController.hpp"
@@ -75,8 +76,8 @@ void QmlEngine::registerGadgets_()
         decapitalize(#T).toStdString().c_str())
 
     DC_REGISTER_GADGET(PeerInfo);
-    DC_REGISTER_GADGET(AudioDirection);
-    DC_REGISTER_GADGET(AudioDeviceInfo);
+    DC_REGISTER_GADGET(DeviceDirection);
+    DC_REGISTER_GADGET(DeviceInfo);
 
 #undef DC_REGISTER_GADGET
 }
@@ -89,7 +90,8 @@ void QmlEngine::registerControllers_()
 
     DC_REGISTER_CONTROLLER(LicenseController);
     DC_REGISTER_CONTROLLER(PeerController);
-    DC_REGISTER_CONTROLLER(DeviceController);
+    DC_REGISTER_CONTROLLER(AudioDeviceController);
+    DC_REGISTER_CONTROLLER(VideoDeviceController);
     DC_REGISTER_CONTROLLER(ReceiverController);
     DC_REGISTER_CONTROLLER(SenderController);
 
