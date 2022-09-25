@@ -20,9 +20,8 @@ int main(int argc, char *argv[])
     }, Qt::QueuedConnection);
     engine.load(url);
 
-    QPixmap _qPixmapScaled;
     QPixmap appIcon(":img/app_icon.svg");
-    app.setWindowIcon(_qPixmapScaled);
+    app.setWindowIcon(appIcon);
 
     return app.exec();
 }
