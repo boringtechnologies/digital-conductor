@@ -1,0 +1,83 @@
+
+syntax = "proto3";
+
+// option java_multiple_files = true;
+// option java_package = "io.autodiscovery";
+// option java_outer_classname = "GrpcRocProto";
+// option objc_class_prefix = "HLW";
+
+package rpcroc;
+
+// greeting service definition.
+service RpcRoc 
+{
+    rpc getPeerList(GetPeerList) returns (stream Peer) {}
+    rpc subscribe(Peer) returns (stream Message) {}
+    rpc unsubscribe(Peer) returns (Empty) {}
+    rpc sendMessage(Message) returns (Empty) {}
+    rpc p2pInit(P2PInit) returns (Empty) {}
+    rpc p2pAccept(P2PAccept) returns (Empty) {}
+    rpc p2pCandidate(P2PCandidate) returns (Empty) {}
+    rpc p2pDisconnect(P2PDisconnect) returns (Empty) {}
+}
+
+message Empty
+{
+}
+
+// request peer list
+message GetPeerList
+{
+    // params needed?
+    string id = 1;
+}
+
+enum PeerType
+{
+    UNKNOWN = 0;
+    READER  = 0x01;
+    WRITER  = 0x02;
+}
+
+// response peer list
+message Peer
+{
+    string id = 1;
+    string group = 2;
+    uint32 type = 3;
+}
+
+message Message
+{
+    string from = 1;
+    string to = 2;
+    string msg = 3;
+}
+
+message P2PInit
+{
+    string from = 1;
+    string to = 2;
+    string sdp = 3;
+}
+
+message P2PAccept
+{
+    string from = 1;
+    string to = 2;
+    string sdp = 3;
+}
+
+message P2PCandidate
+{
+    string from = 1;
+    string to = 2;
+    string candidate = 3;
+}
+
+message P2PDisconnect
+{
+    string from = 1;
+    string to = 2;
+    string reason = 3;
+}

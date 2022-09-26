@@ -62,8 +62,9 @@ endif()
 
 add_subdirectory(3rdparty 3rdparty)
 
-add_subdirectory(src/lib lib)
-add_subdirectory(src/cli cli)
+add_subdirectory(src/core core)
+add_subdirectory(src/lib  lib)
+add_subdirectory(src/cli  cli)
 
 if(NOT QT_DIR STREQUAL "")
   add_subdirectory(src/demo demo)
