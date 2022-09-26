@@ -18,7 +18,10 @@ include_directories(
 
 set(CPP_SOURCES
   Main.cpp
+  registrator.cpp
 
+  controllers/appcontroller.cpp
+  controllers/appcontroller.h
   controllers/PeerController/PeerController.cpp
   controllers/AudioDeviceController/AudioDeviceController.cpp
   controllers/VideoDeviceController/VideoDeviceController.cpp

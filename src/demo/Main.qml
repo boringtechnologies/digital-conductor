@@ -1,18 +1,17 @@
 import QtQuick 2.6
 import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
-import DC as DC
-import "qrc:/dc/Main.js" as Logic
+
+import DC.controller 1.0
+
 import "qrc:/dc/common/common.js" as Common
+
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/views/AppGui"
 import "qrc:/dc/views/LicenseView"
 import "qrc:/dc/views/RegisterLicenseView"
 
 Window {
-    property bool isLicenseChecked: false
-    property bool isLicenseValid: false
-    property string newDeviceToken: ""
 
     minimumWidth: 530
     minimumHeight: 350
@@ -20,47 +19,46 @@ Window {
     title: `Digital Conductor Demo`
     color: Common.primaryColor
 
-    Timer {
-        id: timer
+    Connections {
+        target: Controller
     }
 
-    Component.onCompleted: () => {
-        licenseRegistrationView.onRegisterLicense.connect((license) => { 
-            Logic.registerLicense(license)
-            
-            isLicenseValid = true
-        })
-        Logic.delay(10, () => {
-            if (!!DC.LicenseController) {
-                isLicenseValid = Logic.licenseCheck()
-                isLicenseChecked = true
+    Loader {
+        id: idLoader
 
-                if (!isLicenseValid) {
-                    newDeviceToken = Logic.generateDeviceToken()
+        x: 0
+        y: 0
+        width: parent.width
+        height: parent.height
+
+        focus: true
+        visible: false
+        onLoaded: {
+            idLoader.visible = true;
+            idLoader.item.forceActiveFocus();
+        }
+
+        sourceComponent: Controller.state === Controller.StateWelcome         ? idLicenseView :
+                         Controller.state === Controller.StateRegisterLicense ? idRegisterLicenseView :
+                         Controller.state === Controller.StateCompleted       ? idAppGui :
+                                                                                idNullView;
+        Component { id: idNullView; Item {} }
+        Component { id: idLicenseView; LicenseView {} }
+        Component {
+            id: idRegisterLicenseView;
+            RegisterLicenseView {
+                deviceToken: Controller.newDeviceLicense
+                onRegisterLicense: {
+                    Controller.registerLicense(license);
                 }
-                timer.stop()
             }
-        })
+        }
+        Component { id: idAppGui; AppGui {} }
     }
 
-    LicenseView {
-        height: parent.height
-        width: parent.width
-        visible: !isLicenseChecked
+    Component.onCompleted: {
+        Controller.init();
+        Controller.checkLicense();
     }
 
-    RegisterLicenseView {
-        id: licenseRegistrationView
-        width: parent.width
-        visible: isLicenseChecked && !isLicenseValid
-
-        deviceToken: newDeviceToken
-
-    }
-
-    AppGui {
-        height: parent.height
-        width: parent.width
-        visible: isLicenseChecked && isLicenseValid
-    }
 }
