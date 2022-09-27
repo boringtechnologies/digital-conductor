@@ -1,6 +1,9 @@
 import QtQuick 2.6
 import QtQuick.Controls.Material 2.12
 import QtQuick.Layouts
+
+import DC.controller 1.0
+
 import DC as DC
 import "qrc:/dc/common/common.js" as Common
 import "qrc:/dc/components/DCText"
@@ -62,7 +65,7 @@ ColumnLayout {
             buttonText: "Copy!"
 
             onClicked: () => {
-                DC.LicenseController.copyToClipboard(deviceToken)
+                Controller.copyToClipboard(deviceToken)
             }
         }
     }

@@ -9,7 +9,6 @@
 #include "VideoDeviceController/VideoDeviceController.hpp"
 #include "ReceiverController/ReceiverController.hpp"
 #include "SenderController/SenderController.hpp"
-#include "LicenseController/LicenseController.hpp"
 
 // qml
 #include "QmlEngine/QmlEngine.hpp"
@@ -88,7 +87,6 @@ void QmlEngine::registerControllers_()
     qmlRegisterSingletonInstance(   \
         moduleName_, moduleVersion_[0], moduleVersion_[1], #T, &T::instance());
 
-    DC_REGISTER_CONTROLLER(LicenseController);
     DC_REGISTER_CONTROLLER(PeerController);
     DC_REGISTER_CONTROLLER(AudioDeviceController);
     DC_REGISTER_CONTROLLER(VideoDeviceController);

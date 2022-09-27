@@ -49,6 +49,8 @@ public slots:
     void registerLicense(const QString license);
     void checkLicense();
 
+    void copyToClipboard(QString data);
+
 private:
     class impl;
     std::shared_ptr<impl> m_p;

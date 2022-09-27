@@ -13,7 +13,7 @@
 
 //******************************************************************************
 //******************************************************************************
-namespace rpcroc
+namespace dc
 {
 
 //******************************************************************************
@@ -117,8 +117,8 @@ JuiceClient::~JuiceClient()
 void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
 {
     // TODO ugly, use bind etc.
-    rpcroc::JuiceClient       * caller = reinterpret_cast<rpcroc::JuiceClient *>(user_ptr);
-    rpcroc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
 
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
@@ -135,8 +135,8 @@ void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t stat
 void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
 {
     // TODO ugly, use bind etc.
-    rpcroc::JuiceClient       * caller = reinterpret_cast<rpcroc::JuiceClient *>(user_ptr);
-    rpcroc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
 
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
@@ -305,4 +305,4 @@ juice_state_t JuiceClient::state() const
     return JUICE_STATE_FAILED;
 }
 
-} // namespace rpcroc
+} // namespace dc

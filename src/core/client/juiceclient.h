@@ -10,7 +10,7 @@
 
 //******************************************************************************
 //******************************************************************************
-namespace rpcroc
+namespace dc
 {
 
 typedef void (* on_state_changed_t)(juice_agent_t * agent, juice_state_t state, void * user_ptr);
@@ -47,6 +47,6 @@ private:
     std::shared_ptr<impl> m_p;
 };
 
-} // namespace rpcroc
+} // namespace dc
 
 #endif // JUICECLIENT_H

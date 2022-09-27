@@ -18,7 +18,7 @@
 
 //******************************************************************************
 //******************************************************************************
-namespace rpcroc
+namespace dc
 {
 
 typedef void (* on_message_handler_t)(const std::string & from, const std::string & to, const std::string & msg);
@@ -32,7 +32,7 @@ public:
                std::shared_ptr<grpc::Channel> channel)
         : m_id(id)
         , m_group(group)
-        , m_stub(rpcroc::RpcRoc::NewStub(channel))
+        , m_stub(dc::DcRpc::NewStub(channel))
         , m_messageHandler(nullptr)
     {}
 
@@ -61,7 +61,7 @@ public:
     bool p2pDisconnect(const std::string & to, const std::string & reason);
 
 private:
-    std::unique_ptr<rpcroc::RpcRoc::Stub> m_stub;
+    std::unique_ptr<dc::DcRpc::Stub> m_stub;
 
     std::string m_id;
     std::string m_group;
@@ -73,6 +73,6 @@ private:
     on_message_handler_t m_messageHandler;
 };
 
-} // namespace rpcroc
+} // namespace dc
 
 #endif // GRPCCLIENT_H

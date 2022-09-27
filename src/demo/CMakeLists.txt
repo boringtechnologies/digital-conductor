@@ -9,12 +9,29 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 6.2 COMPONENTS Quick REQUIRED)
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+find_package(ZLIB REQUIRED)
+
+find_package(LibJuice REQUIRED)
+find_package(Threads REQUIRED)
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(GST REQUIRED
+        gobject-2.0
+        glib-2.0
+        gstreamer-1.0
+        gstreamer-app-1.0
+        gstreamer-net-1.0)
+
 include_directories(
-  controllers
-  components
-  gadgets
-  qml
-  )
+    ../core
+    controllers
+    components
+    gadgets
+    qml)
+
+# Include generated *.pb.h files
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/../core")
 
 set(CPP_SOURCES
   Main.cpp
@@ -95,17 +112,19 @@ qt_add_qml_module(DigitalConductorDemo
 add_dependencies(DigitalConductorDemo
   DigitalConductorCore_lib
   DigitalConductorDeps
-  DigitalConductorLib
-  )
+  DigitalConductorLib)
+
+message(${ZLIB_LIBRARIES})
 
 target_link_libraries(DigitalConductorDemo PRIVATE
     digitalconductorcore
     DigitalConductorLib
-  )
+    DigitalConductorCore_proto
+    DigitalConductorCore_lib
+    ${ZLIB_LIBRARIES})
 
-target_link_libraries(DigitalConductorDemo
-  PRIVATE Qt6::Quick
-  )
+target_link_libraries(DigitalConductorDemo PRIVATE
+    Qt6::Quick)
 
 set_target_properties(DigitalConductorDemo PROPERTIES
   OUTPUT_NAME "digitalconductor-demo"

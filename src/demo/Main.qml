@@ -1,6 +1,7 @@
 import QtQuick 2.6
 import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 import DC.controller 1.0
 
@@ -16,8 +17,13 @@ Window {
     minimumWidth: 530
     minimumHeight: 350
     visible: true
-    title: `Digital Conductor Demo`
+    title: "Digital Conductor Demo"
     color: Common.primaryColor
+
+    MessageDialog {
+        buttons: MessageDialog.Ok
+        text: "The document has been modified."
+    }
 
     Connections {
         target: Controller

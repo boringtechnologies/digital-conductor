@@ -6,10 +6,10 @@ syntax = "proto3";
 // option java_outer_classname = "GrpcRocProto";
 // option objc_class_prefix = "HLW";
 
-package rpcroc;
+package dc;
 
 // greeting service definition.
-service RpcRoc 
+service DcRpc
 {
     rpc getPeerList(GetPeerList) returns (stream Peer) {}
     rpc subscribe(Peer) returns (stream Message) {}

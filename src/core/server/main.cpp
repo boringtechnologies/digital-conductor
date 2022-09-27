@@ -22,47 +22,47 @@
 //******************************************************************************
 // ABSL_FLAG(int32_t, port, 50051, "Server port for service.");
 
-namespace rpcroc
+namespace dc
 {
 
-typedef std::map<std::string, rpcroc::Peer> peers_map_t;
+typedef std::map<std::string, dc::Peer> peers_map_t;
 
 class PeersWriter;
 class MessageWriter;
 
 //******************************************************************************
 //******************************************************************************
-class Service : public rpcroc::RpcRoc::CallbackService
+class Service : public dc::DcRpc::CallbackService
 {
-    grpc::ServerWriteReactor<rpcroc::Peer> * getPeerList(grpc::CallbackServerContext * context,
-                                                         const rpcroc::GetPeerList * request) override;
+    grpc::ServerWriteReactor<dc::Peer> * getPeerList(grpc::CallbackServerContext * context,
+                                                         const dc::GetPeerList * request) override;
 
-    grpc::ServerWriteReactor<rpcroc::Message> * subscribe(grpc::CallbackServerContext * context,
-                                                          const rpcroc::Peer * request) override;
+    grpc::ServerWriteReactor<dc::Message> * subscribe(grpc::CallbackServerContext * context,
+                                                          const dc::Peer * request) override;
 
     grpc::ServerUnaryReactor * unsubscribe(grpc::CallbackServerContext * context,
-                                           const rpcroc::Peer * request,
-                                           rpcroc::Empty * reply) override;
+                                           const dc::Peer * request,
+                                           dc::Empty * reply) override;
 
     grpc::ServerUnaryReactor * sendMessage(grpc::CallbackServerContext * context,
-                                           const rpcroc::Message * request,
-                                           rpcroc::Empty * reply) override;
+                                           const dc::Message * request,
+                                           dc::Empty * reply) override;
 
     grpc::ServerUnaryReactor * p2pInit(grpc::CallbackServerContext * context,
-                                       const rpcroc::P2PInit * request,
-                                       rpcroc::Empty * reply) override;
+                                       const dc::P2PInit * request,
+                                       dc::Empty * reply) override;
 
     grpc::ServerUnaryReactor * p2pAccept(grpc::CallbackServerContext * context,
-                                         const rpcroc::P2PAccept * request,
-                                         rpcroc::Empty * reply) override;
+                                         const dc::P2PAccept * request,
+                                         dc::Empty * reply) override;
 
     grpc::ServerUnaryReactor * p2pCandidate(grpc::CallbackServerContext * context,
-                                            const rpcroc::P2PCandidate * request,
-                                            rpcroc::Empty * reply) override;
+                                            const dc::P2PCandidate * request,
+                                            dc::Empty * reply) override;
 
     grpc::ServerUnaryReactor * p2pDisconnect(grpc::CallbackServerContext * context,
-                                             const rpcroc::P2PDisconnect * request,
-                                             rpcroc::Empty * reply) override;
+                                             const dc::P2PDisconnect * request,
+                                             dc::Empty * reply) override;
 
 public:
     // hack, need to review architecture
@@ -78,7 +78,7 @@ private:
 
 //******************************************************************************
 //******************************************************************************
-class PeersWriter : public grpc::ServerWriteReactor<rpcroc::Peer>
+class PeersWriter : public grpc::ServerWriteReactor<dc::Peer>
 {
 public:
     PeersWriter(const peers_map_t & pmap)
@@ -118,9 +118,9 @@ private:
 
 //******************************************************************************
 //******************************************************************************
-grpc::ServerWriteReactor<rpcroc::Peer> *
+grpc::ServerWriteReactor<dc::Peer> *
             Service::getPeerList(grpc::CallbackServerContext * context,
-                                 const rpcroc::GetPeerList * request)
+                                 const dc::GetPeerList * request)
 {
     std::cout << "getPeerList called from " << request->id() << std::endl;
     std::cout << "    " << m_peers.size() << " peers" << std::endl;
@@ -131,7 +131,7 @@ grpc::ServerWriteReactor<rpcroc::Peer> *
 
 //******************************************************************************
 //******************************************************************************
-class MessageWriter : public grpc::ServerWriteReactor<rpcroc::Message>
+class MessageWriter : public grpc::ServerWriteReactor<dc::Message>
 {
 public:
     MessageWriter(Service * owner, const std::string & id)
@@ -175,9 +175,9 @@ void Service::clientDisconnected(const std::string & id)
 
 //******************************************************************************
 //******************************************************************************
-grpc::ServerWriteReactor<rpcroc::Message> *
+grpc::ServerWriteReactor<dc::Message> *
             Service::subscribe(grpc::CallbackServerContext * context,
-                               const rpcroc::Peer * request)
+                               const dc::Peer * request)
 {
     std::cout << "subscribe called from " << request->id() << " " << context->peer() << std::endl;
 
@@ -202,8 +202,8 @@ grpc::ServerWriteReactor<rpcroc::Message> *
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::unsubscribe(grpc::CallbackServerContext * context,
-                                                const rpcroc::Peer * request,
-                                                rpcroc::Empty * reply)
+                                                const dc::Peer * request,
+                                                dc::Empty * reply)
 {
     std::cout << "unsubscribe called from " << request->id() << std::endl;
 
@@ -230,8 +230,8 @@ grpc::ServerUnaryReactor * Service::unsubscribe(grpc::CallbackServerContext * co
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::sendMessage(grpc::CallbackServerContext * context,
-                                                const rpcroc::Message * request,
-                                                rpcroc::Empty * reply)
+                                                const dc::Message * request,
+                                                dc::Empty * reply)
 {
     std::cout << "message from " << request->from()
               << " to " << request->to() << std::endl;
@@ -292,8 +292,8 @@ grpc::ServerUnaryReactor * Service::sendMessage(grpc::CallbackServerContext * co
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::p2pInit(grpc::CallbackServerContext * context,
-                                            const rpcroc::P2PInit * request,
-                                            rpcroc::Empty * reply)
+                                            const dc::P2PInit * request,
+                                            dc::Empty * reply)
 {
     std::cout << "p2pInit from " << request->from()
               << " to " << request->to() << std::endl;
@@ -313,7 +313,7 @@ grpc::ServerUnaryReactor * Service::p2pInit(grpc::CallbackServerContext * contex
         return reactor;
     }
 
-    rpcroc::Message m;
+    dc::Message m;
     m.set_from(request->from());
     m.set_to(request->to());
     m.set_msg("JP2PI " + request->sdp());
@@ -326,8 +326,8 @@ grpc::ServerUnaryReactor * Service::p2pInit(grpc::CallbackServerContext * contex
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::p2pAccept(grpc::CallbackServerContext * context,
-                                              const rpcroc::P2PAccept * request,
-                                              rpcroc::Empty * reply)
+                                              const dc::P2PAccept * request,
+                                              dc::Empty * reply)
 {
     std::cout << "p2pAccept from " << request->from()
               << " to " << request->to() << std::endl;
@@ -347,7 +347,7 @@ grpc::ServerUnaryReactor * Service::p2pAccept(grpc::CallbackServerContext * cont
         return reactor;
     }
 
-    rpcroc::Message m;
+    dc::Message m;
     m.set_from(request->from());
     m.set_to(request->to());
     m.set_msg("JP2PA " + request->sdp());
@@ -360,8 +360,8 @@ grpc::ServerUnaryReactor * Service::p2pAccept(grpc::CallbackServerContext * cont
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::p2pCandidate(grpc::CallbackServerContext * context,
-                                                 const rpcroc::P2PCandidate * request,
-                                                 rpcroc::Empty * reply)
+                                                 const dc::P2PCandidate * request,
+                                                 dc::Empty * reply)
 {
     std::cout << "p2pCandidate from " << request->from()
               << " to " << request->to() << std::endl;
@@ -381,7 +381,7 @@ grpc::ServerUnaryReactor * Service::p2pCandidate(grpc::CallbackServerContext * c
         return reactor;
     }
 
-    rpcroc::Message m;
+    dc::Message m;
     m.set_from(request->from());
     m.set_to(request->to());
     m.set_msg("JP2PC " + request->candidate());
@@ -394,8 +394,8 @@ grpc::ServerUnaryReactor * Service::p2pCandidate(grpc::CallbackServerContext * c
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor * Service::p2pDisconnect(grpc::CallbackServerContext * context,
-                                                  const rpcroc::P2PDisconnect * request,
-                                                  rpcroc::Empty * reply)
+                                                  const dc::P2PDisconnect * request,
+                                                  dc::Empty * reply)
 {
     std::cout << "p2pDisconnect from " << request->from()
               << " to " << request->to() << std::endl;
@@ -415,7 +415,7 @@ grpc::ServerUnaryReactor * Service::p2pDisconnect(grpc::CallbackServerContext * 
         return reactor;
     }
 
-    rpcroc::Message m;
+    dc::Message m;
     m.set_from(request->from());
     m.set_to(request->to());
     m.set_msg("JP2PD " + request->reason());
@@ -425,7 +425,7 @@ grpc::ServerUnaryReactor * Service::p2pDisconnect(grpc::CallbackServerContext * 
     return reactor;
 }
 
-} // namespace rpcroc
+} // namespace dc
 
 //******************************************************************************
 //******************************************************************************
@@ -433,7 +433,7 @@ int main()
 {
     uint32_t port = 50051; // absl::GetFlag(FLAGS_port);
 
-    rpcroc::Service service;
+    dc::Service service;
 
     grpc::ServerBuilder builder;
 //    builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS, 2000);

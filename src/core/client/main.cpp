@@ -10,9 +10,9 @@
 
 //******************************************************************************
 //******************************************************************************
-std::shared_ptr<rpcroc::GRpcClient>  grclient;
+std::shared_ptr<dc::GRpcClient>  grclient;
 
-typedef std::shared_ptr<rpcroc::JuiceClient> jcclient_ptr_t;
+typedef std::shared_ptr<dc::JuiceClient> jcclient_ptr_t;
 std::map<std::string, jcclient_ptr_t> jcclients;
 
 // sender
@@ -31,7 +31,7 @@ std::shared_ptr<media::Receiver> mediareceiver;
 //******************************************************************************
 void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
 {
-    rpcroc::JuiceClient * caller = reinterpret_cast<rpcroc::JuiceClient *>(user_ptr);
+    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
     std::string id = caller->id();
 
     // std::cout << "onStateChanged " << state << " " << juice_state_to_string(state) << std::endl;
@@ -82,7 +82,7 @@ void onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr)
 {
     // std::cout << "onCandidate " << sdp << std::endl;
 
-    rpcroc::JuiceClient * caller = reinterpret_cast<rpcroc::JuiceClient *>(user_ptr);
+    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
     if (grclient)
     {
@@ -101,7 +101,7 @@ void onGatheringDone(juice_agent_t * agent, void * user_ptr)
 //******************************************************************************
 void onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
 {
-    rpcroc::JuiceClient * caller = reinterpret_cast<rpcroc::JuiceClient *>(user_ptr);
+    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
     // std::cout << size << " bytes from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
@@ -152,7 +152,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
             return;
         }
 
-        ptr.reset(new rpcroc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
+        ptr.reset(new dc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
         ptr->init(msg.substr(6));
 
         if (!grclient->p2pAccept(from, ptr->sdp()))
@@ -276,7 +276,7 @@ int main(int argc, char * argv[])
             }
             else
             {
-                grclient.reset(new rpcroc::GRpcClient("none", "none", grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
+                grclient.reset(new dc::GRpcClient("none", "none", grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
                 grclient->getPeerList();
                 grclient.reset();
             }
@@ -313,7 +313,7 @@ int main(int argc, char * argv[])
                 continue;
             }
 
-            grclient.reset(new rpcroc::GRpcClient(v[0], group, grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
+            grclient.reset(new dc::GRpcClient(v[0], group, grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
             grclient->subscribe(type, onGrpcMessage);
         }
         else if (command == "unsubscribe")
@@ -355,7 +355,7 @@ int main(int argc, char * argv[])
                 continue;
             }
 
-            jcclient_ptr_t ptr(new rpcroc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
+            jcclient_ptr_t ptr(new dc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
             ptr->init();
 
             if (!grclient->p2pInit(v[0], ptr->sdp()))

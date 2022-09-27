@@ -5,6 +5,18 @@
 
 #include "licensing/LicenseManager.hpp"
 
+#include "client/grpcclient.h"
+
+#include <QGuiApplication>
+#include <QClipboard>
+
+#include <memory>
+
+//******************************************************************************
+//******************************************************************************
+namespace dc
+{
+} // namespace dc
 
 //******************************************************************************
 //******************************************************************************
@@ -18,6 +30,13 @@ protected:
     AppController      * m_o;
 
     AppController::State m_state;
+
+    std::string m_target;
+    std::string m_user;
+    std::string m_group;
+    std::string m_type;
+
+    std::shared_ptr<dc::GRpcClient>  m_rpcClient;
 };
 
 //******************************************************************************
@@ -57,6 +76,9 @@ AppController::~AppController()
 //******************************************************************************
 void AppController::init()
 {
+    m_p->m_target = "localhost:50051";
+    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group, grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
+    // m_p->m_rpcClient->subscribe(m_p->m_type, onGrpcMessage);
 }
 
 //******************************************************************************
@@ -90,6 +112,14 @@ void AppController::checkLicense()
                                                  : StateRegisterLicense;
 
     emit stateChanged();
+}
+
+//******************************************************************************
+//******************************************************************************
+void AppController::copyToClipboard(QString data)
+{
+    QClipboard * clipboard = QGuiApplication::clipboard();
+    clipboard->setText(data);
 }
 
 //******************************************************************************

@@ -86,7 +86,8 @@ target_link_directories(DigitalConductorCore_lib PRIVATE
             ${GST_LIBRARY_DIRS})
 
 target_link_libraries(DigitalConductorCore_lib PRIVATE
-            DigitalConductorCore_proto)
+            DigitalConductorCore_proto
+            ${ZLIB_LIBRARIES})
 
 set_target_properties(DigitalConductorCore_lib PROPERTIES
             OUTPUT_NAME "digitalconductorcore")
