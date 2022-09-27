@@ -10,7 +10,6 @@ ColumnLayout {
     id: layout
     spacing: 5
 
-    property var peerList: []
     property alias model : idList.model
 
     property string header: ""
@@ -49,36 +48,5 @@ ColumnLayout {
             }
 
         }
-
-//        ScrollView {
-//            height: parent.height
-//            width: parent.width
-//            contentWidth: parent.width
-//            ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-//            ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
-//            ColumnLayout {
-//                width: parent.width
-//                spacing: 0
-
-//                Repeater {
-//                    model: peerList.length
-
-//                    Rectangle {
-//                        width: parent.width
-//                        height: 24
-//                        color: Common.transparent
-
-//                        DCText {
-//                            leftPadding: 10
-//                            verticalAlignment : Text.AlignVCenter
-//                            height: parent.height
-//                            width: parent.width
-//                            text: peerList[index].id
-//                        }
-//                    }
-//                }
-//            }
-//        }
     }
 }

@@ -13,7 +13,6 @@ import "qrc:/dc/views/PeerListView/PeerListView.js" as Logic
 
 Column {
     spacing: 10
-    property var peers: Logic.getPeerList()
 
     Component.onCompleted: () => {}
 
@@ -31,7 +30,6 @@ Column {
         width: 160
         height: parent.height / 2 - 5
         header: "Active Senders"
-        peerList: peers[0]
         model: idSenders
     }
 
@@ -39,7 +37,6 @@ Column {
         width: 160
         height: parent.height / 2 - 5
         header: "Active Receivers"
-        peerList: peers[1]
         model: idReceivers
     }
 }
