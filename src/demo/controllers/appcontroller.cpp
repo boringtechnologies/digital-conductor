@@ -27,6 +27,9 @@ class AppController::impl
 protected:
     impl(AppController * owner);
 
+    void onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg);
+
+protected:
     AppController      * m_o;
 
     AppController::State m_state;
@@ -37,9 +40,6 @@ protected:
     std::string m_type;
 
     std::shared_ptr<dc::GRpcClient>  m_rpcClient;
-
-
-    void onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg);
 };
 
 //******************************************************************************

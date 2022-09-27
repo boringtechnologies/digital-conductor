@@ -17,7 +17,7 @@ std::vector<Peer> GRpcClient::getPeerList()
     std::vector<Peer> result;
 
     // TODO check last get peer time and request from server if need
-    if (true)
+    if (m_lastPeersRequested + std::chrono::milliseconds(5000) < std::chrono::system_clock::now())
     {
         m_peers.clear();
 
@@ -46,6 +46,8 @@ std::vector<Peer> GRpcClient::getPeerList()
                       << status.error_code() << ": " << status.error_message() << std::endl;
             return result;
         }
+
+        m_lastPeersRequested = std::chrono::system_clock::now();
     }
 
     for (const std::pair<std::string, Peer> & p : m_peers)

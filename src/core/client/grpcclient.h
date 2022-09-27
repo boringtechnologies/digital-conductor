@@ -34,6 +34,7 @@ public:
         , m_group(group)
         , m_stub(dc::DcRpc::NewStub(channel))
         , m_messageHandler(nullptr)
+        , m_lastPeersRequested(std::chrono::system_clock::now() - std::chrono::seconds(60))
     {}
 
     ~GRpcClient()
@@ -68,7 +69,8 @@ private:
 
     std::thread m_reader;
 
-    std::map<std::string, Peer> m_peers;
+    std::chrono::system_clock::time_point  m_lastPeersRequested;
+    std::map<std::string, Peer>            m_peers;
 
     on_message_handler_t m_messageHandler;
 };
