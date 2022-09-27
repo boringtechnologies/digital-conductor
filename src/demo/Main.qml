@@ -63,7 +63,6 @@ Window {
     }
 
     Component.onCompleted: {
-        Controller.init();
         Controller.checkLicense();
     }
 

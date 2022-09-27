@@ -1,6 +1,7 @@
 //*****************************************************************************
 //*****************************************************************************
 
+#include "controllers/appcontroller.h"
 #include "QmlEngine/QmlEngine.hpp"
 
 #include <QGuiApplication>
@@ -25,6 +26,9 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     registerTypes(engine);
+
+    AppController & ac = AppController::instance();
+    ac.init();
 
     const QUrl url("qrc:dc/Main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
