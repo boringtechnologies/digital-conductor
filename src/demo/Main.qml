@@ -29,7 +29,7 @@ Window {
     Connections {
         target: Controller
 
-        onShowMessage: {
+        function onShowMessage(message) {
             // TODO use MessageDialog
         }
     }
