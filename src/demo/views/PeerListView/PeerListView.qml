@@ -1,6 +1,9 @@
 import QtQuick 2.6
 import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
+
+import DC.model 1.0
+
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/TrayTabRect"
@@ -14,11 +17,22 @@ Column {
 
     Component.onCompleted: () => {}
 
+    PeerModel {
+        id: idSenders
+        type: "sender"
+    }
+
+    PeerModel {
+        id: idReceivers
+        type: "receiver"
+    }
+
     PeerList {
         width: 160
         height: parent.height / 2 - 5
         header: "Active Senders"
         peerList: peers[0]
+        model: idSenders
     }
 
     PeerList {
@@ -26,5 +40,6 @@ Column {
         height: parent.height / 2 - 5
         header: "Active Receivers"
         peerList: peers[1]
+        model: idReceivers
     }
 }

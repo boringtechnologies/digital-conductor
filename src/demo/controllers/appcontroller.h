@@ -11,6 +11,13 @@
 
 //*****************************************************************************
 //*****************************************************************************
+namespace dc
+{
+    class GRpcClient;
+}
+
+//*****************************************************************************
+//*****************************************************************************
 class AppController : public QObject
 {
     Q_OBJECT
@@ -36,6 +43,8 @@ public:
     virtual ~AppController();
 
 public:
+    std::shared_ptr<dc::GRpcClient> rpcClient();
+
     State   state() const;
 
     QString generateLicenseToken() const;

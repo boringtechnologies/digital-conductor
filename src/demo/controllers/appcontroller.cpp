@@ -107,6 +107,20 @@ void AppController::init(const QString & userName, const QString & group, const 
 
 //******************************************************************************
 //******************************************************************************
+std::shared_ptr<dc::GRpcClient> AppController::rpcClient()
+{
+    return m_p->m_rpcClient;
+}
+
+//******************************************************************************
+//******************************************************************************
+AppController::State AppController::state() const
+{
+    return m_p->m_state;
+}
+
+//******************************************************************************
+//******************************************************************************
 QString AppController::generateLicenseToken() const
 {
     dc::LicenseManager licenseManager;
@@ -144,11 +158,4 @@ void AppController::copyToClipboard(QString data)
 {
     QClipboard * clipboard = QGuiApplication::clipboard();
     clipboard->setText(data);
-}
-
-//******************************************************************************
-//******************************************************************************
-AppController::State AppController::state() const
-{
-    return m_p->m_state;
 }

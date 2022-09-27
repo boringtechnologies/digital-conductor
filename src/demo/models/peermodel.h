@@ -4,11 +4,10 @@
 #ifndef PEERMODEL_H
 #define PEERMODEL_H
 
-#include "autodiscovery.grpc.pb.h"
-
 #include <QAbstractListModel>
 
 #include <vector>
+#include <memory>
 
 //******************************************************************************
 //******************************************************************************
@@ -24,7 +23,13 @@ class PeerModel : public QAbstractListModel
     };
 
 public:
+    Q_PROPERTY(QString type WRITE setType)
+
+public:
     explicit PeerModel(QObject *parent = nullptr);
+
+public:
+    void setType(const QString & type);
 
 public:
     virtual int rowCount(const QModelIndex & parent = QModelIndex()) const;
@@ -39,9 +44,8 @@ private:
     QHash<int, QByteArray> roleNames() const;
 
 private:
-    QHash<int, QByteArray> m_names;
-
-    std::vector<dc::Peer>  m_peers;
+    class impl;
+    std::shared_ptr<impl> m_p;
 };
 
 #endif // PEERMODEL_H

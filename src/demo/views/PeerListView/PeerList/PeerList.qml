@@ -11,6 +11,8 @@ ColumnLayout {
     spacing: 5
 
     property var peerList: []
+    property alias model : idList.model
+
     property string header: ""
 
 
@@ -27,35 +29,56 @@ ColumnLayout {
         border.width: 1
         radius: 2
 
-        ScrollView {
-            height: parent.height
-            width: parent.width
-            contentWidth: parent.width
-            ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+        ListView {
+            id: idList
+            anchors.fill: parent
 
-            ColumnLayout {
+            delegate: Rectangle {
+
                 width: parent.width
-                spacing: 0
+                height: 24
+                color: Common.transparent
 
-                Repeater {
-                    model: peerList.length
-
-                    Rectangle {
-                        width: parent.width
-                        height: 24
-                        color: Common.transparent
-
-                        DCText {
-                            leftPadding: 10
-                            verticalAlignment : Text.AlignVCenter
-                            height: parent.height
-                            width: parent.width
-                            text: peerList[index].id
-                        }
-                    }
+                DCText {
+                    leftPadding: 10
+                    verticalAlignment : Text.AlignVCenter
+                    height: parent.height
+                    width: parent.width
+                    text: id + " - " + group
                 }
             }
+
         }
+
+//        ScrollView {
+//            height: parent.height
+//            width: parent.width
+//            contentWidth: parent.width
+//            ScrollBar.horizontal.policy: ScrollBar.AsNeeded
+//            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+
+//            ColumnLayout {
+//                width: parent.width
+//                spacing: 0
+
+//                Repeater {
+//                    model: peerList.length
+
+//                    Rectangle {
+//                        width: parent.width
+//                        height: 24
+//                        color: Common.transparent
+
+//                        DCText {
+//                            leftPadding: 10
+//                            verticalAlignment : Text.AlignVCenter
+//                            height: parent.height
+//                            width: parent.width
+//                            text: peerList[index].id
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 }
