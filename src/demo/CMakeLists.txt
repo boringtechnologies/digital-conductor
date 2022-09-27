@@ -28,6 +28,7 @@ include_directories(
     controllers
     components
     gadgets
+    models
     qml)
 
 # Include generated *.pb.h files
@@ -49,6 +50,9 @@ set(CPP_SOURCES
   gadgets/PeerInfo/PeerInfo.cpp
   gadgets/DeviceInfo/DeviceInfo.cpp
   gadgets/DeviceDirection/DeviceDirection.cpp
+
+  models/peermodel.h
+  models/peermodel.cpp
 
   qml/QmlEngine/QmlEngine.cpp
   )

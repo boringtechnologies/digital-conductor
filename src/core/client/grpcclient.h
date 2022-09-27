@@ -50,7 +50,7 @@ public:
 
     Peer        getPeer(const std::string & id) const;
 
-    void getPeerList();
+    std::vector<Peer> getPeerList();
     void subscribe(const uint32_t type = 1, on_message_handler_t handler = nullptr);
     void unsubscribe();
     void sendMessage(const std::string & to, const std::string & msg);

@@ -10,37 +10,50 @@ namespace dc
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::getPeerList()
+std::vector<Peer> GRpcClient::getPeerList()
 {
     std::cout << "getPeerList()" << std::endl;
 
-    m_peers.clear();
+    std::vector<Peer> result;
 
-    GetPeerList request;
-    request.set_id(m_id);
-
-    grpc::ClientContext context;
-
-    std::unique_ptr<grpc::ClientReader<Peer> > reader(m_stub->getPeerList(&context, request));
-
-    Peer peer;
-    std::cout << "Received peer list:" << std::endl;
-    while (reader->Read(&peer))
+    // TODO check last get peer time and request from server if need
+    if (true)
     {
-        std::cout << "    <" << peer.id() << "@" << peer.group()
-                  << "> type " << peer.type() << std::endl;
-                  // << " sdp (" << peer.sdp() << ")" << std::endl;
+        m_peers.clear();
 
-        m_peers[peer.id()] = peer;
+        GetPeerList request;
+        request.set_id(m_id);
+
+        grpc::ClientContext context;
+
+        std::unique_ptr<grpc::ClientReader<Peer> > reader(m_stub->getPeerList(&context, request));
+
+        Peer peer;
+        std::cout << "Received peer list:" << std::endl;
+        while (reader->Read(&peer))
+        {
+            std::cout << "    <" << peer.id() << "@" << peer.group()
+                      << "> type " << peer.type() << std::endl;
+                      // << " sdp (" << peer.sdp() << ")" << std::endl;
+
+            m_peers[peer.id()] = peer;
+        }
+
+        grpc::Status status = reader->Finish();
+        if (!status.ok())
+        {
+            std::cout << "getPeerList finished with error "
+                      << status.error_code() << ": " << status.error_message() << std::endl;
+            return result;
+        }
     }
 
-    grpc::Status status = reader->Finish();
-    if (!status.ok())
+    for (const std::pair<std::string, Peer> & p : m_peers)
     {
-        std::cout << "getPeerList finished with error "
-                  << status.error_code() << ": " << status.error_message() << std::endl;
-        return;
+        result.emplace_back(p.second);
     }
+
+    return result;
 }
 
 //******************************************************************************
