@@ -21,7 +21,7 @@
 namespace dc
 {
 
-typedef void (* on_message_handler_t)(const std::string & from, const std::string & to, const std::string & msg);
+typedef std::function<void(const std::string & from, const std::string & to, const std::string & msg)> on_message_handler_t;
 
 //******************************************************************************
 //******************************************************************************

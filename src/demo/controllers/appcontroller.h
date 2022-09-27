@@ -41,10 +41,11 @@ public:
     QString generateLicenseToken() const;
 
 signals:
+    void showMessage(const QString & text);
     void stateChanged();
 
 public slots:
-    void init();
+    void init(const QString & userName, const QString & group, const QString & target);
 
     void registerLicense(const QString license);
     void checkLicense();

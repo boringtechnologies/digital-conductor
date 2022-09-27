@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QIcon>
+#include <QCommandLineParser>
 
 //*****************************************************************************
 //*****************************************************************************
@@ -18,6 +19,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication::setOrganizationName("DC");
     QCoreApplication::setApplicationName("DigitalConductor");
+    QCoreApplication::setApplicationVersion("0.1");
 
     QGuiApplication app(argc, argv);
 
@@ -27,8 +29,31 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     registerTypes(engine);
 
-    AppController & ac = AppController::instance();
-    ac.init();
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    QCommandLineOption server(QStringList() << "s" << "server",
+                              QCoreApplication::translate("main", "Signalling server"),
+                              QCoreApplication::translate("main", "ip:port"));
+    QCommandLineOption user(QStringList() << "u" << "user",
+                            QCoreApplication::translate("main", "User name"),
+                            QCoreApplication::translate("main", "user"));
+    QCommandLineOption group(QStringList() << "g" << "group",
+                             QCoreApplication::translate("main", "User group"),
+                             QCoreApplication::translate("main", "group"));
+
+    parser.addOptions({server, user, group});
+    parser.process(app);
+
+    if (!parser.isSet(server) || !parser.isSet(user) || !parser.isSet(group))
+    {
+        parser.showHelp();
+        return 0;
+    }
+
+    AppController * ac = AppController::instance();
+    ac->init(parser.value(user), parser.value(group), parser.value(server));
 
     const QUrl url("qrc:dc/Main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,

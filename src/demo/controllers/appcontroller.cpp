@@ -37,6 +37,9 @@ protected:
     std::string m_type;
 
     std::shared_ptr<dc::GRpcClient>  m_rpcClient;
+
+
+    void onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg);
 };
 
 //******************************************************************************
@@ -44,6 +47,13 @@ protected:
 AppController::impl::impl(AppController * owner)
     : m_o(owner)
     , m_state(AppController::StateWelcome)
+{
+
+}
+
+//*****************************************************************************
+//*****************************************************************************
+void AppController::impl::onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg)
 {
 
 }
@@ -69,16 +79,30 @@ AppController * AppController::instance(QQmlEngine *, QJSEngine *)
 //*****************************************************************************
 AppController::~AppController()
 {
-
 }
 
 //******************************************************************************
 //******************************************************************************
-void AppController::init()
+void AppController::init(const QString & userName, const QString & group, const QString & target)
 {
-    m_p->m_target = "localhost:50051";
+    m_p->m_user   = userName.toStdString();
+    m_p->m_group  = group.toStdString();
+    m_p->m_target = target.toStdString();
+
     m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group, grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
-    // m_p->m_rpcClient->subscribe(m_p->m_type, onGrpcMessage);
+
+    uint32_t type = 3;
+    if (!m_p->m_type.empty())
+    {
+        type = m_p->m_type == "r"  ? 1 :
+               m_p->m_type == "w"  ? 2 :
+               m_p->m_type == "rw" ? 3 : 0;
+    }
+
+    m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(),
+                                                std::placeholders::_1,
+                                                std::placeholders::_2,
+                                                std::placeholders::_3));
 }
 
 //******************************************************************************

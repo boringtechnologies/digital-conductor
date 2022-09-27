@@ -20,13 +20,18 @@ Window {
     title: "Digital Conductor Demo"
     color: Common.primaryColor
 
-    MessageDialog {
-        buttons: MessageDialog.Ok
-        text: "The document has been modified."
-    }
+    // TODO update Qt to 6.3
+//    MessageDialog {
+//        buttons: MessageDialog.Ok
+//        text: "The document has been modified."
+//    }
 
     Connections {
         target: Controller
+
+        onShowMessage: {
+            // TODO use MessageDialog
+        }
     }
 
     Loader {
