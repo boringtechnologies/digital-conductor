@@ -23,6 +23,9 @@ namespace dc
 
 typedef std::function<void(const std::string & from, const std::string & to, const std::string & msg)> on_message_handler_t;
 
+class GRpcClient;
+typedef std::shared_ptr<GRpcClient> GRpcClientPtr;
+
 //******************************************************************************
 //******************************************************************************
 class GRpcClient

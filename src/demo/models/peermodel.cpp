@@ -45,13 +45,7 @@ PeerModel::impl::impl(PeerModel * owner)
 void PeerModel::impl::processUpdate()
 {
     AppController * ac = AppController::instance();
-    std::shared_ptr<dc::GRpcClient> client = ac->rpcClient();
-    if (!client)
-    {
-        return;
-    }
-
-    std::vector<dc::Peer> peers = client->getPeerList();
+    std::vector<dc::Peer> peers = ac->getPeers();
     m_o->beginResetModel();
     m_peers.clear();
     for (const dc::Peer & p : peers)

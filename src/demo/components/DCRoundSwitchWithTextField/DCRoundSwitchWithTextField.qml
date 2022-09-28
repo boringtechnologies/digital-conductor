@@ -55,6 +55,7 @@ Switch {
 
         DCTextField {
             id: idTextField
+            enabled: false
             placeholderText: placeholder
             width: parent.width - headerId.width - indicatorId.width - 30
             leftPadding: 5

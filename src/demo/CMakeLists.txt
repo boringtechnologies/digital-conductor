@@ -124,8 +124,7 @@ target_link_libraries(DigitalConductorDemo PRIVATE
     digitalconductorcore
     DigitalConductorLib
     DigitalConductorCore_proto
-    DigitalConductorCore_lib
-    ${ZLIB_LIBRARIES})
+    DigitalConductorCore_lib)
 
 target_link_libraries(DigitalConductorDemo PRIVATE
     Qt6::Quick)

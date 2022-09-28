@@ -4,6 +4,8 @@
 #ifndef APPCONTROLLER_H
 #define APPCONTROLLER_H
 
+#include "autodiscovery.grpc.pb.h"
+
 #include <QObject>
 #include <QQmlEngine>
 
@@ -44,7 +46,8 @@ public:
     virtual ~AppController();
 
 public:
-    std::shared_ptr<dc::GRpcClient> rpcClient();
+    // std::shared_ptr<dc::GRpcClient> rpcClient();
+    std::vector<dc::Peer> getPeers() const;
 
     State   state() const;
 
@@ -63,6 +66,10 @@ public slots:
     void checkLicense();
 
     void copyToClipboard(QString data);
+
+    void startStreaming();
+    void receiveStream();
+    void stopStream();
 
 private:
     class impl;

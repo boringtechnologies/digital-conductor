@@ -5,6 +5,8 @@
 #define JUICECLIENT_H
 
 #include <memory>
+#include <thread>
+#include <functional>
 
 #include <juice/juice.h>
 
@@ -13,10 +15,13 @@
 namespace dc
 {
 
-typedef void (* on_state_changed_t)(juice_agent_t * agent, juice_state_t state, void * user_ptr);
-typedef void (* on_candidate_t)(juice_agent_t * agent, const char * sdp, void * user_ptr);
-typedef void (* on_gathering_done_t)(juice_agent_t * agent, void * user_ptr);
-typedef void (* on_recv_t)(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
+typedef std::function<void(juice_agent_t * agent, juice_state_t state, void * user_ptr)> on_state_changed_t;
+typedef std::function<void(juice_agent_t * agent, const char * sdp, void * user_ptr)> on_candidate_t;
+typedef std::function<void(juice_agent_t * agent, void * user_ptr)> on_gathering_done_t;
+typedef std::function<void(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)> on_recv_t;
+
+class JuiceClient;
+typedef std::shared_ptr<JuiceClient> JuiceClientPtr;
 
 //******************************************************************************
 //******************************************************************************

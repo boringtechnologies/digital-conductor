@@ -41,9 +41,10 @@ Rectangle {
             Layout.fillWidth: true
             header: qsTr("Start Sending to")
             placeholder: Controller.group
-            // text: Controller.group
-            enabled: false
-            onClicked: Logic.setSenderState()
+            // onClicked: Logic.setSenderState()
+            onClicked: {
+                checked ? Controller.startStreaming() : Controller.stopStream();
+            }
         }
 
         Rectangle {

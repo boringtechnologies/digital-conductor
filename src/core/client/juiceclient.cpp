@@ -52,6 +52,8 @@ class JuiceClient::impl
     std::chrono::system_clock::time_point m_lastReceived;
 
     static void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr);
+    static void onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr);
+    static void onGatheringDone(juice_agent_t * agent, void * user_ptr);
     static void onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
 };
 
@@ -123,10 +125,33 @@ void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t stat
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
     // default, call handler
-    if (caller->m_p->m_onStateChangedHandler)
-    {
-        caller->m_p->m_onStateChangedHandler(agent, state, user_ptr);
-    }
+    caller->m_p->m_onStateChangedHandler(agent, state, user_ptr);
+}
+
+//******************************************************************************
+//******************************************************************************
+// static
+void JuiceClient::impl::onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr)
+{
+    // TODO ugly, use bind etc.
+    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+
+    // default, call handler
+    cimpl->m_onCandidateHandler(agent, sdp, user_ptr);
+}
+
+//******************************************************************************
+//******************************************************************************
+// static
+void JuiceClient::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr)
+{
+    // TODO ugly, use bind etc.
+    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+
+    // default, call handler
+    cimpl->m_onGatheringDoneHandler(agent, user_ptr);
 }
 
 //******************************************************************************
@@ -154,8 +179,8 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     if (memcmp(data, "JP2PING ", 8) == 0)
     {
         // ping
-//        std::cout << size << " bytes ping from " << caller->id() << std::endl;
-//        std::cout << "    " << std::string(data, size) << std::endl;
+        std::cout << size << " bytes ping from " << caller->id() << std::endl;
+        std::cout << "    " << std::string(data, size) << std::endl;
 
         std::string pongmsg = "JP2PONG " + caller->id();
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());
@@ -170,10 +195,7 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     }
 
     // default, call handler
-    if (caller->m_p->m_onReceiveHandler)
-    {
-        caller->m_p->m_onReceiveHandler(agent, data, size, user_ptr);
-    }
+    caller->m_p->m_onReceiveHandler(agent, data, size, user_ptr);
 }
 
 //******************************************************************************
@@ -199,8 +221,8 @@ bool JuiceClient::init()
 //    m_p->m_config.local_port_range_end   = 50050;
 
     m_p->m_config.cb_state_changed  = &impl::onStateChanged;
-    m_p->m_config.cb_candidate      = m_p->m_onCandidateHandler;
-    m_p->m_config.cb_gathering_done = m_p->m_onGatheringDoneHandler;
+    m_p->m_config.cb_candidate      = &impl::onCandidate;
+    m_p->m_config.cb_gathering_done = &impl::onGatheringDone;
     m_p->m_config.cb_recv           = &impl::onRecv;
     m_p->m_config.user_ptr          = this;
 
