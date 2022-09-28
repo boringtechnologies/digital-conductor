@@ -40,9 +40,10 @@ Rectangle {
             Layout.fillWidth: true
             header: qsTr("Start Receiving from")
             placeholder: Controller.group
-            // text: Controller.group
-            enabled: false
-            onClicked: Logic.setReceiverState()
+            // onClicked: Logic.setReceiverState()
+            onClicked: {
+                checked ? Controller.receiveStream() : Controller.stopStream();
+            }
         }
 
         Rectangle {

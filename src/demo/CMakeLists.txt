@@ -34,6 +34,10 @@ include_directories(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/../core")
 
+# media
+include_directories(${CMAKE_SOURCE_DIR}/src/core/media/include
+                    ${GST_INCLUDE_DIRS})
+
 set(CPP_SOURCES
   Main.cpp
   registrator.cpp
@@ -117,8 +121,6 @@ add_dependencies(DigitalConductorDemo
   DigitalConductorCore_lib
   DigitalConductorDeps
   DigitalConductorLib)
-
-message(${ZLIB_LIBRARIES})
 
 target_link_libraries(DigitalConductorDemo PRIVATE
     digitalconductorcore

@@ -88,7 +88,8 @@ target_link_directories(DigitalConductorCore_lib PRIVATE
 target_link_libraries(DigitalConductorCore_lib PRIVATE
             DigitalConductorCore_proto
             LibJuice::LibJuice
-            ${ZLIB_LIBRARIES})
+            ${ZLIB_LIBRARIES}
+            ${GST_LIBRARIES})
 
 set_target_properties(DigitalConductorCore_lib PROPERTIES
             OUTPUT_NAME "digitalconductorcore")

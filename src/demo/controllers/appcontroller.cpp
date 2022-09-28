@@ -8,6 +8,9 @@
 #include "client/grpcclient.h"
 #include "client/juiceclient.h"
 
+#undef signals // for gstreamer
+#include "sync.hpp"
+
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -58,6 +61,18 @@ protected:
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
+
+    // sender
+    media::ClockInfo                 m_mediaclock = {"66.228.38.186", 10000};
+    media::MediaType                 m_mediatype = media::MediaType::Video;
+    media::CaptureDevice             m_captureDevice;
+    std::shared_ptr<media::Sender>   m_mediasender;
+
+    // receiver
+    media::PlaybackDevice            m_playbackDevice;
+    media::ClockInfo                 m_receiverclock = {"66.228.38.186", 10000};
+    std::chrono::duration<int>       m_delay;
+    std::shared_ptr<media::Receiver> m_mediareceiver;
 };
 
 //******************************************************************************
@@ -140,11 +155,11 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
     else if (msg.rfind("JP2PD", 0) == 0)
     {
         // juice disconnect
-//        if (mediasender)
-//        {
-//            mediasender->removeReceiver(from);
-//        }
-//        std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+        if (m_mediasender)
+        {
+            m_mediasender->removeReceiver(from);
+        }
+        std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
         m_p2pConnections.erase(from);
     }
     else
@@ -168,40 +183,37 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
     {
         std::cout << "P2P connection, " << id << " connected" << std::endl;
 
-//        if (!mediasender)
-//        {
-//            std::cout << "    no media" << std::endl;
-//        }
-//        else
-//        {
-//            if (jcclients.find(id) == jcclients.end() || !jcclients[id])
-//            {
-//                std::cout << "    no receiver named " << id << std::endl;
-//            }
-//            else
-//            {
-//                mediasender->addReceiver(id, [id](const uint8_t *data, size_t len)
-//                {
-//                    jcclients[id]->sendMessage(data, len);
-//                    // std::cout << len << " bytes to " << id << std::endl;
-//                });
-//            }
-//        }
+        if (m_mediasender)
+        {
+            dc::JuiceClientPtr ptr = getP2PClient(id);
+            if (!ptr)
+            {
+                std::cout << "    no receiver named " << id << std::endl;
+            }
+            else
+            {
+                m_mediasender->addReceiver(id, [ptr](const uint8_t *data, size_t len)
+                {
+                    ptr->sendMessage(data, len);
+                    // std::cout << len << " bytes to " << id << std::endl;
+                });
+            }
+        }
     }
     else if (state == JUICE_STATE_DISCONNECTED)
     {
-//        if (mediasender)
-//        {
-//            mediasender->removeReceiver(id);
-//        }
-//        if (mediareceiver)
-//        {
-//            mediareceiver->stop();
-//            mediareceiver.reset();
-//        }
+        if (m_mediasender)
+        {
+            m_mediasender->removeReceiver(id);
+        }
+        if (m_mediareceiver)
+        {
+            m_mediareceiver->stop();
+            m_mediareceiver.reset();
+        }
         std::cout << "P2P connection, " << id << " disconnected" << std::endl;
+        m_p2pConnections.erase(id);
     }
-
 }
 
 //******************************************************************************
@@ -230,6 +242,25 @@ void AppController::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr
 //******************************************************************************
 void AppController::impl::onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
 {
+    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+
+    // std::cout << size << " bytes from " << caller->id() << std::endl;
+    // std::cout << "    " << std::string(data, size) << std::endl;
+
+    if (m_mediareceiver)
+    {
+        m_mediareceiver->push(reinterpret_cast<const uint8_t *>(data), size);
+    }
+    else if (m_mediasender)
+    {
+        for (const auto &jc : m_p2pConnections)
+        {
+            if (jc.second.get() == caller)
+            {
+                m_mediasender->push(jc.first, reinterpret_cast<const uint8_t *>(data), size);
+            }
+        }
+    }
 
 }
 
@@ -366,6 +397,25 @@ void AppController::copyToClipboard(QString data)
 //******************************************************************************
 void AppController::startStreaming()
 {
+    if (!m_p->m_rpcClient)
+    {
+        std::cout << "not subscribed" << std::endl;
+        // TODO emit error
+        return;
+    }
+    if (m_p->m_mediasender)
+    {
+        std::cout << "already started" << std::endl;
+        // TODO emit error
+        return;
+    }
+
+    // start sender
+    m_p->m_captureDevice.name = "/dev/video0";
+    m_p->m_mediasender.reset(new media::Sender(m_p->m_user, m_p->m_mediatype, m_p->m_captureDevice, m_p->m_mediaclock));
+    m_p->m_mediasender->start();
+
+    // connect peers
     for (const dc::Peer & p : m_p->m_rpcPeers)
     {
         dc::JuiceClientPtr ptr;
@@ -390,7 +440,31 @@ void AppController::startStreaming()
 //******************************************************************************
 void AppController::receiveStream()
 {
-    qDebug() << Q_FUNC_INFO;
+    if (m_p->m_mediasender)
+    {
+        std::cout << "i'm a sender" << std::endl;
+        return;
+    }
+
+    if (m_p->m_mediareceiver)
+    {
+        std::cout << "already receiving" << std::endl;
+        return;
+    }
+
+    // dc::JuiceClientPtr ptr = m_p->getP2PClient(id);
+    dc::JuiceClientPtr ptr = m_p->m_p2pConnections.begin()->second;
+
+    std::string id = ptr->id();
+
+    bool synchronize = true;
+    m_p->m_mediareceiver.reset(new media::Receiver(id, m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
+                [ptr](const uint8_t *data, size_t len)
+                {
+                    ptr->sendMessage(data, len);
+                    // std::cout << len << " bytes to " << id << std::endl;
+                }));
+    m_p->m_mediareceiver->start();
 }
 
 //******************************************************************************
@@ -398,23 +472,33 @@ void AppController::receiveStream()
 void AppController::stopStream()
 {
     // TODO stop media for all connections
-
-    for (const dc::Peer & p : m_p->m_rpcPeers)
+    if (m_p->m_mediasender)
     {
+        m_p->m_mediasender->stop();
+        m_p->m_mediasender.reset();
 
-        if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "user request"))
+        for (const dc::Peer & p : m_p->m_rpcPeers)
         {
-            std::cout << "p2p disconnect error" << std::endl;
-            continue;
+
+            if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "user request"))
+            {
+                std::cout << "p2p disconnect error" << std::endl;
+                continue;
+            }
+
+            dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
+            if (ptr)
+            {
+                ptr->disconnect();
+                // m_p->m_p2pConnections.erase(p.id());
+            }
         }
 
-        dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
-        if (ptr)
-        {
-            ptr->disconnect();
-            // m_p->m_p2pConnections.erase(p.id());
-        }
+        m_p->m_p2pConnections.clear();
     }
-
-    m_p->m_p2pConnections.clear();
+    else if (m_p->m_mediareceiver)
+    {
+        m_p->m_mediareceiver->stop();
+        m_p->m_mediareceiver.reset();
+    }
 }
