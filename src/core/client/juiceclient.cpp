@@ -179,8 +179,8 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     if (memcmp(data, "JP2PING ", 8) == 0)
     {
         // ping
-        std::cout << size << " bytes ping from " << caller->id() << std::endl;
-        std::cout << "    " << std::string(data, size) << std::endl;
+//        std::cout << size << " bytes ping from " << caller->id() << std::endl;
+//        std::cout << "    " << std::string(data, size) << std::endl;
 
         std::string pongmsg = "JP2PONG " + caller->id();
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());

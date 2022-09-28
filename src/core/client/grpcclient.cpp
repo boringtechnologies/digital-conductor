@@ -29,11 +29,11 @@ std::vector<Peer> GRpcClient::getPeerList()
         std::unique_ptr<grpc::ClientReader<Peer> > reader(m_stub->getPeerList(&context, request));
 
         Peer peer;
-        std::cout << "Received peer list:" << std::endl;
+//        std::cout << "Received peer list:" << std::endl;
         while (reader->Read(&peer))
         {
-            std::cout << "    <" << peer.id() << "@" << peer.group()
-                      << "> type " << peer.type() << std::endl;
+//            std::cout << "    <" << peer.id() << "@" << peer.group()
+//                      << "> type " << peer.type() << std::endl;
                       // << " sdp (" << peer.sdp() << ")" << std::endl;
 
             // filter by group
