@@ -36,7 +36,11 @@ std::vector<Peer> GRpcClient::getPeerList()
                       << "> type " << peer.type() << std::endl;
                       // << " sdp (" << peer.sdp() << ")" << std::endl;
 
-            m_peers[peer.id()] = peer;
+            // filter by group
+            if (!m_group.empty() && peer.group() == m_group)
+            {
+                m_peers[peer.id()] = peer;
+            }
         }
 
         grpc::Status status = reader->Finish();

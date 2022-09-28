@@ -33,6 +33,7 @@ public:
     Q_ENUM(State)
     Q_PROPERTY(State state READ state NOTIFY stateChanged)
 
+    Q_PROPERTY(QString group READ group CONSTANT)
     Q_PROPERTY(QString newDeviceLicense READ generateLicenseToken CONSTANT)
 
 protected:
@@ -46,6 +47,8 @@ public:
     std::shared_ptr<dc::GRpcClient> rpcClient();
 
     State   state() const;
+
+    QString group() const;
 
     QString generateLicenseToken() const;
 

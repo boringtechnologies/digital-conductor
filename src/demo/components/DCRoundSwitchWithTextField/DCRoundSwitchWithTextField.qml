@@ -16,7 +16,8 @@ Switch {
     property bool isChecked: false
 
     property var selectModel: []
-    property string placeholder: "" 
+    property alias placeholder: idTextField.placeholderText
+    property alias test: idTextField.text
     property int currentSelectIndex: 0
 
     signal selected(string value)
@@ -53,6 +54,7 @@ Switch {
         }
 
         DCTextField {
+            id: idTextField
             placeholderText: placeholder
             width: parent.width - headerId.width - indicatorId.width - 30
             leftPadding: 5

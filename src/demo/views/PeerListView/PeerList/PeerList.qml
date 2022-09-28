@@ -34,7 +34,7 @@ ColumnLayout {
 
             delegate: Rectangle {
 
-                width: parent.width
+                width: idList.width
                 height: 24
                 color: Common.transparent
 

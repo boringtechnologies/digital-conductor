@@ -121,6 +121,13 @@ AppController::State AppController::state() const
 
 //******************************************************************************
 //******************************************************************************
+QString AppController::group() const
+{
+    return QString::fromStdString(m_p->m_group);
+}
+
+//******************************************************************************
+//******************************************************************************
 QString AppController::generateLicenseToken() const
 {
     dc::LicenseManager licenseManager;

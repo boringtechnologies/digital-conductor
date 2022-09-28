@@ -1,6 +1,9 @@
 import QtQuick 2.6
 import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
+
+import DC.controller 1.0
+
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCComboBox"
@@ -37,7 +40,9 @@ Rectangle {
             id: senderSwitch
             Layout.fillWidth: true
             header: qsTr("Start Sending to")
-            placeholder: "Group name"
+            placeholder: Controller.group
+            // text: Controller.group
+            enabled: false
             onClicked: Logic.setSenderState()
         }
 
