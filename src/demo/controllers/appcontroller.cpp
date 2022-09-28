@@ -409,6 +409,12 @@ void AppController::startStreaming()
         // TODO emit error
         return;
     }
+    if (m_p->m_mediareceiver)
+    {
+        std::cout << "already receiving" << std::endl;
+        // TODO emit error
+        return;
+    }
 
     // start sender
     m_p->m_captureDevice.name = "/dev/video0";
@@ -443,12 +449,13 @@ void AppController::receiveStream()
     if (m_p->m_mediasender)
     {
         std::cout << "i'm a sender" << std::endl;
+        // TODO emit error
         return;
     }
-
     if (m_p->m_mediareceiver)
     {
         std::cout << "already receiving" << std::endl;
+        // TODO emit error
         return;
     }
 
