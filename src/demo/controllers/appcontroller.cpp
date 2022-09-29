@@ -22,6 +22,10 @@
 //******************************************************************************
 namespace dc
 {
+
+typedef std::shared_ptr<media::Sender>   SenderPtr;
+typedef std::shared_ptr<media::Receiver> ReceiverPtr;
+
 } // namespace dc
 
 //******************************************************************************
@@ -43,6 +47,7 @@ protected:
     void onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
 
     dc::JuiceClientPtr getP2PClient(const std::string & id);
+    dc::ReceiverPtr    getMediaReceiver(const std::string & id);
 
 protected:
     AppController       * m_o;
@@ -63,18 +68,16 @@ protected:
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
 
     // sender
-    media::ClockInfo                 m_mediaclock = {"66.228.38.186", 10000};
-    media::MediaType                 m_mediatype = media::MediaType::Video;
-    media::CaptureDevice             m_captureDevice;
-    std::shared_ptr<media::Sender>   m_mediasender;
+    media::ClockInfo                       m_mediaclock    = {"66.228.38.186", 10000};
+    media::MediaType                       m_mediatype     = media::MediaType::Video;
+    media::CaptureDevice                   m_captureDevice;
+    dc::SenderPtr                          m_mediasender;
 
     // receiver
-    media::PlaybackDevice            m_playbackDevice;
-    media::ClockInfo                 m_receiverclock = {"66.228.38.186", 10000};
-    std::chrono::duration<int>       m_delay;
-
-    std::string                      m_receivedFromId;
-    std::shared_ptr<media::Receiver> m_mediareceiver;
+    media::PlaybackDevice                  m_playbackDevice;
+    media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
+    std::chrono::duration<int>             m_delay;
+    std::map<std::string, dc::ReceiverPtr> m_mediareceivers;
 };
 
 //******************************************************************************
@@ -161,11 +164,12 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         {
             m_mediasender->removeReceiver(from);
         }
-        if (m_mediareceiver)
+        dc::ReceiverPtr res = getMediaReceiver(from);
+        if (res)
         {
-            m_mediareceiver->stop();
-            m_mediareceiver.reset();
-            m_receivedFromId.clear();
+            m_mediareceivers.erase(from);
+            res->stop();
+            res.reset();
         }
         std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
 
@@ -216,9 +220,10 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
             }
         }
 
-        if (m_mediareceiver)
+        dc::ReceiverPtr res = getMediaReceiver(id);
+        if (res)
         {
-            m_mediareceiver->start();
+            res->start();
         }
     }
     else if (state == JUICE_STATE_DISCONNECTED)
@@ -227,11 +232,12 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
         {
             m_mediasender->removeReceiver(id);
         }
-        if (m_mediareceiver)
+        dc::ReceiverPtr res = getMediaReceiver(id);
+        if (res)
         {
-            m_mediareceiver->stop();
-            m_mediareceiver.reset();
-            m_receivedFromId.clear();
+            m_mediareceivers.erase(id);
+            res->stop();
+            res.reset();
         }
 
         dc::JuiceClientPtr ptr = getP2PClient(id);
@@ -276,19 +282,16 @@ void AppController::impl::onRecv(juice_agent_t * agent, const char * data, size_
     // std::cout << size << " bytes from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
 
-    if (m_mediareceiver)
+    std::string id = caller->id();
+
+    dc::ReceiverPtr ptr = getMediaReceiver(id);
+    if (ptr)
     {
-        m_mediareceiver->push(reinterpret_cast<const uint8_t *>(data), size);
+        ptr->push(reinterpret_cast<const uint8_t *>(data), size);
     }
-    else if (m_mediasender)
+    if (m_mediasender)
     {
-        for (const auto &jc : m_p2pConnections)
-        {
-            if (jc.second.get() == caller)
-            {
-                m_mediasender->push(jc.first, reinterpret_cast<const uint8_t *>(data), size);
-            }
-        }
+        m_mediasender->push(id, reinterpret_cast<const uint8_t *>(data), size);
     }
 
 }
@@ -299,11 +302,22 @@ dc::JuiceClientPtr AppController::impl::getP2PClient(const std::string & id)
 {
     if (m_p2pConnections.count(id) == 0)
     {
-        // std::cout << "message to unknown " << to << std::endl;
         return dc::JuiceClientPtr();
     }
 
     return m_p2pConnections[id];
+}
+
+//*****************************************************************************
+//*****************************************************************************
+dc::ReceiverPtr AppController::impl::getMediaReceiver(const std::string & id)
+{
+    if (m_mediareceivers.count(id) == 0)
+    {
+        return dc::ReceiverPtr();
+    }
+
+    return m_mediareceivers[id];
 }
 
 //*****************************************************************************
@@ -327,12 +341,12 @@ AppController * AppController::instance(QQmlEngine *, QJSEngine *)
 //*****************************************************************************
 AppController::~AppController()
 {
-    if (m_p->m_mediareceiver)
+    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_mediareceivers)
     {
-        m_p->m_mediareceiver->stop();
-        m_p->m_mediareceiver.reset();
-        m_p->m_receivedFromId.clear();
+        r.second->stop();
+        // r.second.reset();
     }
+    m_p->m_mediareceivers.clear();
 
     if (m_p->m_mediasender)
     {
@@ -461,7 +475,7 @@ void AppController::startStreaming()
         // TODO emit error
         return;
     }
-    if (m_p->m_mediareceiver)
+    if (!m_p->m_mediareceivers.empty())
     {
         std::cout << "already receiving" << std::endl;
         // TODO emit error
@@ -517,7 +531,7 @@ void AppController::receiveStream()
         // TODO emit error
         return;
     }
-    if (m_p->m_mediareceiver)
+    if (!m_p->m_mediareceivers.empty())
     {
         std::cout << "already receiving" << std::endl;
         // TODO emit error
@@ -559,8 +573,7 @@ void AppController::receiveStream()
         ptr->init();
 
         bool synchronize = true;
-        m_p->m_receivedFromId = peer.id();
-        m_p->m_mediareceiver.reset(new media::Receiver(peer.id(), m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
+        m_p->m_mediareceivers[peer.id()].reset(new media::Receiver(peer.id(), m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
                     [ptr](const uint8_t *data, size_t len)
                     {
                         ptr->sendMessage(data, len);
@@ -575,9 +588,6 @@ void AppController::receiveStream()
         }
 
         m_p->m_p2pConnections[peer.id()] = ptr;
-
-        // TODO temporary one sender
-        break;
     }
 }
 
@@ -585,7 +595,6 @@ void AppController::receiveStream()
 //******************************************************************************
 void AppController::stopStream()
 {
-    // TODO stop media for all connections
     if (m_p->m_mediasender)
     {
         m_p->m_mediasender->stop();
@@ -610,19 +619,20 @@ void AppController::stopStream()
 
         m_p->m_p2pConnections.clear();
     }
-    if (m_p->m_mediareceiver)
-    {
-        m_p->m_mediareceiver->stop();
-        m_p->m_mediareceiver.reset();
 
-        dc::JuiceClientPtr ptr = m_p->getP2PClient(m_p->m_receivedFromId);
+    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_mediareceivers)
+    {
+        r.second->stop();
+        // r.second.reset();
+
+        dc::JuiceClientPtr ptr = m_p->getP2PClient(r.first);
         if (ptr)
         {
-            m_p->m_rpcClient->p2pDisconnect(m_p->m_receivedFromId, "closed");
+            m_p->m_rpcClient->p2pDisconnect(r.first, "closed");
 
             ptr->disconnect();
-            m_p->m_p2pConnections.erase(m_p->m_receivedFromId);
+            m_p->m_p2pConnections.erase(r.first);
         }
-        m_p->m_receivedFromId.clear();
+        m_p->m_mediareceivers.clear();
     }
 }
