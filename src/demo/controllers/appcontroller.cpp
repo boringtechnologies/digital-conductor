@@ -72,6 +72,8 @@ protected:
     media::PlaybackDevice            m_playbackDevice;
     media::ClockInfo                 m_receiverclock = {"66.228.38.186", 10000};
     std::chrono::duration<int>       m_delay;
+
+    std::string                      m_receivedFromId;
     std::shared_ptr<media::Receiver> m_mediareceiver;
 };
 
@@ -159,7 +161,21 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         {
             m_mediasender->removeReceiver(from);
         }
+        if (m_mediareceiver)
+        {
+            m_mediareceiver->stop();
+            m_mediareceiver.reset();
+            m_receivedFromId.clear();
+        }
         std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+
+        dc::JuiceClientPtr ptr = getP2PClient(from);
+        if (ptr)
+        {
+            ptr->disconnect();
+            ptr.reset();
+        }
+
         m_p2pConnections.erase(from);
     }
     else
@@ -199,6 +215,11 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
                 });
             }
         }
+
+        if (m_mediareceiver)
+        {
+            m_mediareceiver->start();
+        }
     }
     else if (state == JUICE_STATE_DISCONNECTED)
     {
@@ -210,9 +231,17 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
         {
             m_mediareceiver->stop();
             m_mediareceiver.reset();
+            m_receivedFromId.clear();
         }
-        std::cout << "P2P connection, " << id << " disconnected" << std::endl;
+
+        dc::JuiceClientPtr ptr = getP2PClient(id);
+        if (ptr)
+        {
+            ptr.reset();
+        }
         m_p2pConnections.erase(id);
+
+        std::cout << "P2P connection, " << id << " disconnected" << std::endl;
     }
 }
 
@@ -298,6 +327,29 @@ AppController * AppController::instance(QQmlEngine *, QJSEngine *)
 //*****************************************************************************
 AppController::~AppController()
 {
+    if (m_p->m_mediareceiver)
+    {
+        m_p->m_mediareceiver->stop();
+        m_p->m_mediareceiver.reset();
+        m_p->m_receivedFromId.clear();
+    }
+
+    if (m_p->m_mediasender)
+    {
+        m_p->m_mediasender->stop();
+        m_p->m_mediasender.reset();
+    }
+
+    for (const std::pair<std::string, dc::JuiceClientPtr> & it : m_p->m_p2pConnections)
+    {
+        if (!m_p->m_rpcClient->p2pDisconnect(it.first, "destroyed"))
+        {
+            std::cout << "p2p disconnect error" << std::endl;
+            continue;
+        }
+
+        it.second->disconnect();
+    }
 }
 
 //******************************************************************************
@@ -422,24 +474,37 @@ void AppController::startStreaming()
     m_p->m_mediasender->start();
 
     // connect peers
-    for (const dc::Peer & p : m_p->m_rpcPeers)
-    {
-        dc::JuiceClientPtr ptr;
-        ptr.reset(new dc::JuiceClient(p.id(),
-                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onCandidate,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
-                                      std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
-        ptr->init();
+//    for (const dc::Peer & p : m_p->m_rpcPeers)
+//    {
+//        dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
+//        if (ptr)
+//        {
+//            // already connected, start stream
+//            m_p->m_mediasender->addReceiver(p.id(), [ptr](const uint8_t *data, size_t len)
+//            {
+//                ptr->sendMessage(data, len);
+//                // std::cout << len << " bytes to " << id << std::endl;
+//            });
 
-        if (!m_p->m_rpcClient->p2pInit(p.id(), ptr->sdp()))
-        {
-            std::cout << "p2p init error" << std::endl;
-            continue;
-        }
+//            continue;
+//        }
 
-        m_p->m_p2pConnections[p.id()] = ptr;
-    }
+//        // establish connection
+//        ptr.reset(new dc::JuiceClient(p.id(),
+//                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+//                                      std::bind(&impl::onCandidate,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+//                                      std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
+//                                      std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
+//        ptr->init();
+
+//        if (!m_p->m_rpcClient->p2pInit(p.id(), ptr->sdp()))
+//        {
+//            std::cout << "p2p init error" << std::endl;
+//            continue;
+//        }
+
+//        m_p->m_p2pConnections[p.id()] = ptr;
+//    }
 }
 
 //******************************************************************************
@@ -459,19 +524,61 @@ void AppController::receiveStream()
         return;
     }
 
-    // dc::JuiceClientPtr ptr = m_p->getP2PClient(id);
-    dc::JuiceClientPtr ptr = m_p->m_p2pConnections.begin()->second;
+    // TODO one writer temporary
+    for (const dc::Peer & peer : m_p->m_rpcPeers)
+    {
+        if (!(peer.type() & dc::PeerType::WRITER))
+        {
+            // not a writer
+            continue;
+        }
 
-    std::string id = ptr->id();
+        // dc::JuiceClientPtr ptr = m_p->getP2PClient(id);
+        dc::JuiceClientPtr ptr = m_p->getP2PClient(peer.id());
+        if (ptr)
+        {
+            // disconnect
+            if (!m_p->m_rpcClient->p2pDisconnect(peer.id(), "get stream"))
+            {
+                std::cout << "p2p disconnect error" << std::endl;
+                continue;
+            }
 
-    bool synchronize = true;
-    m_p->m_mediareceiver.reset(new media::Receiver(id, m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
-                [ptr](const uint8_t *data, size_t len)
-                {
-                    ptr->sendMessage(data, len);
-                    // std::cout << len << " bytes to " << id << std::endl;
-                }));
-    m_p->m_mediareceiver->start();
+            m_p->m_p2pConnections.erase(peer.id());
+
+            ptr->disconnect();
+            ptr.reset();
+        }
+
+        // connection to sender
+        ptr.reset(new dc::JuiceClient(peer.id(),
+                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                      std::bind(&impl::onCandidate,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                      std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
+                                      std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
+        ptr->init();
+
+        bool synchronize = true;
+        m_p->m_receivedFromId = peer.id();
+        m_p->m_mediareceiver.reset(new media::Receiver(peer.id(), m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
+                    [ptr](const uint8_t *data, size_t len)
+                    {
+                        ptr->sendMessage(data, len);
+                        // std::cout << len << " bytes to " << id << std::endl;
+                    }));
+
+        // start connection
+        if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))
+        {
+            std::cout << "p2p init error with " << peer.id() << std::endl;
+            continue;
+        }
+
+        m_p->m_p2pConnections[peer.id()] = ptr;
+
+        // TODO temporary one sender
+        break;
+    }
 }
 
 //******************************************************************************
@@ -487,7 +594,7 @@ void AppController::stopStream()
         for (const dc::Peer & p : m_p->m_rpcPeers)
         {
 
-            if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "user request"))
+            if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "stopped"))
             {
                 std::cout << "p2p disconnect error" << std::endl;
                 continue;
@@ -503,9 +610,19 @@ void AppController::stopStream()
 
         m_p->m_p2pConnections.clear();
     }
-    else if (m_p->m_mediareceiver)
+    if (m_p->m_mediareceiver)
     {
         m_p->m_mediareceiver->stop();
         m_p->m_mediareceiver.reset();
+
+        dc::JuiceClientPtr ptr = m_p->getP2PClient(m_p->m_receivedFromId);
+        if (ptr)
+        {
+            m_p->m_rpcClient->p2pDisconnect(m_p->m_receivedFromId, "closed");
+
+            ptr->disconnect();
+            m_p->m_p2pConnections.erase(m_p->m_receivedFromId);
+        }
+        m_p->m_receivedFromId.clear();
     }
 }
