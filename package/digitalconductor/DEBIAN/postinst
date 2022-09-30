@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo Create symlink...
+ln -s /usr/share/digitalconductor/digitalconductor-demo.sh /usr/bin/digitalconductor-demo
