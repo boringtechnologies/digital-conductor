@@ -7,3 +7,7 @@ compile_commands.json
 
 # ide
 .vscode
+
+#package
+package/digitalconductor/usr/share/*
+package/*.deb
