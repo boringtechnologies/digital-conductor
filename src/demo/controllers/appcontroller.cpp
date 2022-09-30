@@ -622,7 +622,10 @@ void AppController::stopStream()
 
     for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_mediareceivers)
     {
-        r.second->stop();
+        if (r.second)
+        {
+            r.second->stop();
+        }
         // r.second.reset();
 
         dc::JuiceClientPtr ptr = m_p->getP2PClient(r.first);
@@ -633,6 +636,6 @@ void AppController::stopStream()
             ptr->disconnect();
             m_p->m_p2pConnections.erase(r.first);
         }
-        m_p->m_mediareceivers.clear();
     }
+    m_p->m_mediareceivers.clear();
 }
