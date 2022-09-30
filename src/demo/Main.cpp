@@ -62,10 +62,16 @@ int main(int argc, char *argv[])
     parser.addOptions({server, user, group});
     parser.process(app);
 
-    if (!parser.isSet(server) || !parser.isSet(group))
+    QString signallingServer("ec2-3-223-54-164.compute-1.amazonaws.com:50051");
+    if (parser.isSet(server))
     {
-        parser.showHelp();
-        return 0;
+        signallingServer = parser.value(server);
+    }
+
+    QString userGroup("default");
+    if (parser.isSet(group))
+    {
+        userGroup = parser.value(group);
     }
 
     QString userName;
@@ -80,10 +86,12 @@ int main(int argc, char *argv[])
         userName = autogenerateName();
     }
 
-    std::cout << "connect as " << userName.toStdString() << "-" << parser.value(group).toStdString() << std::endl;
+    std::cout << "connect to " << signallingServer.toStdString()
+              << " as " << userName.toStdString()
+              << "-" << userGroup.toStdString() << std::endl;
 
     AppController * ac = AppController::instance();
-    ac->init(userName, parser.value(group), parser.value(server));
+    ac->init(userName, userGroup, signallingServer);
 
     const QUrl url("qrc:dc/Main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
