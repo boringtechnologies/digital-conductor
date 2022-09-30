@@ -8,10 +8,26 @@
 #include <QQmlApplicationEngine>
 #include <QIcon>
 #include <QCommandLineParser>
+#include <QRandomGenerator>
 
 //*****************************************************************************
 //*****************************************************************************
 void registerTypes(QQmlEngine & engine);
+
+//*****************************************************************************
+//*****************************************************************************
+QString autogenerateName(const uint32_t length = 4)
+{
+    const static char chars[] = "";
+
+    QString result;
+    for (uint32_t i = 0; i < length; ++i)
+    {
+        result += static_cast<char>(QRandomGenerator::global()->bounded('a', 'z'));
+    }
+
+    return result;
+}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -46,14 +62,28 @@ int main(int argc, char *argv[])
     parser.addOptions({server, user, group});
     parser.process(app);
 
-    if (!parser.isSet(server) || !parser.isSet(user) || !parser.isSet(group))
+    if (!parser.isSet(server) || !parser.isSet(group))
     {
         parser.showHelp();
         return 0;
     }
 
+    QString userName;
+    if (parser.isSet(user))
+    {
+        userName = parser.value(user);
+    }
+    else
+    {
+        // generate user name
+        std::cout << "generate user name" << std::endl;
+        userName = autogenerateName();
+    }
+
+    std::cout << "connect as " << userName.toStdString() << "-" << parser.value(group).toStdString() << std::endl;
+
     AppController * ac = AppController::instance();
-    ac->init(parser.value(user), parser.value(group), parser.value(server));
+    ac->init(userName, parser.value(group), parser.value(server));
 
     const QUrl url("qrc:dc/Main.qml");
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
