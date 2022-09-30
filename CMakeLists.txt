@@ -65,14 +65,16 @@ add_subdirectory(3rdparty 3rdparty)
 add_subdirectory(src/core core)
 add_subdirectory(src/lib  lib)
 add_subdirectory(src/cli  cli)
+set(CUSTOM_BUILD_DEPENDS DigitalConductorLib DigitalConductorCli)
 
 if(NOT QT_DIR STREQUAL "")
   add_subdirectory(src/demo demo)
+  set(CUSTOM_BUILD_DEPENDS DigitalConductorLib DigitalConductorCli DigitalConductorDemo)
 endif()
 
 add_custom_command(
   COMMENT "Copying compile_commands.json to project root"
-  DEPENDS DigitalConductorLib DigitalConductorCli DigitalConductorDemo
+  DEPENDS ${CUSTOM_BUILD_DEPENDS}
   OUTPUT
     "${PROJECT_SOURCE_DIR}/compile_commands.json"
   COMMAND "${CMAKE_COMMAND}" -E copy
