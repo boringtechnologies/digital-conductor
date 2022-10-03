@@ -9,5 +9,5 @@ compile_commands.json
 .vscode
 
 #package
-package/digitalconductor/usr/share/*
-package/*.deb
+package/nix/digitalconductor/usr/share/*
+package/nix/*.deb
