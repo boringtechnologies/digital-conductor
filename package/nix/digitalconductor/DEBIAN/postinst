@@ -2,3 +2,8 @@
 
 echo Create symlink...
 ln -s /usr/share/digitalconductor/digitalconductor-demo.sh /usr/bin/digitalconductor-demo
+
+echo Update menus...
+if [ "$1" = "configure" ] && [ -x "`which update-menus 2>/dev/null`" ] ; then
+update-menus
+fi
