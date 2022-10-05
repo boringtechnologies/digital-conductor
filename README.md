@@ -50,7 +50,9 @@ $ sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstre
 $ brew install gstreamer gst-plugins-{base,good,bad,ugly} gst-libav
 ```
 
-- Install Qt 6 to home directory
+### Install Qt 6 to home directory
+
+Online installer, etc...
 
 ### build sources
 
