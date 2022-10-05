@@ -60,6 +60,10 @@ static GstElement *get_video_device(const media::CaptureDevice &device) {
 
 #elif defined(__APPLE__)
     MAKE_ELEMENT(source, "avfvideosrc", "publisher-videosrc");
+    if (source)
+    {
+        g_object_set (source, "device-index", 0, nullptr);
+    }
 #endif
 
     return source;
