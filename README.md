@@ -36,7 +36,7 @@ $ make
 $ [sudo] make install
 ```
 
-### For media
+### Install gstreamer
 
 ### Debian/Ubuntu Linux
 
