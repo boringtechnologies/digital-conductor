@@ -44,6 +44,7 @@ endif()
 
 include_directories(
   "${PROJECT_SOURCE_DIR}/src/lib"
+  "${PROJECT_SOURCE_DIR}/src/core/include"
   )
 
 include_directories(SYSTEM

@@ -66,15 +66,14 @@ set_target_properties(DigitalConductorCore_proto PROPERTIES
 
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-
-include_directories(${CMAKE_SOURCE_DIR}/src/core/media/include)
+include_directories(${CMAKE_SOURCE_DIR}/src/core/include)
 
 add_library(DigitalConductorCore_lib
-            client/grpcclient.h
+            include/core/grpcclient.h
+            include/core/juiceclient.h
+            include/core/media/sync.hpp
             client/grpcclient.cpp
-            client/juiceclient.h
             client/juiceclient.cpp
-            media/include/sync.hpp
             media/src/internal.hpp
             media/src/receiver.cpp
             media/src/sender.cpp)
@@ -128,7 +127,7 @@ target_link_libraries(DigitalConductorCore_client PRIVATE
             ${_GRPC_GRPCPP}
             ${_PROTOBUF_LIBPROTOBUF})
 
-set(OTHER_FILES common/proto/autodiscovery.proto common/initial.txt README.md)
+set(OTHER_FILES common/proto/autodiscovery.proto README.md)
 
 set_source_files_properties(${OTHER_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 

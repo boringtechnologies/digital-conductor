@@ -1,6 +1,6 @@
 #include <gst/app/app.h>
 
-#include <sync.hpp>
+#include "core/media/sync.hpp"
 
 #include "internal.hpp"
 

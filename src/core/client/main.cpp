@@ -1,10 +1,9 @@
 //******************************************************************************
 //******************************************************************************
 
-#include "grpcclient.h"
-#include "juiceclient.h"
-
-#include <sync.hpp>
+#include "core/grpcclient.h"
+#include "core/juiceclient.h"
+#include "core/media/sync.hpp"
 
 #include <iostream>
 

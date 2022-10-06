@@ -5,11 +5,11 @@
 
 #include "licensing/LicenseManager.hpp"
 
-#include "client/grpcclient.h"
-#include "client/juiceclient.h"
+#include "core/grpcclient.h"
+#include "core/juiceclient.h"
 
 #undef signals // for gstreamer
-#include "sync.hpp"
+#include "core/media/sync.hpp"
 
 #include <QGuiApplication>
 #include <QClipboard>

@@ -2,10 +2,12 @@
 
 #include <iterator>
 #include <memory>
-#include <sync.hpp>
 #include <thread>
 
 #include "gst/app/gstappsink.h"
+
+#include "core/media/sync.hpp"
+
 #include "internal.hpp"
 
 static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {

@@ -4,7 +4,7 @@
 #include "peermodel.h"
 #include "appcontroller.h"
 
-#include "client/grpcclient.h"
+#include "core/grpcclient.h"
 #include "autodiscovery.pb.h"
 
 #include <QTimer>
