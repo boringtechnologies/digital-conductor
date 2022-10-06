@@ -42,7 +42,8 @@ DeviceModel::DeviceModel(QObject * parent)
     m_p->m_names[RoleId]     = "id";
     m_p->m_names[RoleName]   = "name";
 
-    m_p->m_devices = dc::media::Util::getDeviceList();
+    dc::media::Util util = dc::media::Util::instance();
+    m_p->m_devices = util.getDeviceList();
 }
 
 //******************************************************************************

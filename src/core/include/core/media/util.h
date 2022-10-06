@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 //******************************************************************************
 //******************************************************************************
@@ -18,11 +19,19 @@ namespace media
 //******************************************************************************
 class Util
 {
-public:
+protected:
     Util();
 
 public:
-    static std::vector<std::string> getDeviceList();
+    static Util & instance();
+    ~Util();
+
+public:
+    std::vector<std::string> getDeviceList();
+
+private:
+    class impl;
+    std::shared_ptr<impl> m_p;
 };
 
 } // namespace media
