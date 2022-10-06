@@ -58,6 +58,8 @@ set(CPP_SOURCES
 
   models/peermodel.h
   models/peermodel.cpp
+  models/devicemodel.h
+  models/devicemodel.cpp
 
   qml/QmlEngine/QmlEngine.cpp
   )

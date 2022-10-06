@@ -72,11 +72,13 @@ add_library(DigitalConductorCore_lib
             include/core/grpcclient.h
             include/core/juiceclient.h
             include/core/media/sync.hpp
+            include/core/media/util.h
             client/grpcclient.cpp
             client/juiceclient.cpp
             media/src/internal.hpp
             media/src/receiver.cpp
-            media/src/sender.cpp)
+            media/src/sender.cpp
+            media/src/util.cpp)
 
 target_include_directories(DigitalConductorCore_lib PRIVATE
             ${GST_INCLUDE_DIRS})

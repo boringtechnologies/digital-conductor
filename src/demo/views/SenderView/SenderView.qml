@@ -3,6 +3,7 @@ import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
 
 import DC.controller 1.0
+import DC.model 1.0
 
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
@@ -20,6 +21,9 @@ Rectangle {
     
     color: Common.transparent
 
+    DeviceModel {
+
+    }
 
     Component.onCompleted: () => {
         inputDeviceSelector.onCurrentIndexChanged.connect(() => {

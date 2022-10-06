@@ -60,8 +60,8 @@ void PeerModel::impl::processUpdate()
 
 //******************************************************************************
 //******************************************************************************
-PeerModel::PeerModel(QObject *parent)
-    : QAbstractListModel{parent}
+PeerModel::PeerModel(QObject * parent)
+    : QAbstractListModel(parent)
     , m_p(new impl(this))
 {
     m_p->m_names[RoleId]     = "id";
