@@ -9,23 +9,14 @@ import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCComboBox"
 import "qrc:/dc/components/DCRoundSwitchWithTextField"
-import "qrc:/dc/views/SenderView/SenderView.js" as Logic
 import "qrc:/dc/common/common.js" as Common
 
 Rectangle {
     id: senderView
-    property var audioInputDevices: Logic.getAudioInputDevices()
-    property var videoInputDevices: Logic.getVideoInputDevices()
 
     property bool isEnabled: false
     
     color: Common.transparent
-
-//    Component.onCompleted: () => {
-//        inputDeviceSelector.onCurrentIndexChanged.connect(() => {
-//            Logic.setInputDevice()
-//        })
-//    }
 
     ColumnLayout {
         anchors.left: parent.left
@@ -41,7 +32,6 @@ Rectangle {
             Layout.fillWidth: true
             header: qsTr("Start Sending to")
             placeholder: Controller.group
-            // onClicked: Logic.setSenderState()
             onClicked: {
                 checked ? Controller.startStreaming() : Controller.stopStream();
             }

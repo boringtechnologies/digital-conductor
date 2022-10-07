@@ -9,23 +9,14 @@ import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCComboBox"
 import "qrc:/dc/components/DCRoundSwitchWithTextField"
-import "qrc:/dc/views/ReceiverView/ReceiverView.js" as Logic
 import "qrc:/dc/common/common.js" as Common
 
 Rectangle {
     id: receiverView
-    property var audioOutputDevices: Logic.getAudioOutputDevices()
-    property var videoOutputDevices: Logic.getVideoOutputDevices()
 
     property bool isEnabled: false
 
     color: Common.transparent
-
-    Component.onCompleted: () => {
-        outputDeviceSelector.onCurrentIndexChanged.connect(() => {
-            Logic.setOutputDevice()
-        })
-    }
 
     ColumnLayout {
         anchors.left: parent.left
@@ -41,7 +32,6 @@ Rectangle {
             Layout.fillWidth: true
             header: qsTr("Start Receiving from")
             placeholder: Controller.group
-            // onClicked: Logic.setReceiverState()
             onClicked: {
                 checked ? Controller.receiveStream() : Controller.stopStream();
             }
@@ -127,7 +117,7 @@ Rectangle {
             id: syncSwitch
             Layout.fillWidth: true
             header: "Synchronization"
-            onClicked: Logic.setSyncMode()
+            // onClicked: Logic.setSyncMode()
         }
     }
 }

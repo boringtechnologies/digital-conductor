@@ -46,10 +46,6 @@ set(CPP_SOURCES
   controllers/appcontroller.cpp
   controllers/appcontroller.h
   controllers/PeerController/PeerController.cpp
-  controllers/AudioDeviceController/AudioDeviceController.cpp
-  controllers/VideoDeviceController/VideoDeviceController.cpp
-  controllers/ReceiverController/ReceiverController.cpp
-  controllers/SenderController/SenderController.cpp
   controllers/LicenseController/LicenseController.cpp
 
   gadgets/PeerInfo/PeerInfo.cpp
