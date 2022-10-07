@@ -32,6 +32,7 @@ class Util::impl
     std::mutex                         m_devicesLocker;
     std::map<std::string, DeviceDescr> m_devices;
 
+    std::mutex                             m_devicesDirectLocker;
     std::chrono::system_clock::time_point  m_lastDevicesRequested;
     std::map<std::string, DeviceDescr>     m_devicesDirect;
 
@@ -256,6 +257,8 @@ std::vector<DeviceDescr> Util::getDeviceList(const std::string & deviceClass)
 //******************************************************************************
 std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceClass)
 {
+    std::lock_guard<std::mutex> l(m_p->m_devicesDirectLocker);
+
     while (m_p->m_lastDevicesRequested + std::chrono::milliseconds(5000) < std::chrono::system_clock::now())
     {
         GstDeviceMonitor * monitor = gst_device_monitor_new();
@@ -304,6 +307,9 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
         }
 
         g_list_free_full(devices, gst_object_unref);
+
+        m_p->m_lastDevicesRequested = std::chrono::system_clock::now();
+
         break;
     }
 
