@@ -483,7 +483,7 @@ void AppController::startStreaming()
     }
 
     // start sender
-    m_p->m_captureDevice.name = "/dev/video0";
+    m_p->m_captureDevice.name = "v4l2src";
     m_p->m_mediasender.reset(new media::Sender(m_p->m_user, m_p->m_mediatype, m_p->m_captureDevice, m_p->m_mediaclock));
     m_p->m_mediasender->start();
 

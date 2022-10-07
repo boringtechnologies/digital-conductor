@@ -138,7 +138,7 @@ class Receiver {
     // XXX: If a Sender sends audio and video, this API will need to change too.
     Receiver(const std::string &id, MediaType type,
              const PlaybackDevice &device, const ClockInfo &clock,
-             std::chrono::duration<int> delay, bool synchronize,
+             std::chrono::duration<int, std::milli> delay, bool synchronize,
              WriteCallback write_cb);
 
     // Just tear everything down

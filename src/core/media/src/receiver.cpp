@@ -62,7 +62,6 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     gchar *padname = gst_pad_get_name(pad);
     gchar *prefix = g_strdup_printf("recv_rtp_src_");
     g_printerr("%s pad added\n", padname);
-    // TODO what if multiple pads of recv_rtp_src qget added. need unique id
     if (g_str_has_prefix(padname, prefix)) {
         GstElement *downstream = (GstElement *)userdata;
         GstPad *sinkpad = gst_element_get_static_pad(downstream, "sink");
@@ -90,8 +89,8 @@ static GstElement *get_audio_device(const std::string &id) {
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device, const ClockInfo &clock,
-                          std::chrono::duration<int> delay, bool synchronize,
-                          media::WriteCallback write_cb)
+                          std::chrono::duration<int, std::milli> delay,
+                          bool synchronize, media::WriteCallback write_cb)
     : thread(nullptr), write_cb(write_cb) {
     GstBus *bus;
     GstElement *rtpbin, *depayloader, *decoder, *sink, *appsink;
@@ -139,7 +138,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                      depayloader);
     if (synchronize) {
         g_object_set(rtpbin, "buffer-mode", 4, "ntp-time-source", 3, "ntp-sync",
-                     TRUE, nullptr);
+                     true, nullptr);
     } else {
         g_object_set(rtpbin, "buffer-mode", 0, nullptr);
     }
@@ -147,6 +146,9 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     GstPad *src_pad = gst_element_get_static_pad(appsrc, "src");
     GstPad *recv_rtp_sink_pad =
         gst_element_get_request_pad(rtpbin, "recv_rtp_sink_%u");
+
+    GstPad *recv_rtcp_sink_pad =
+        gst_element_get_request_pad(rtpbin, "recv_rtcp_sink_%u");
 
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
     bus_watch_id = gst_bus_add_watch(bus, bus_callback, loop);
@@ -175,7 +177,8 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         gst_pipeline_use_clock(GST_PIPELINE(pipeline), net_clock);
         /* Set this high enough so that it's higher than the minimum latency
          * on all receivers */
-        gst_pipeline_set_latency(GST_PIPELINE(pipeline), 500 * GST_MSECOND);
+        gst_pipeline_set_latency(GST_PIPELINE(pipeline),
+                                 delay.count() * GST_MSECOND);
     }
 }
 
@@ -193,7 +196,7 @@ void media::Receiver::start() {
         g_print("Running mainloop\n");
 
         GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
-                                  "pipeline");
+                                  "rx-pipeline");
         g_main_loop_run(loop);
         GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
                                   "error");
