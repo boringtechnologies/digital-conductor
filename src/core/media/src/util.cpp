@@ -218,7 +218,7 @@ bool Util::initializeMediaModule(const std::string & pluginsPath)
     // gst_init(&argc, &argv);
     gst_init(nullptr, nullptr);
 
-    // TODO instead of GST_PLUGIN_PATH may be use that?
+    // TODO instead of GST_PLUGIN_PATH may be use this code?
     // GstRegistry * registry = gst_registry_get();
     // gst_registry_scan_path(registry, pluginsPath.c_str());
 
@@ -284,17 +284,21 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
 
             std::cout << "found " << devClass << " device " << devName << std::endl;
 
+//            GstStructure * s = gst_device_get_properties(dev);
+//            gchar * devDescr = nullptr;
+//            gst_structure_get(s, "device.adapter.description", G_TYPE_STRING, &devDescr, nullptr);
+
             DeviceDescr descr;
             descr.deviceName  = devName;
             descr.deviceClass = devClass;
-
-    //        GstStructure * s = gst_device_get_properties(dev);
-    //        gchar * descr = nullptr;
-    //        gst_structure_get(s, "device.adapter.description", G_TYPE_STRING, &descr, nullptr);
-    //        g_free(descr);
+//            if (devDescr)
+//            {
+//                descr.deviceDescr = devDescr;
+//            }
 
             m_p->m_devicesDirect[devName] = descr;
 
+//            g_free(devDescr);
             g_free(devClass);
             g_free(devName);
         }

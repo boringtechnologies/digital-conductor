@@ -23,18 +23,20 @@ protected:
 protected:
     DeviceModel            * m_o;
 
-    QHash<int, QByteArray>   m_names;
+    QHash<int, QByteArray>              m_names;
 
-    std::string m_deviceClass;
+    uint32_t                            m_currentIndex;
+    std::string                         m_deviceClass;
     std::vector<dc::media::DeviceDescr> m_devices;
 
-    QTimer                 m_updateTimer;
+    QTimer                              m_updateTimer;
 };
 
 //******************************************************************************
 //******************************************************************************
 DeviceModel::impl::impl(DeviceModel * owner)
     : m_o(owner)
+    , m_currentIndex(0)
 {
     connect(&m_updateTimer, &QTimer::timeout, this, &impl::processUpdate);
 }
@@ -66,6 +68,14 @@ DeviceModel::DeviceModel(QObject * parent)
 
 //******************************************************************************
 //******************************************************************************
+void DeviceModel::setDeviceClass(const QString & deviceClass)
+{
+    m_p->m_deviceClass = deviceClass.toStdString();
+    update();
+}
+
+//******************************************************************************
+//******************************************************************************
 int DeviceModel::rowCount(const QModelIndex&) const
 {
     return m_p->m_devices.size();
@@ -90,6 +100,21 @@ QVariant DeviceModel::data(const QModelIndex &index, int role) const
     }
 
     return QVariant();
+}
+
+//******************************************************************************
+//******************************************************************************
+uint32_t DeviceModel::currentIndex() const
+{
+    // TODO temporary
+    return 0;
+}
+
+//******************************************************************************
+//******************************************************************************
+QString DeviceModel::deviceClass() const
+{
+    return QString::fromStdString(m_p->m_deviceClass);
 }
 
 //******************************************************************************

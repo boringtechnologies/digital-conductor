@@ -21,11 +21,11 @@ Rectangle {
     
     color: Common.transparent
 
-    Component.onCompleted: () => {
-        inputDeviceSelector.onCurrentIndexChanged.connect(() => {
-            Logic.setInputDevice()
-        })
-    }
+//    Component.onCompleted: () => {
+//        inputDeviceSelector.onCurrentIndexChanged.connect(() => {
+//            Logic.setInputDevice()
+//        })
+//    }
 
     ColumnLayout {
         anchors.left: parent.left
@@ -60,10 +60,27 @@ Rectangle {
                 bottomPadding: 5
             }
 
+            DeviceModel {
+                id: idAudioInDevices
+                deviceClass: "Audio/Source"
+            }
+
             DCComboBox {
                 id: inputDeviceSelector
                 width: parent.width
-                model: audioInputDevices.map((el) => el.label)
+                model: idAudioInDevices
+                currentIndex: idAudioInDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    console.log(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idAudioInDevices.update()
+                }
+            }
+            Component.onCompleted: {
+                idAudioInDevices.update();
             }
         }
 
@@ -74,15 +91,25 @@ Rectangle {
                 bottomPadding: 5
             }
             DeviceModel {
-                id: idVideoDevices
+                id: idVideoInDevices
+                deviceClass: "Video/Source"
             }
             DCComboBox {
                 id: inputVideoDeviceSelector
                 width: parent.width
-                model: idVideoDevices
+                model: idVideoInDevices
+                currentIndex: idVideoInDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    console.log(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idVideoInDevices.update()
+                }
             }
             Component.onCompleted: {
-                idVideoDevices.update();
+                idVideoInDevices.update();
             }
         }
     }

@@ -21,6 +21,7 @@ struct DeviceDescr
 {
     std::string deviceName;
     std::string deviceClass;
+    std::string deviceDescr;
 };
 
 //******************************************************************************

@@ -3,6 +3,7 @@ import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
 
 import DC.controller 1.0
+import DC.model 1.0
 
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
@@ -58,10 +59,29 @@ Rectangle {
                 label: "Audio Output Device"
                 bottomPadding: 5
             }
+
+            DeviceModel {
+                id: idAudioOutDevices
+                deviceClass: "Audio/Sink"
+            }
+
             DCComboBox {
                 id: outputDeviceSelector
                 width: parent.width
-                model: audioOutputDevices.map((el) => el.label)
+                model: idAudioOutDevices
+                currentIndex: idAudioOutDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    console.log(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idAudioOutDevices.update()
+                }
+            }
+
+            Component.onCompleted: {
+                idAudioOutDevices.update();
             }
         }
 
@@ -71,10 +91,29 @@ Rectangle {
                 label: "Video Output Device"
                 bottomPadding: 5
             }
+
+            DeviceModel {
+                id: idVideoOutDevices
+                // deviceClass: "Video/Source"
+            }
+
             DCComboBox {
                 id: outputVideoDeviceSelector
                 width: parent.width
-                model: videoOutputDevices.map((el) => el.label)
+                model: idVideoOutDevices
+                currentIndex: idVideoOutDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    console.log(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idVideoOutDevices.update()
+                }
+            }
+
+            Component.onCompleted: {
+                idVideoOutDevices.update();
             }
         }
 
