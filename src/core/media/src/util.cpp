@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <thread>
+#include <map>
+#include <mutex>
 
 //******************************************************************************
 //******************************************************************************
@@ -26,10 +28,16 @@ class Util::impl
     GstDeviceMonitor * m_monitor     = nullptr;
     uint32_t           m_busWatchId  = 0;
 
+    std::mutex                         m_devicesLocker;
+    std::map<std::string, DeviceDescr> m_devices;
+
     impl();
 
     void watchThreadFn();
 
+    void addDevice(GstDevice * dev);
+    void updateDevice(GstDevice * dev);
+    void removeDevice(GstDevice * dev);
     static gboolean busMsgHandler(GstBus * bus, GstMessage * msg, gpointer userData);
 };
 
@@ -93,28 +101,70 @@ void Util::impl::watchThreadFn()
 
 //******************************************************************************
 //******************************************************************************
+void Util::impl::addDevice(GstDevice * dev)
+{
+    gchar * deviceName  = gst_device_get_display_name(dev);
+    gchar * deviceClass = gst_device_get_device_class(dev);
+
+    std::cout << "found " << deviceClass << " device " << deviceName << std::endl;
+
+    DeviceDescr descr;
+    descr.deviceName = deviceName;
+    descr.deviceClass = deviceClass;
+
+    g_free(deviceClass);
+    g_free(deviceName);
+
+    std::lock_guard<std::mutex> l(m_devicesLocker);
+    m_devices[descr.deviceName] = descr;
+}
+
+//******************************************************************************
+//******************************************************************************
+void Util::impl::updateDevice(GstDevice * dev)
+{
+    addDevice(dev);
+}
+
+//******************************************************************************
+//******************************************************************************
+void Util::impl::removeDevice(GstDevice * dev)
+{
+    gchar * deviceName  = gst_device_get_display_name(dev);
+
+    {
+        std::lock_guard<std::mutex> l(m_devicesLocker);
+        m_devices.erase(deviceName);
+    }
+
+    g_free(deviceName);
+}
+
+//******************************************************************************
+//******************************************************************************
 // static
 gboolean Util::impl::busMsgHandler(GstBus * bus, GstMessage * msg, gpointer userData)
 {
     std::cout << "gst message " << GST_MESSAGE_TYPE_NAME(msg) << std::endl;
 
-    GstDevice * device = nullptr;
+    Util::impl * impl = reinterpret_cast<Util::impl *>(userData);
 
+    GstDevice * device = nullptr;
     switch (GST_MESSAGE_TYPE (msg))
     {
         case GST_MESSAGE_DEVICE_ADDED:
             gst_message_parse_device_added(msg, &device);
-            // TODO get data
+            impl->addDevice(device);
             gst_object_unref (device);
             break;
         case GST_MESSAGE_DEVICE_REMOVED:
             gst_message_parse_device_removed(msg, &device);
-            // TODO get data
+            impl->updateDevice(device);
             gst_object_unref (device);
             break;
         case GST_MESSAGE_DEVICE_CHANGED:
             gst_message_parse_device_changed(msg, &device, NULL);
-            // TODO get data
+            impl->removeDevice(device);
             gst_object_unref (device);
             break;
         default:
@@ -159,11 +209,35 @@ Util::~Util()
 
 //******************************************************************************
 //******************************************************************************
-// static 
-std::vector<std::string> Util::getDeviceList()
+bool Util::initializeMediaModule(const std::string & pluginsPath)
 {
-    std::vector<std::string> result;
+    // gst_init(&argc, &argv);
+    gst_init(nullptr, nullptr);
 
+    // TODO instead of GST_PLUGIN_PATH may be use that?
+    // GstRegistry * registry = gst_registry_get();
+    // gst_registry_scan_path(registry, pluginsPath.c_str());
+
+    return true;
+}
+
+//******************************************************************************
+//******************************************************************************
+// static 
+std::vector<DeviceDescr> Util::getDeviceList(const std::string & deviceClass)
+{
+    std::vector<DeviceDescr> result;
+
+    {
+        std::lock_guard<std::mutex> l(m_p->m_devicesLocker);
+        for (const std::pair<std::string, DeviceDescr> & p : m_p->m_devices)
+        {
+            if (deviceClass.empty() || p.second.deviceClass == deviceClass)
+            {
+                result.emplace_back(p.second);
+            }
+        }
+    }
 
     return result;
 }

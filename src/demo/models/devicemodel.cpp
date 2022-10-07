@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 
+#include <QTimer>
+
 //******************************************************************************
 //******************************************************************************
 class DeviceModel::impl : public QObject
@@ -23,7 +25,10 @@ protected:
 
     QHash<int, QByteArray>   m_names;
 
-    std::vector<std::string> m_devices;
+    std::string m_deviceClass;
+    std::vector<dc::media::DeviceDescr> m_devices;
+
+    QTimer                 m_updateTimer;
 };
 
 //******************************************************************************
@@ -31,6 +36,19 @@ protected:
 DeviceModel::impl::impl(DeviceModel * owner)
     : m_o(owner)
 {
+    connect(&m_updateTimer, &QTimer::timeout, this, &impl::processUpdate);
+}
+
+//******************************************************************************
+//******************************************************************************
+void DeviceModel::impl::processUpdate()
+{
+    m_o->beginResetModel();
+
+    dc::media::Util & util = dc::media::Util::instance();
+    m_devices = util.getDeviceList(m_deviceClass);
+
+    m_o->endResetModel();
 }
 
 //******************************************************************************
@@ -42,8 +60,8 @@ DeviceModel::DeviceModel(QObject * parent)
     m_p->m_names[RoleId]     = "id";
     m_p->m_names[RoleName]   = "name";
 
-    dc::media::Util util = dc::media::Util::instance();
-    m_p->m_devices = util.getDeviceList();
+    m_p->processUpdate();
+    m_p->m_updateTimer.start(5000);
 }
 
 //******************************************************************************
@@ -68,7 +86,7 @@ QVariant DeviceModel::data(const QModelIndex &index, int role) const
         case RoleId:
             return row;
         case RoleName:
-            return QString::fromStdString(m_p->m_devices[row]);
+            return QString::fromStdString(m_p->m_devices[row].deviceName);
     }
 
     return QVariant();

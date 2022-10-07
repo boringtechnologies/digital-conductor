@@ -17,6 +17,14 @@ namespace media
 
 //******************************************************************************
 //******************************************************************************
+struct DeviceDescr
+{
+    std::string deviceName;
+    std::string deviceClass;
+};
+
+//******************************************************************************
+//******************************************************************************
 class Util
 {
 protected:
@@ -27,7 +35,12 @@ public:
     ~Util();
 
 public:
-    std::vector<std::string> getDeviceList();
+    // TODO use argc/argv if needed
+    // bool initializeMediaModule(int argc, char *argv[]);
+    // TODO plugins path?
+    bool initializeMediaModule(const std::string & pluginsPath);
+
+    std::vector<DeviceDescr> getDeviceList(const std::string & deviceClass);
 
 private:
     class impl;

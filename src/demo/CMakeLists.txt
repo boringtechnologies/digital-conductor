@@ -34,9 +34,9 @@ include_directories(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/../core")
 
-# media
-include_directories(${CMAKE_SOURCE_DIR}/src/core/media/include
+include_directories(${CMAKE_SOURCE_DIR}/src/core/include
                     ${GST_INCLUDE_DIRS})
+
 link_directories(${GST_LIBRARY_DIRS})
 
 set(CPP_SOURCES

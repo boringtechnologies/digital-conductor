@@ -21,10 +21,6 @@ Rectangle {
     
     color: Common.transparent
 
-    DeviceModel {
-
-    }
-
     Component.onCompleted: () => {
         inputDeviceSelector.onCurrentIndexChanged.connect(() => {
             Logic.setInputDevice()
@@ -63,6 +59,7 @@ Rectangle {
                 label: "Audio Input Device"
                 bottomPadding: 5
             }
+
             DCComboBox {
                 id: inputDeviceSelector
                 width: parent.width
@@ -76,10 +73,13 @@ Rectangle {
                 label: "Video Input Device"
                 bottomPadding: 5
             }
+            DeviceModel {
+                id: idVideoDevices
+            }
             DCComboBox {
                 id: inputVideoDeviceSelector
                 width: parent.width
-                model: videoInputDevices.map((el) => el.label)
+                model: idVideoDevices
             }
         }
     }
