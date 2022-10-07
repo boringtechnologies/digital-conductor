@@ -21,7 +21,10 @@ struct DeviceDescr
 {
     std::string deviceName;
     std::string deviceClass;
-    std::string deviceDescr;
+    // std::string deviceDescr;
+
+    std::string internalName;
+    std::vector<std::pair<std::string, std::string> > internalParams;
 };
 
 //******************************************************************************

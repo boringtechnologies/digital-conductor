@@ -91,7 +91,8 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device, const ClockInfo &clock,
                           std::chrono::duration<int, std::milli> delay,
                           bool synchronize, media::WriteCallback write_cb)
-    : thread(nullptr), write_cb(write_cb) {
+    : thread(nullptr), write_cb(write_cb)
+{
     GstBus *bus;
     GstElement *rtpbin, *depayloader, *decoder, *sink, *appsink;
     gst_init(nullptr, nullptr);

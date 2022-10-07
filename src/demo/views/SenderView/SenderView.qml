@@ -62,7 +62,7 @@ Rectangle {
                 currentIndex: idAudioInDevices.currentIndex
 
                 onCurrentIndexChanged: {
-                    console.log(currentIndex);
+                    idAudioInDevices.selectItem(currentIndex);
                 }
 
                 onRequestUpdate: {
@@ -91,7 +91,7 @@ Rectangle {
                 currentIndex: idVideoInDevices.currentIndex
 
                 onCurrentIndexChanged: {
-                    console.log(currentIndex);
+                    idVideoInDevices.selectItem(currentIndex);
                 }
 
                 onRequestUpdate: {

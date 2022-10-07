@@ -36,7 +36,7 @@ public:
 
 public slots:
     virtual void update();
-    virtual void itemSelected(const quint32 id);
+    virtual void selectItem(const quint32 id);
 
 signals:
     void currentIndexChanged();

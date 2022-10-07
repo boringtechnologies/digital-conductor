@@ -10,6 +10,7 @@
 #include <map>
 #include <mutex>
 #include <chrono>
+#include <set>
 
 //******************************************************************************
 //******************************************************************************
@@ -43,6 +44,11 @@ class Util::impl
     void addDevice(GstDevice * dev);
     void updateDevice(GstDevice * dev);
     void removeDevice(GstDevice * dev);
+
+    void getDeviceParams(GstDevice * dev,
+                         std::string & deviceName,
+                         std::vector<std::pair<std::string, std::string> > & params);
+
     static gboolean busMsgHandler(GstBus * bus, GstMessage * msg, gpointer userData);
 };
 
@@ -111,11 +117,30 @@ void Util::impl::addDevice(GstDevice * dev)
     gchar * deviceName  = gst_device_get_display_name(dev);
     gchar * deviceClass = gst_device_get_device_class(dev);
 
-    std::cout << "found " << deviceClass << " device " << deviceName << std::endl;
-
     DeviceDescr descr;
     descr.deviceName = deviceName;
     descr.deviceClass = deviceClass;
+
+    getDeviceParams(dev, descr.internalName, descr.internalParams);
+
+//    std::cout << "found " << deviceClass << " device " << deviceName << std::endl;
+//    std::cout << "    " << descr.internalName;
+    if (descr.internalParams.empty())
+    {
+        std::cout << std::endl;
+    }
+    else
+    {
+//        std::cout << " params" << std::endl;
+//        for (uint32_t i = 0; i < descr.internalParams.size(); ++i)
+//        {
+//            std::cout << "        "
+//                      << descr.internalParams[i].first
+//                      << ":"
+//                      << descr.internalParams[i].second
+//                      << std::endl;
+//        }
+    }
 
     g_free(deviceClass);
     g_free(deviceName);
@@ -143,6 +168,109 @@ void Util::impl::removeDevice(GstDevice * dev)
     }
 
     g_free(deviceName);
+}
+
+//******************************************************************************
+//******************************************************************************
+void Util::impl::getDeviceParams(GstDevice * dev,
+                                 std::string & deviceName,
+                                 std::vector<std::pair<std::string, std::string> > & params)
+
+{
+    static std::vector<const char *> ignoredPropnames = { "name", "parent", "direction", "template", "caps"};
+
+    GstElement * element = gst_device_create_element(dev, nullptr);
+    if (!element)
+    {
+        return;
+    }
+
+    GstElementFactory * factory = gst_element_get_factory(element);
+    if (!factory)
+    {
+        gst_object_unref(element);
+        return;
+    }
+
+    gchar * objectName = gst_plugin_feature_get_name(factory);
+    if (!objectName)
+    {
+        gst_object_unref(element);
+        return;
+    }
+
+    deviceName = objectName;
+
+    // TODO need to free?
+    // g_string_free(objectName, true);
+
+    GstElement * pureelement = gst_element_factory_create(factory, NULL);
+
+    // get paramspecs and show non-default properties
+
+    guint count = 0;
+    GParamSpec ** properties = g_object_class_list_properties(G_OBJECT_GET_CLASS(element), &count);
+
+    if (properties)
+    {
+        for (guint i = 0; i < count; ++i)
+        {
+            GParamSpec * property = properties[i];
+
+            // skip some properties
+            if ((property->flags & G_PARAM_READWRITE) != G_PARAM_READWRITE)
+            {
+                continue;
+            }
+
+            gboolean ignore = false;
+            for (gint j = 0; j < ignoredPropnames.size(); ++j)
+            {
+                if (!g_strcmp0(ignoredPropnames[j], property->name))
+                ignore = true;
+                break;
+            }
+
+            if (ignore)
+            {
+                continue;
+            }
+
+            // Can't use _param_value_defaults () because sub-classes modify the
+            // values already.
+            GValue value = G_VALUE_INIT;
+            g_value_init(&value, property->value_type);
+
+            GValue pvalue = G_VALUE_INIT;
+            g_value_init(&pvalue, property->value_type);
+
+            g_object_get_property(G_OBJECT(element),     property->name, &value);
+            g_object_get_property(G_OBJECT(pureelement), property->name, &pvalue);
+
+            if (gst_value_compare (&value, &pvalue) != GST_VALUE_EQUAL)
+            {
+                gchar * valuestr = gst_value_serialize(&value);
+
+                if (!valuestr)
+                {
+                    std::cout << "Could not serialize property " << GST_OBJECT_NAME(element) << ":" << property->name << std::endl;
+                    g_free(valuestr);
+                }
+                else
+                {
+                    params.emplace_back(property->name, valuestr);
+                    g_free(valuestr);
+                }
+            }
+
+            g_value_unset (&value);
+            g_value_unset (&pvalue);
+        }
+        g_free(properties);
+    }
+
+    gst_object_unref(element);
+    gst_object_unref(pureelement);
 }
 
 //******************************************************************************
@@ -280,12 +408,10 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
         GList * devices = gst_device_monitor_get_devices(monitor);
         for (GList * it = devices; it; it = g_list_next(it))
         {
-            GstDevice * dev = GST_DEVICE (it->data);
+            GstDevice * dev = GST_DEVICE(it->data);
 
             gchar * devName  = gst_device_get_display_name(dev);
             gchar * devClass = gst_device_get_device_class(dev);
-
-            std::cout << "found " << devClass << " device " << devName << std::endl;
 
 //            GstStructure * s = gst_device_get_properties(dev);
 //            gchar * devDescr = nullptr;
@@ -298,6 +424,27 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
 //            {
 //                descr.deviceDescr = devDescr;
 //            }
+
+            m_p->getDeviceParams(dev, descr.internalName, descr.internalParams);
+
+//            std::cout << "found " << devClass << " device " << devName << std::endl;
+//            std::cout << "    " << descr.internalName;
+            if (descr.internalParams.empty())
+            {
+                std::cout << std::endl;
+            }
+            else
+            {
+//                std::cout << " params" << std::endl;
+//                for (uint32_t i = 0; i < descr.internalParams.size(); ++i)
+//                {
+//                    std::cout << "        "
+//                              << descr.internalParams[i].first
+//                              << ":"
+//                              << descr.internalParams[i].second
+//                              << std::endl;
+//                }
+            }
 
             m_p->m_devicesDirect[descr.deviceClass + descr.deviceName] = descr;
 

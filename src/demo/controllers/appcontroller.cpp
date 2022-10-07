@@ -23,8 +23,8 @@
 namespace dc
 {
 
-typedef std::shared_ptr<media::Sender>   SenderPtr;
-typedef std::shared_ptr<media::Receiver> ReceiverPtr;
+typedef std::shared_ptr<::media::Sender>   SenderPtr;
+typedef std::shared_ptr<::media::Receiver> ReceiverPtr;
 
 } // namespace dc
 
@@ -473,6 +473,13 @@ void AppController::setSyncMode(const bool sync)
 {
     std::cout << "sync mode " << (sync ? "on" : "off") << std::endl;
     m_p->m_syncMode = sync;
+}
+
+//******************************************************************************
+//******************************************************************************
+void AppController::selectDevice(const dc::media::DeviceDescr & dev)
+{
+    std::cout << "select " << dev.deviceClass << " device <" << dev.internalName << "> " << dev.deviceName << std::endl;
 }
 
 //******************************************************************************

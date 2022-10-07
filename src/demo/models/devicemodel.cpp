@@ -2,6 +2,7 @@
 //******************************************************************************
 
 #include "devicemodel.h"
+#include "appcontroller.h"
 #include "core/media/util.h"
 
 #include <vector>
@@ -36,7 +37,7 @@ protected:
 //******************************************************************************
 DeviceModel::impl::impl(DeviceModel * owner)
     : m_o(owner)
-    , m_currentIndex(0)
+    , m_currentIndex(-1)
 {
     connect(&m_updateTimer, &QTimer::timeout, this, &impl::processUpdate);
 }
@@ -131,11 +132,13 @@ void DeviceModel::update()
 
 //******************************************************************************
 //******************************************************************************
-void DeviceModel::itemSelected(const quint32 id)
+void DeviceModel::selectItem(const quint32 id)
 {
-    qDebug() << Q_FUNC_INFO << "selected " << id;
+    // qDebug() << Q_FUNC_INFO << "selected " << id;
     if (id < static_cast<quint32>(m_p->m_devices.size()))
     {
+        AppController * app = AppController::instance();
+        app->selectDevice(m_p->m_devices[id]);
     }
 }
 

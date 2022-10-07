@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 // Synced Groups API
 //
@@ -55,6 +56,7 @@ struct SenderInfo {
 struct CaptureDevice {
     // XXX: This can be extended for other source types
     std::string name;
+    std::vector<std::pair<std::string, std::string> > params;
 };
 
 class Sender {

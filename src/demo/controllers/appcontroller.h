@@ -5,6 +5,7 @@
 #define APPCONTROLLER_H
 
 #include "autodiscovery.grpc.pb.h"
+#include "core/media/util.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -73,6 +74,8 @@ public slots:
     void copyToClipboard(QString data);
 
     void setSyncMode(const bool sync);
+
+    void selectDevice(const dc::media::DeviceDescr & dev);
 
     void startStreaming();
     void receiveStream();
