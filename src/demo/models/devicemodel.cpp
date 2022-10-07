@@ -60,8 +60,8 @@ DeviceModel::DeviceModel(QObject * parent)
     m_p->m_names[RoleId]     = "id";
     m_p->m_names[RoleName]   = "name";
 
-    m_p->processUpdate();
-    m_p->m_updateTimer.start(5000);
+    // m_p->processUpdate();
+    // m_p->m_updateTimer.start(5000);
 }
 
 //******************************************************************************
@@ -90,6 +90,18 @@ QVariant DeviceModel::data(const QModelIndex &index, int role) const
     }
 
     return QVariant();
+}
+
+//******************************************************************************
+//******************************************************************************
+void DeviceModel::update()
+{
+    beginResetModel();
+
+    dc::media::Util & util = dc::media::Util::instance();
+    m_p->m_devices = util.getDeviceListDirect(m_p->m_deviceClass);
+
+    endResetModel();
 }
 
 //******************************************************************************

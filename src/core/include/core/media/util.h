@@ -40,7 +40,9 @@ public:
     // TODO plugins path?
     bool initializeMediaModule(const std::string & pluginsPath);
 
+    void startWatchDevices();
     std::vector<DeviceDescr> getDeviceList(const std::string & deviceClass);
+    std::vector<DeviceDescr> getDeviceListDirect(const std::string & deviceClass);
 
 private:
     class impl;

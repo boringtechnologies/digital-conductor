@@ -81,6 +81,9 @@ Rectangle {
                 width: parent.width
                 model: idVideoDevices
             }
+            Component.onCompleted: {
+                idVideoDevices.update();
+            }
         }
     }
 }

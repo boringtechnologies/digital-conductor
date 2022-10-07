@@ -9,6 +9,7 @@
 #include <thread>
 #include <map>
 #include <mutex>
+#include <chrono>
 
 //******************************************************************************
 //******************************************************************************
@@ -31,6 +32,9 @@ class Util::impl
     std::mutex                         m_devicesLocker;
     std::map<std::string, DeviceDescr> m_devices;
 
+    std::chrono::system_clock::time_point  m_lastDevicesRequested;
+    std::map<std::string, DeviceDescr>     m_devicesDirect;
+
     impl();
 
     void watchThreadFn();
@@ -44,8 +48,8 @@ class Util::impl
 //******************************************************************************
 //******************************************************************************
 Util::impl::impl()
+    : m_lastDevicesRequested(std::chrono::system_clock::now() - std::chrono::seconds(60))
 {
-    m_watchThread = std::thread(&impl::watchThreadFn, this);
 }
 
 //******************************************************************************
@@ -223,7 +227,13 @@ bool Util::initializeMediaModule(const std::string & pluginsPath)
 
 //******************************************************************************
 //******************************************************************************
-// static 
+void Util::startWatchDevices()
+{
+    m_p->m_watchThread = std::thread(&impl::watchThreadFn, m_p.get());
+}
+
+//******************************************************************************
+//******************************************************************************
 std::vector<DeviceDescr> Util::getDeviceList(const std::string & deviceClass)
 {
     std::vector<DeviceDescr> result;
@@ -239,6 +249,68 @@ std::vector<DeviceDescr> Util::getDeviceList(const std::string & deviceClass)
         }
     }
 
+    return result;
+}
+
+//******************************************************************************
+//******************************************************************************
+std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceClass)
+{
+    while (m_p->m_lastDevicesRequested + std::chrono::milliseconds(5000) < std::chrono::system_clock::now())
+    {
+        GstDeviceMonitor * monitor = gst_device_monitor_new();
+        if (!monitor)
+        {
+            std::cout << "no monitor";
+            break;
+        }
+
+        gst_device_monitor_set_show_all_devices(monitor, true);
+
+        gboolean ret = gst_device_monitor_start(monitor);
+        if (!ret)
+        {
+            std::cout << "monitor not started " << ret << std::endl;
+            break;
+        }
+
+        GList * devices = gst_device_monitor_get_devices(monitor);
+        for (GList * it = devices; it; it = g_list_next(it))
+        {
+            GstDevice * dev = GST_DEVICE (it->data);
+
+            gchar * devName  = gst_device_get_display_name(dev);
+            gchar * devClass = gst_device_get_device_class(dev);
+
+            std::cout << "found " << devClass << " device " << devName << std::endl;
+
+            DeviceDescr descr;
+            descr.deviceName  = devName;
+            descr.deviceClass = devClass;
+
+    //        GstStructure * s = gst_device_get_properties(dev);
+    //        gchar * descr = nullptr;
+    //        gst_structure_get(s, "device.adapter.description", G_TYPE_STRING, &descr, nullptr);
+    //        g_free(descr);
+
+            m_p->m_devicesDirect[devName] = descr;
+
+            g_free(devClass);
+            g_free(devName);
+        }
+
+        g_list_free_full(devices, gst_object_unref);
+        break;
+    }
+
+    std::vector<DeviceDescr> result;
+    for (const std::pair<std::string, DeviceDescr> & p : m_p->m_devicesDirect)
+    {
+        if (deviceClass.empty() || p.second.deviceClass == deviceClass)
+        {
+            result.emplace_back(p.second);
+        }
+    }
     return result;
 }
 

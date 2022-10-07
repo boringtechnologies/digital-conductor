@@ -27,6 +27,7 @@ public:
     virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
 
 public slots:
+    virtual void update();
     virtual void itemSelected(const quint32 id);
 
 signals:
