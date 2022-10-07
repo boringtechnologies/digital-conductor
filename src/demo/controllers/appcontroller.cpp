@@ -74,6 +74,7 @@ protected:
     dc::SenderPtr                          m_mediasender;
 
     // receiver
+    bool                                   m_syncMode = true;
     media::PlaybackDevice                  m_playbackDevice;
     media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
     std::chrono::duration<int>             m_delay;
@@ -428,6 +429,13 @@ QString AppController::generateLicenseToken() const
 
 //******************************************************************************
 //******************************************************************************
+bool AppController::syncModeEnabled() const
+{
+    return m_p->m_syncMode;
+}
+
+//******************************************************************************
+//******************************************************************************
 void AppController::registerLicense(const QString license)
 {
     dc::LicenseManager licenseManager;
@@ -461,6 +469,14 @@ void AppController::copyToClipboard(QString data)
 
 //******************************************************************************
 //******************************************************************************
+void AppController::setSyncMode(const bool sync)
+{
+    std::cout << "sync mode " << (sync ? "on" : "off") << std::endl;
+    m_p->m_syncMode = sync;
+}
+
+//******************************************************************************
+//******************************************************************************
 void AppController::startStreaming()
 {
     if (!m_p->m_rpcClient)
@@ -483,7 +499,7 @@ void AppController::startStreaming()
     }
 
     // start sender
-    m_p->m_captureDevice.name = "v4l2src";
+    // m_p->m_captureDevice.name = "v4l2src";
     m_p->m_mediasender.reset(new media::Sender(m_p->m_user, m_p->m_mediatype, m_p->m_captureDevice, m_p->m_mediaclock));
     m_p->m_mediasender->start();
 
@@ -572,8 +588,9 @@ void AppController::receiveStream()
                                       std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
         ptr->init();
 
-        bool synchronize = true;
-        m_p->m_mediareceivers[peer.id()].reset(new media::Receiver(peer.id(), m_p->m_mediatype, m_p->m_playbackDevice, m_p->m_receiverclock, m_p->m_delay, synchronize,
+        m_p->m_mediareceivers[peer.id()].reset(new media::Receiver(peer.id(), m_p->m_mediatype,
+                                                                   m_p->m_playbackDevice, m_p->m_receiverclock,
+                                                                   m_p->m_delay, m_p->m_syncMode,
                     [ptr](const uint8_t *data, size_t len)
                     {
                         ptr->sendMessage(data, len);

@@ -117,7 +117,11 @@ Rectangle {
             id: syncSwitch
             Layout.fillWidth: true
             header: "Synchronization"
-            // onClicked: Logic.setSyncMode()
+            checked: Controller.syncModeEnabled
+            onClicked: {
+                Controller.syncModeEnabled = checked;
+            }
+
         }
     }
 }
