@@ -120,7 +120,7 @@ void Util::impl::addDevice(GstDevice * dev)
     g_free(deviceName);
 
     std::lock_guard<std::mutex> l(m_devicesLocker);
-    m_devices[descr.deviceName] = descr;
+    m_devices[descr.deviceClass + descr.deviceName] = descr;
 }
 
 //******************************************************************************
@@ -296,7 +296,7 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
 //                descr.deviceDescr = devDescr;
 //            }
 
-            m_p->m_devicesDirect[devName] = descr;
+            m_p->m_devicesDirect[descr.deviceClass + descr.deviceName] = descr;
 
 //            g_free(devDescr);
             g_free(devClass);
