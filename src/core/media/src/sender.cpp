@@ -50,10 +50,16 @@ static GstElement *get_video_device(const media::CaptureDevice &device)
 {
     GstElement *source;
 
+    std::cout << "use " << device.name << std::endl;
     MAKE_ELEMENT(source, device.name.c_str(), "publisher-videosrc");
-    for (const std::pair<std::string, std::string> & param : device.params)
+    if (!device.params.empty())
     {
-        g_object_set(G_OBJECT(source), param.first.c_str(), param.second.c_str(), nullptr);
+        std::cout <<     "with params:" << std::endl;
+        for (const std::pair<std::string, std::string> & param : device.params)
+        {
+            std::cout << "        " << param.first << "=" << param.second << std::endl;
+            g_object_set(G_OBJECT(source), param.first.c_str(), param.second.c_str(), nullptr);
+        }
     }
 
     return source;
