@@ -22,12 +22,6 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>10.15</string>
 
-        <key>LSEnvironment</key>
-        <dict>
-            <key>GST_PLUGIN_PATH</key>
-            <string>/usr/local/lib/gstreamer-1.0</string>
-        </dict>
-
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 
@@ -42,5 +36,11 @@
 
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to the camera for VOIP communication</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app requires access to the mic for VOIP communication</string>
 </dict>
 </plist>
