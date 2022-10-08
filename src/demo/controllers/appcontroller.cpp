@@ -67,15 +67,16 @@ protected:
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
 
+    // pair class - device description
+    std::map<std::string, dc::media::DeviceDescr> m_currentDevices;
+
     // sender
     media::ClockInfo                       m_mediaclock    = {"66.228.38.186", 10000};
     media::MediaType                       m_mediatype     = media::MediaType::Video;
-    media::CaptureDevice                   m_captureDevice;
     dc::SenderPtr                          m_mediasender;
 
     // receiver
     bool                                   m_syncMode = true;
-    media::PlaybackDevice                  m_playbackDevice;
     media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
     std::chrono::duration<int>             m_delay;
     std::map<std::string, dc::ReceiverPtr> m_mediareceivers;
@@ -480,6 +481,7 @@ void AppController::setSyncMode(const bool sync)
 void AppController::selectDevice(const dc::media::DeviceDescr & dev)
 {
     std::cout << "select " << dev.deviceClass << " device <" << dev.internalName << "> " << dev.deviceName << std::endl;
+    m_p->m_currentDevices[dev.deviceClass] = dev;
 }
 
 //******************************************************************************
@@ -505,9 +507,31 @@ void AppController::startStreaming()
         return;
     }
 
+
+    // TODO only video used
+    if (m_p->m_mediatype != media::MediaType::Video)
+    {
+        std::cout << "temporaty video only" << std::endl;
+        // TODO emit error
+        return;
+    }
+
+    std::string deviceClass = "Video/Source";
+    if (m_p->m_currentDevices.count(deviceClass) == 0)
+    {
+        std::cout << "no video capture device selected" << std::endl;
+        // TODO emit error
+        return;
+    }
+
+    const dc::media::DeviceDescr & descr = m_p->m_currentDevices[deviceClass];
+
+    media::CaptureDevice device;
+    device.name   = descr.internalName;
+    device.params = descr.internalParams;
+
     // start sender
-    // m_p->m_captureDevice.name = "v4l2src";
-    m_p->m_mediasender.reset(new media::Sender(m_p->m_user, m_p->m_mediatype, m_p->m_captureDevice, m_p->m_mediaclock));
+    m_p->m_mediasender.reset(new media::Sender(m_p->m_user, m_p->m_mediatype, device, m_p->m_mediaclock));
     m_p->m_mediasender->start();
 
     // connect peers
@@ -561,6 +585,14 @@ void AppController::receiveStream()
         return;
     }
 
+    // TODO only video
+    if (m_p->m_mediatype != media::MediaType::Video)
+    {
+        std::cout << "temporaty video only" << std::endl;
+        // TODO emit error
+        return;
+    }
+
     // TODO one writer temporary
     for (const dc::Peer & peer : m_p->m_rpcPeers)
     {
@@ -595,8 +627,10 @@ void AppController::receiveStream()
                                       std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
         ptr->init();
 
+        // no need to select anything for video
+        media::PlaybackDevice device;
         m_p->m_mediareceivers[peer.id()].reset(new media::Receiver(peer.id(), m_p->m_mediatype,
-                                                                   m_p->m_playbackDevice, m_p->m_receiverclock,
+                                                                   device, m_p->m_receiverclock,
                                                                    m_p->m_delay, m_p->m_syncMode,
                     [ptr](const uint8_t *data, size_t len)
                     {

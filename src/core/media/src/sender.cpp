@@ -39,41 +39,22 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
     return TRUE;
 }
 
-static GstElement *get_audio_device(const media::CaptureDevice &device) {
+static GstElement *get_audio_device(const media::CaptureDevice &device)
+{
     GstElement *source;
-
-#if defined(__linux__)
-    MAKE_ELEMENT(source, "pulsesrc", "publisher-audiosrc");
-    if (!device.name.empty()) {
-        g_object_set(G_OBJECT(source), "device", device.name.c_str(), nullptr);
-    }
-#elif defined(__APPLE__)
-    MAKE_ELEMENT(source, "osxaudiosrc", "publisher-audiosrc");
-    if (!device.name.empty()) {
-        g_object_set(G_OBJECT(source), "device",
-                     std::stoi(device.name, nullptr, 10), nullptr);
-    }
-#endif
-
+    MAKE_ELEMENT(source, device.name.c_str(), "publisher-audiosrc");
     return source;
 }
 
-static GstElement *get_video_device(const media::CaptureDevice &device) {
+static GstElement *get_video_device(const media::CaptureDevice &device)
+{
     GstElement *source;
 
-#if defined(__linux__)
-    MAKE_ELEMENT(source, "v4l2src", "publisher-videosrc");
-    if (!device.name.empty()) {
-        g_object_set(G_OBJECT(source), "device", device.name.c_str(), nullptr);
+    MAKE_ELEMENT(source, device.name.c_str(), "publisher-videosrc");
+    for (const std::pair<std::string, std::string> & param : device.params)
+    {
+        g_object_set(G_OBJECT(source), param.first.c_str(), param.second.c_str(), nullptr);
     }
-
-#elif defined(__APPLE__)
-    MAKE_ELEMENT(source, "avfvideosrc", "publisher-videosrc");
-    if (!device.name.empty()) {
-        g_object_set(G_OBJECT(source), "device-index",
-                     std::stoi(device.name, nullptr, 10), nullptr);
-    }
-#endif
 
     return source;
 }
@@ -242,7 +223,7 @@ void media::Sender::addReceiver(const std::string &id,
     MAKE_ELEMENT(rtcp_appsrc, "appsrc",
                  (id + "-publisher-rtcp-appsrc").c_str());
 
-    if (!bin || !funnel || !rtpbin || !appsink || !rtcp_appsrc) {
+    if (!bin || !funnel || !rtpbin || !appsink) {
         g_printerr("failed to create elements in addReceiver");
         return;
     }
@@ -264,6 +245,7 @@ void media::Sender::addReceiver(const std::string &id,
     g_signal_connect(rtpbin, "pad-added", G_CALLBACK(rtpbin_pad_padded),
                      funnel);
 
+    guint port = atoi(id.c_str()) + 1;
     g_object_set(rtcp_appsrc, "format", GST_FORMAT_TIME, nullptr);
     g_object_set(rtcp_appsrc, "do-timestamp", true, nullptr);
     g_object_set(rtcp_appsrc, "is-live", true, nullptr);

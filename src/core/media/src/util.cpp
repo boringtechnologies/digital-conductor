@@ -247,7 +247,7 @@ void Util::impl::getDeviceParams(GstDevice * dev,
             g_object_get_property(G_OBJECT(element),     property->name, &value);
             g_object_get_property(G_OBJECT(pureelement), property->name, &pvalue);
 
-            if (gst_value_compare (&value, &pvalue) != GST_VALUE_EQUAL)
+            if (gst_value_compare(&value, &pvalue) != GST_VALUE_EQUAL)
             {
                 gchar * valuestr = gst_value_serialize(&value);
 
