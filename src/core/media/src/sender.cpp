@@ -61,6 +61,7 @@ static GstElement *get_video_device(const media::CaptureDevice &device)
             if (param.first == "device-index")
             {
                 // TODO temporary ugly hack for mac os users
+                // TODO use G_VALUE_TYPE or gst_value_deserialize ...
                 g_object_set(G_OBJECT(source), param.first.c_str(), std::stoi(param.second, nullptr, 10), nullptr);
             }
             else
