@@ -58,9 +58,15 @@ static GstElement *get_video_device(const media::CaptureDevice &device)
         for (const std::pair<std::string, std::string> & param : device.params)
         {
             std::cout << "        " << param.first << "=" << param.second << std::endl;
-            GValue v;
-            gst_value_deserialize(&v, param.second.c_str());
-            g_object_set(G_OBJECT(source), param.first.c_str(), v, nullptr);
+            if (param.first == "device-index")
+            {
+                // TODO temporary ugly hack for mac os users
+                g_object_set(G_OBJECT(source), param.first.c_str(), std::stoi(param.second, nullptr, 10), nullptr);
+            }
+            else
+            {
+                g_object_set(G_OBJECT(source), param.first.c_str(), param.second.c_str(), nullptr);
+            }
         }
     }
 
