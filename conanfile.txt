@@ -1,0 +1,14 @@
+[requires]
+glib/2.72.0
+libiconv/1.17
+pango/1.50.10
+gstreamer/1.19.1
+gst-libav/1.19.1
+gst-plugins-base/1.19.1
+gst-plugins-good/1.19.1
+gst-plugins-bad/1.19.1
+grpc/1.48.0
+
+[generators]
+cmake_find_package
+cmake_paths

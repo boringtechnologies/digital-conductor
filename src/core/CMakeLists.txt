@@ -20,15 +20,38 @@ find_package(ZLIB REQUIRED)
 
 find_package(LibJuice REQUIRED)
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(GST REQUIRED
+if(WITH_CONAN)
+    find_package(gstreamer REQUIRED)
+    find_package(gst-plugins-base REQUIRED)
+    find_package(gst-plugins-good REQUIRED)
+    find_package(gst-plugins-bad REQUIRED)
+    find_package(gst-libav REQUIRED)
+
+    set(GST_INCLUDE_DIRS "${gstreamer_INCLUDE_DIRS};${gst-plugins-base_INCLUDE_DIRS};${gst-plugins-good_INCLUDE_DIRS};${gst-plugins-bad_INCLUDE_DIRS};${gst-libav_INCLUDE_DIRS}")
+    set(GST_LIBRARY_DIRS "")
+    set(GST_LIBRARIES "${gstreamer_LIBRARIES};${gst-plugins-base_LIBRARIES};${gst-plugins-good_LIBRARIES};${gst-plugins-bad_LIBRARIES};${gst-libav_LIBRARIES}")
+
+    if(APPLE)
+        find_library(io_surface_lib IOSurface)
+        list(APPEND GST_LIBRARIES ${io_surface_lib})
+    endif()
+
+    set(GST_USE_STATIC_PLUGINS 1)
+
+else(WITH_CONAN)
+    find_package(PkgConfig REQUIRED)
+
+    pkg_check_modules(GST REQUIRED
         gobject-2.0
         glib-2.0
         gstreamer-1.0
         gstreamer-app-1.0
         gstreamer-net-1.0
-)
+    )
+
+    set(GST_USE_STATIC_PLUGINS 0)
+endif()
 
 # Proto files
 get_filename_component(DigitalConductorCore_proto "common/proto/autodiscovery.proto" ABSOLUTE)
@@ -92,6 +115,8 @@ target_link_libraries(DigitalConductorCore_lib PRIVATE
 
 set_target_properties(DigitalConductorCore_lib PROPERTIES
             OUTPUT_NAME "digitalconductorcore")
+
+target_compile_definitions(DigitalConductorCore_lib PRIVATE GST_USE_STATIC_PLUGINS=${GST_USE_STATIC_PLUGINS})
 
 add_executable(DigitalConductorCore_server
             server/main.cpp)
