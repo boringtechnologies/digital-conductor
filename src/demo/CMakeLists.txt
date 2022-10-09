@@ -34,9 +34,9 @@ include_directories(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/../core")
 
-# media
-include_directories(${CMAKE_SOURCE_DIR}/src/core/media/include
+include_directories(${CMAKE_SOURCE_DIR}/src/core/include
                     ${GST_INCLUDE_DIRS})
+
 link_directories(${GST_LIBRARY_DIRS})
 
 set(CPP_SOURCES
@@ -46,10 +46,6 @@ set(CPP_SOURCES
   controllers/appcontroller.cpp
   controllers/appcontroller.h
   controllers/PeerController/PeerController.cpp
-  controllers/AudioDeviceController/AudioDeviceController.cpp
-  controllers/VideoDeviceController/VideoDeviceController.cpp
-  controllers/ReceiverController/ReceiverController.cpp
-  controllers/SenderController/SenderController.cpp
   controllers/LicenseController/LicenseController.cpp
 
   gadgets/PeerInfo/PeerInfo.cpp
@@ -58,6 +54,8 @@ set(CPP_SOURCES
 
   models/peermodel.h
   models/peermodel.cpp
+  models/devicemodel.h
+  models/devicemodel.cpp
 
   qml/QmlEngine/QmlEngine.cpp
   )

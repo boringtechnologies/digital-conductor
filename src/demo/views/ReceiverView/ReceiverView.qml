@@ -3,28 +3,20 @@ import QtQuick.Controls.Universal 2.0
 import QtQuick.Layouts
 
 import DC.controller 1.0
+import DC.model 1.0
 
 import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCComboBox"
 import "qrc:/dc/components/DCRoundSwitchWithTextField"
-import "qrc:/dc/views/ReceiverView/ReceiverView.js" as Logic
 import "qrc:/dc/common/common.js" as Common
 
 Rectangle {
     id: receiverView
-    property var audioOutputDevices: Logic.getAudioOutputDevices()
-    property var videoOutputDevices: Logic.getVideoOutputDevices()
 
     property bool isEnabled: false
 
     color: Common.transparent
-
-    Component.onCompleted: () => {
-        outputDeviceSelector.onCurrentIndexChanged.connect(() => {
-            Logic.setOutputDevice()
-        })
-    }
 
     ColumnLayout {
         anchors.left: parent.left
@@ -40,7 +32,6 @@ Rectangle {
             Layout.fillWidth: true
             header: qsTr("Start Receiving from")
             placeholder: Controller.group
-            // onClicked: Logic.setReceiverState()
             onClicked: {
                 checked ? Controller.receiveStream() : Controller.stopStream();
             }
@@ -58,10 +49,29 @@ Rectangle {
                 label: "Audio Output Device"
                 bottomPadding: 5
             }
+
+            DeviceModel {
+                id: idAudioOutDevices
+                deviceClass: "Audio/Sink"
+            }
+
             DCComboBox {
                 id: outputDeviceSelector
                 width: parent.width
-                model: audioOutputDevices.map((el) => el.label)
+                model: idAudioOutDevices
+                currentIndex: idAudioOutDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    idAudioOutDevices.selectItem(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idAudioOutDevices.update()
+                }
+            }
+
+            Component.onCompleted: {
+                idAudioOutDevices.update();
             }
         }
 
@@ -71,10 +81,29 @@ Rectangle {
                 label: "Video Output Device"
                 bottomPadding: 5
             }
+
+            DeviceModel {
+                id: idVideoOutDevices
+                // deviceClass: "Video/Source"
+            }
+
             DCComboBox {
                 id: outputVideoDeviceSelector
                 width: parent.width
-                model: videoOutputDevices.map((el) => el.label)
+                model: idVideoOutDevices
+                currentIndex: idVideoOutDevices.currentIndex
+
+                onCurrentIndexChanged: {
+                    // idVideoOutDevices.selectItem(currentIndex);
+                }
+
+                onRequestUpdate: {
+                    idVideoOutDevices.update()
+                }
+            }
+
+            Component.onCompleted: {
+                idVideoOutDevices.update();
             }
         }
 
@@ -88,7 +117,11 @@ Rectangle {
             id: syncSwitch
             Layout.fillWidth: true
             header: "Synchronization"
-            onClicked: Logic.setSyncMode()
+            checked: Controller.syncModeEnabled
+            onClicked: {
+                Controller.syncModeEnabled = checked;
+            }
+
         }
     }
 }

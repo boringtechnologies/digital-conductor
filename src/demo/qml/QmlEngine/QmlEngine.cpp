@@ -5,10 +5,6 @@
 
 // controllers
 #include "PeerController/PeerController.hpp"
-#include "AudioDeviceController/AudioDeviceController.hpp"
-#include "VideoDeviceController/VideoDeviceController.hpp"
-#include "ReceiverController/ReceiverController.hpp"
-#include "SenderController/SenderController.hpp"
 
 // qml
 #include "QmlEngine/QmlEngine.hpp"
@@ -88,10 +84,6 @@ void QmlEngine::registerControllers_()
         moduleName_, moduleVersion_[0], moduleVersion_[1], #T, &T::instance());
 
     DC_REGISTER_CONTROLLER(PeerController);
-    DC_REGISTER_CONTROLLER(AudioDeviceController);
-    DC_REGISTER_CONTROLLER(VideoDeviceController);
-    DC_REGISTER_CONTROLLER(ReceiverController);
-    DC_REGISTER_CONTROLLER(SenderController);
 
 #undef DC_REGISTER_CONTROLLER
 }
