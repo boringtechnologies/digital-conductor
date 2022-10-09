@@ -2,6 +2,8 @@
 //*****************************************************************************
 
 #include "controllers/appcontroller.h"
+#include "core/media/util.h"
+
 #include "QmlEngine/QmlEngine.hpp"
 
 #include <QGuiApplication>
@@ -39,7 +41,12 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
-    // TODO maybe remove custom endine?
+    // init media
+    // TODO use gst plugin path
+    dc::media::Util & util = dc::media::Util::instance();
+    util.initializeMediaModule("");
+
+    // TODO maybe remove custom engine?
     QmlEngine::initialize();
 
     QQmlApplicationEngine engine;
