@@ -60,8 +60,8 @@ void PeerModel::impl::processUpdate()
 
 //******************************************************************************
 //******************************************************************************
-PeerModel::PeerModel(QObject *parent)
-    : QAbstractListModel{parent}
+PeerModel::PeerModel(QObject * parent)
+    : QAbstractListModel(parent)
     , m_p(new impl(this))
 {
     m_p->m_names[RoleId]     = "id";
@@ -122,7 +122,7 @@ QVariant PeerModel::data(const QModelIndex &index, int role) const
 
 //******************************************************************************
 //******************************************************************************
-void PeerModel::itemSelected(const quint32 id)
+void PeerModel::selectItem(const quint32 id)
 {
     qDebug() << Q_FUNC_INFO << "selected " << id;
     if (id < static_cast<quint32>(m_p->m_peers.size()))

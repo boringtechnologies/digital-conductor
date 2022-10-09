@@ -6,21 +6,23 @@ import "qrc:/dc/components/DCText"
 ComboBox {
     id: comboBoxId
 
+    textRole: "name"
+
+    signal requestUpdate
+
     delegate: ItemDelegate {
         id: myItem
         width: 300
         height: 25
         contentItem: DCText {
             verticalAlignment: Text.AlignVCenter
-            label: model[index]
+            label: model.name
         }
         highlighted: comboBoxId.highlightedIndex === index
         background: Rectangle {
             height: 25
             color: myItem.highlighted ? Common.darkGray : Common.transparent
         }
-
-        required property int index
     }
 
     indicator: Canvas {
@@ -81,6 +83,13 @@ ComboBox {
             border.color: Common.midGray
             color: Common.midGray
             radius: 2
+        }
+
+        onVisibleChanged: {
+            if (visible)
+            {
+                requestUpdate();
+            }
         }
     }
 }

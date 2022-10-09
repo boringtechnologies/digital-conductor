@@ -39,34 +39,37 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
     return TRUE;
 }
 
-static GstElement *get_audio_device(const media::CaptureDevice &device) {
+static GstElement *get_audio_device(const media::CaptureDevice &device)
+{
     GstElement *source;
-
-#if defined(__linux__)
-    MAKE_ELEMENT(source, "pulsesrc", "publisher-audiosrc");
-#elif defined(__APPLE__)
-    MAKE_ELEMENT(source, "osxaudiosrc", "publisher-audiosrc");
-#endif
-
+    MAKE_ELEMENT(source, device.name.c_str(), "publisher-audiosrc");
     return source;
 }
 
-static GstElement *get_video_device(const media::CaptureDevice &device) {
+static GstElement *get_video_device(const media::CaptureDevice &device)
+{
     GstElement *source;
 
-#if defined(__linux__)
-    MAKE_ELEMENT(source, "v4l2src", "publisher-videosrc");
-    if (!device.name.empty()) {
-        g_object_set(G_OBJECT(source), "device", device.name.c_str(), nullptr);
-    }
-
-#elif defined(__APPLE__)
-    MAKE_ELEMENT(source, "avfvideosrc", "publisher-videosrc");
-    if (source)
+    std::cout << "use " << device.name << std::endl;
+    MAKE_ELEMENT(source, device.name.c_str(), "publisher-videosrc");
+    if (!device.params.empty())
     {
-        g_object_set (source, "device-index", 0, nullptr);
+        std::cout <<     "with params:" << std::endl;
+        for (const std::pair<std::string, std::string> & param : device.params)
+        {
+            std::cout << "        " << param.first << "=" << param.second << std::endl;
+            if (param.first == "device-index")
+            {
+                // TODO temporary ugly hack for mac os users
+                // TODO use G_VALUE_TYPE or gst_value_deserialize ...
+                g_object_set(G_OBJECT(source), param.first.c_str(), std::stoi(param.second, nullptr, 10), nullptr);
+            }
+            else
+            {
+                g_object_set(G_OBJECT(source), param.first.c_str(), param.second.c_str(), nullptr);
+            }
+        }
     }
-#endif
 
     return source;
 }

@@ -5,6 +5,7 @@
 #define APPCONTROLLER_H
 
 #include "autodiscovery.grpc.pb.h"
+#include "core/media/util.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -38,6 +39,8 @@ public:
     Q_PROPERTY(QString group READ group CONSTANT)
     Q_PROPERTY(QString newDeviceLicense READ generateLicenseToken CONSTANT)
 
+    Q_PROPERTY(bool syncModeEnabled READ syncModeEnabled WRITE setSyncMode NOTIFY syncModeChanged)
+
 protected:
     AppController();
 
@@ -55,9 +58,12 @@ public:
 
     QString generateLicenseToken() const;
 
+    bool syncModeEnabled() const;
+
 signals:
     void showMessage(const QString & text);
     void stateChanged();
+    void syncModeChanged();
 
 public slots:
     void init(const QString & userName, const QString & group, const QString & target);
@@ -66,6 +72,10 @@ public slots:
     void checkLicense();
 
     void copyToClipboard(QString data);
+
+    void setSyncMode(const bool sync);
+
+    void selectDevice(const dc::media::DeviceDescr & dev);
 
     void startStreaming();
     void receiveStream();
