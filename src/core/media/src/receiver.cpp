@@ -95,8 +95,6 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 {
     GstBus *bus;
     GstElement *rtpbin, *depayloader, *decoder, *sink, *appsink;
-    gst_init(nullptr, nullptr);
-    gst_register_static_plugins();
 
     loop = g_main_loop_new(nullptr, FALSE);
 

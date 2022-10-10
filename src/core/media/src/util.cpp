@@ -2,6 +2,7 @@
 //******************************************************************************
 
 #include "core/media/util.h"
+#include "internal.hpp"
 
 #include <gst/app/app.h>
 
@@ -346,6 +347,8 @@ bool Util::initializeMediaModule(const std::string & pluginsPath)
 {
     // gst_init(&argc, &argv);
     gst_init(nullptr, nullptr);
+
+    gst_register_static_plugins();
 
     // TODO instead of GST_PLUGIN_PATH may be use this code?
     // GstRegistry * registry = gst_registry_get();

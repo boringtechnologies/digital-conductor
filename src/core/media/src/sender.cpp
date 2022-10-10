@@ -81,8 +81,6 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
     GstBus *bus;
     GstElement *source, *conv, *rate, *capsf, *encoder, *payloader, *queue,
         *fakesink;
-    gst_init(nullptr, nullptr);
-    gst_register_static_plugins();
 
     loop = g_main_loop_new(nullptr, FALSE);
 
