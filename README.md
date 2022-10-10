@@ -1,6 +1,6 @@
 # digital conductor
 
-simple build flow1
+simple build flow
 
 ## Install dependencies with Conan package manager
 
@@ -13,6 +13,8 @@ cmake -S . -B build -DQT_DIR="/usr/local/opt/qt/lib/cmake" -DWITH_CONAN=ON
 cmake --build build
 
 ```
+
+> NOTE: Install Qt from (official distribution)[https://www.qt.io/download-open-source) to avoid https://github.com/Homebrew/discussions/discussions/2823 issue with macdeployqt
 
 ## Manual dependencies install
 
