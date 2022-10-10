@@ -94,7 +94,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     : thread(nullptr), write_cb(write_cb)
 {
     GstBus *bus;
-    GstElement *rtpbin, *depayloader, *decoder, *sink, *appsink;
+    GstElement *rtpbin, *depayloader, *decoder, *convert, *sink, *appsink;
 
     loop = g_main_loop_new(nullptr, FALSE);
 
@@ -119,6 +119,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         MAKE_ELEMENT(depayloader, "rtpvp8depay",
                      ("rx-" + id + "-depay").c_str());
         MAKE_ELEMENT(decoder, "vp8dec", ("rx-" + id + "-dec").c_str());
+        MAKE_ELEMENT(convert, "videoconvert", ("rx-" + id + "-cvrt").c_str());
         MAKE_ELEMENT(sink, "autovideosink", ("rx-" + id + "-sink").c_str());
         g_object_set(
             appsrc, "caps",
@@ -147,19 +148,16 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     GstPad *recv_rtp_sink_pad =
         gst_element_get_request_pad(rtpbin, "recv_rtp_sink_%u");
 
-    GstPad *recv_rtcp_sink_pad =
-        gst_element_get_request_pad(rtpbin, "recv_rtcp_sink_%u");
-
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
     bus_watch_id = gst_bus_add_watch(bus, bus_callback, loop);
     gst_object_unref(bus);
 
     gst_bin_add_many(GST_BIN(pipeline), appsrc, rtpbin, depayloader, decoder,
-                     sink, appsink, nullptr);
+                     convert, sink, appsink, nullptr);
 
     gst_pad_link(src_pad, recv_rtp_sink_pad);
     gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
-    if (!gst_element_link_many(depayloader, decoder, sink, nullptr)) {
+    if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
         g_printerr("Failed to link the elements\n");
         return;
     }
