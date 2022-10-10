@@ -5,8 +5,8 @@ project(DigitalConductor)
 option(WITH_CONAN "Install all required deps with conan" OFF)
 
 if(WITH_CONAN)
-  include(cmake/conan_install.cmake)
-  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt default)
+  include(conan/cmake/conan_install.cmake)
+  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/default ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/default)
   list(APPEND CMAKE_MODULE_PATH ${CONAN_MODULE_PATH})
 endif()
 
@@ -47,6 +47,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
 
 if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE "Release")

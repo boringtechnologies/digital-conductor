@@ -8,6 +8,8 @@ gst-plugins-base/1.19.1
 gst-plugins-good/1.19.1
 gst-plugins-bad/1.19.1
 grpc/1.48.0
+cxxopts/3.0.0
+libjuice/1.0.5
 
 [generators]
 cmake_find_package

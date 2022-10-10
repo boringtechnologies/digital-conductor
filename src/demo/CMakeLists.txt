@@ -14,14 +14,45 @@ find_package(ZLIB REQUIRED)
 
 find_package(LibJuice REQUIRED)
 find_package(Threads REQUIRED)
-find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(GST REQUIRED
+if(WITH_CONAN)
+    find_package(gRPC REQUIRED)
+    find_package(glib REQUIRED)
+    find_package(gstreamer REQUIRED)
+    find_package(gst-plugins-base REQUIRED)
+    find_package(gst-plugins-good REQUIRED)
+    find_package(gst-plugins-bad REQUIRED)
+    find_package(gst-libav REQUIRED)
+
+    set(GST_INCLUDE_DIRS "${glib_INCLUDE_DIRS};${gstreamer_INCLUDE_DIRS};${gst-plugins-base_INCLUDE_DIRS};${gst-plugins-good_INCLUDE_DIRS};${gst-plugins-bad_INCLUDE_DIRS};${gst-libav_INCLUDE_DIRS}")
+    set(GST_LIBRARY_DIRS "")
+    set(GST_LIBRARIES "${gstreamer_LIBRARIES};${gst-plugins-base_LIBRARIES};${gst-plugins-good_LIBRARIES};${gst-plugins-bad_LIBRARIES};${gst-libav_LIBRARIES}")
+
+    if(APPLE)
+        find_library(io_surface_lib IOSurface)
+        list(APPEND GST_LIBRARIES ${io_surface_lib})
+    endif()
+
+    set(GST_USE_STATIC_PLUGINS 1)
+
+else(WITH_CONAN)
+    find_package(PkgConfig REQUIRED)
+
+    pkg_check_modules(GST REQUIRED
         gobject-2.0
         glib-2.0
         gstreamer-1.0
         gstreamer-app-1.0
-        gstreamer-net-1.0)
+        gstreamer-net-1.0
+    )
+
+    set(GST_USE_STATIC_PLUGINS 0)
+
+    include_directories(${CMAKE_SOURCE_DIR}/src/core/include
+                    ${GST_INCLUDE_DIRS})
+
+    link_directories(${GST_LIBRARY_DIRS})
+endif()
 
 include_directories(
     ../core
@@ -33,11 +64,6 @@ include_directories(
 
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/../core")
-
-include_directories(${CMAKE_SOURCE_DIR}/src/core/include
-                    ${GST_INCLUDE_DIRS})
-
-link_directories(${GST_LIBRARY_DIRS})
 
 set(CPP_SOURCES
   Main.cpp
@@ -126,6 +152,11 @@ target_link_libraries(DigitalConductorDemo PRIVATE
     DigitalConductorLib
     DigitalConductorCore_proto
     DigitalConductorCore_lib)
+
+target_include_directories(DigitalConductorDemo PRIVATE
+    ${LibJuice_INCLUDE_DIRS}
+    ${gRPC_gRPC_INCLUDE_DIRS}
+    ${GST_INCLUDE_DIRS})
 
 target_link_libraries(DigitalConductorDemo PRIVATE
     Qt6::Quick)

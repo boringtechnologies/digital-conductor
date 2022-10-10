@@ -1,11 +1,11 @@
-function(conan_install conan_file host_profile)
+function(conan_install conan_file host_profile build_profile)
   # download helper conan.cmake
   if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
     file(
-      DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/v0.16.1/conan.cmake"
+      DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/0.18.1/conan.cmake"
       "${CMAKE_BINARY_DIR}/conan.cmake"
-      EXPECTED_HASH SHA256=396e16d0f5eabdc6a14afddbcfff62a54a7ee75c6da23f32f7a31bc85db23484
+      EXPECTED_HASH SHA256=5cdb3042632da3efff558924eecefd580a0e786863a857ca097c3d1d43df5dcd
       TLS_VERIFY ON)
   endif()
   include(${CMAKE_BINARY_DIR}/conan.cmake)
@@ -17,16 +17,22 @@ function(conan_install conan_file host_profile)
     set(host_profile "default")
   endif()
 
+  if(NOT build_profile)
+    set(build_profile ${host_profile})
+  endif()
+
   conan_cmake_install(PATH_OR_REFERENCE ${conan_file}
                       BUILD missing
                       INSTALL_FOLDER ${CONAN_MODULE_PATH}
                       PROFILE_HOST ${host_profile}
-                      PROFILE_BUILD default
+                      PROFILE_BUILD ${build_profile}
                       SETTINGS build_type=Release) # ${CMAKE_BUILD_TYPE})
 
   # fix aliases
-  include(cmake/alias_package.cmake)
-  # alias_package(${CONAN_MODULE_PATH} libjpeg-turbo JpegTurbo)
+  include(${CMAKE_SOURCE_DIR}/conan/cmake/alias_package.cmake)
+  alias_package(${CONAN_MODULE_PATH} libjuice LibJuice)
+  alias_package(${CONAN_MODULE_PATH} grpc gRPC)
+  alias_package(${CONAN_MODULE_PATH} protobuf Protobuf)
 
   set(CONAN_MODULE_PATH ${CONAN_MODULE_PATH} PARENT_SCOPE)
 endfunction()

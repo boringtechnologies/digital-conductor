@@ -91,6 +91,20 @@ elseif(GRPC_FETCHCONTENT)
   else()
     set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
   endif()
+elseif(WITH_CONAN)
+  find_package(Protobuf REQUIRED)
+  message(STATUS "Using protobuf ${Protobuf_VERSION}")
+
+  set(_PROTOBUF_LIBPROTOBUF ${Protobuf_LIBRARIES})
+  find_program(_PROTOBUF_PROTOC protoc)
+
+  find_package(gRPC REQUIRED)
+  message(STATUS "Using gRPC ${gRPC_VERSION}")
+
+  set(_REFLECTION gRPC::grpc++_reflection)
+  set(_GRPC_GRPCPP gRPC::grpc++)
+  find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+  include_directories("${gRPC_INCLUDE_DIRS}")
 else()
   # This branch assumes that gRPC and all its dependencies are already installed
   # on this system, so they can be located by find_package().
