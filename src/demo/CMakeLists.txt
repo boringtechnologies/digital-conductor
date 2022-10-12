@@ -164,7 +164,7 @@ set_target_properties(DigitalConductorDemo PROPERTIES
   OUTPUT_NAME "digitalconductor-demo"
   MACOSX_BUNDLE TRUE
   WIN32_EXECUTABLE TRUE
-  )
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)
 
 if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
   add_custom_command(
