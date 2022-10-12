@@ -7,7 +7,6 @@ add_executable(DigitalConductorCli
   )
 
 add_dependencies(DigitalConductorCli
-  DigitalConductorDeps
   DigitalConductorLib
   )
 

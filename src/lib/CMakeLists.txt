@@ -8,10 +8,6 @@ add_library(DigitalConductorLib STATIC
   "licensing/AES.cpp"
   )
 
-add_dependencies(DigitalConductorLib
-  DigitalConductorDeps
-  )
-
 set_target_properties(DigitalConductorLib PROPERTIES
   OUTPUT_NAME "digitalconductor"
   )

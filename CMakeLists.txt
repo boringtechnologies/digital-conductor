@@ -4,6 +4,18 @@ project(DigitalConductor)
 
 option(WITH_CONAN "Install all required deps with conan" OFF)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
+
+set(QT_CREATOR_SKIP_CONAN_SETUP ON)
+
+if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 if(WITH_CONAN)
   include(conan/cmake/conan_install.cmake)
   conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/default ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/default)
@@ -43,40 +55,26 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
-
-if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
-
 include_directories(
   "${PROJECT_SOURCE_DIR}/src/lib"
   "${PROJECT_SOURCE_DIR}/src/core/include"
-  )
+)
 
-include_directories(SYSTEM
-  "${PROJECT_SOURCE_DIR}/3rdparty/cxxopts/include"
-  )
+find_package(cxxopts)
+include_directories(SYSTEM ${cxxopts_INCLUDE_DIRS})
 
 link_directories(
   "${PROJECT_SOURCE_DIR}/bin"
-  )
+)
 
 if(NOT WIN32)
-  link_libraries(
-    pthread
-    )
+  link_libraries(pthread)
 endif()
-
-add_subdirectory(3rdparty 3rdparty)
 
 add_subdirectory(src/core core)
 add_subdirectory(src/lib  lib)
 add_subdirectory(src/cli  cli)
+
 set(CUSTOM_BUILD_DEPENDS DigitalConductorLib DigitalConductorCli)
 
 if(NOT QT_DIR STREQUAL "")
@@ -96,4 +94,4 @@ add_custom_command(
 
 add_custom_target(DigitalConductor ALL
   DEPENDS "${PROJECT_SOURCE_DIR}/compile_commands.json"
-  )
+)

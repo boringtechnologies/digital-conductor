@@ -1,7 +1,7 @@
 #!/bin/sh
 
-conan_path=$(realpath `dirname $0`)
+receipts_path="conan/receipts"
 
-conan export "${conan_path}/receipts/libjuice" 1.0.5@
-conan export "${conan_path}/receipts/gst-plugins-good" 1.19.1@
-conan export "${conan_path}/receipts/gst-plugins-bad" 1.19.1@
+conan export "${receipts_path}/libjuice" 1.0.5@
+conan export "${receipts_path}/gst-plugins-good" 1.19.1@
+conan export "${receipts_path}/gst-plugins-bad" 1.19.1@

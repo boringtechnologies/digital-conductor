@@ -7,6 +7,7 @@ simple build flow
 All deps except Qt can be installed with `conan`, for this just pass `-DWITH_CONAN=ON`
 
 ```
+brew install cmake
 pip3 install conan
 sh conan/export_receipts.sh
 cmake -S . -B build -DQT_DIR="/usr/local/opt/qt/lib/cmake" -DWITH_CONAN=ON

@@ -8,13 +8,6 @@ project(DigitalConductorCore LANGUAGES CXX)
 
 include(cmake/common.cmake)
 
-
-#if(NOT APPLE)
-#    set(BUILD_SHARED_LIBS OFF)
-#    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
-#endif()
-
-# set(ZLIB_USE_STATIC_LIBS "ON")
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 find_package(ZLIB REQUIRED)
 

@@ -1,0 +1,16 @@
+[settings]
+os=Macos
+os.version=10.15
+arch=x86_64
+compiler=apple-clang
+compiler.version=13.1
+compiler.libcxx=libc++
+build_type=Release
+cppstd=17
+[options]
+[build_requires]
+flex:m4/1.4.19
+glib/2.72.0
+pkgconf/1.9.3
+[env]
+CXXFLAGS=-std=c++17

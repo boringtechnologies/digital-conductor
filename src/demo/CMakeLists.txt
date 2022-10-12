@@ -144,7 +144,6 @@ qt_add_qml_module(DigitalConductorDemo
 
 add_dependencies(DigitalConductorDemo
   DigitalConductorCore_lib
-  DigitalConductorDeps
   DigitalConductorLib)
 
 target_link_libraries(DigitalConductorDemo PRIVATE
