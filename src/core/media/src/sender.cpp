@@ -150,17 +150,17 @@ media::Sender::~Sender() {
 
 void media::Sender::start() {
     thread = std::make_unique<std::thread>([this] {
-        g_print("Setting the pipeline to playing\n");
+        g_print("[gst-sender] Setting the pipeline to playing\n");
         gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
-        g_print("Running mainloop\n");
+        g_print("[gst-sender] Running mainloop\n");
         g_main_loop_run(loop);
     });
 }
 
 void media::Sender::stop() {
     g_main_loop_quit(loop);
-    g_print("stopping playback\n");
+    g_print("[gst-sender] stopping playback\n");
     gst_element_set_state(pipeline, GST_STATE_NULL);
 
     thread->join();

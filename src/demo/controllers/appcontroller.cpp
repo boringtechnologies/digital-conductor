@@ -78,7 +78,7 @@ protected:
     // receiver
     bool                                   m_syncMode = true;
     media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
-    std::chrono::duration<int, std::milli> m_delay = {500};
+    std::chrono::duration<int, std::milli> m_delay {500};
     std::map<std::string, dc::ReceiverPtr> m_mediareceivers;
 };
 
@@ -108,7 +108,7 @@ void AppController::impl::updatePeerList()
 //*****************************************************************************
 void AppController::impl::onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg)
 {
-    // std::cout << "Message from " << from << " --> " << msg << std::endl;
+    std::cout << "[appgrpc]" << "Message from " << from << " --> " << msg << std::endl;
 
     // TODO move juice messages to another instance
     if (msg.rfind("JP2PI", 0) == 0)
@@ -472,7 +472,7 @@ void AppController::copyToClipboard(QString data)
 //******************************************************************************
 void AppController::setSyncMode(const bool sync)
 {
-    std::cout << "sync mode " << (sync ? "on" : "off") << std::endl;
+    std::cout << "[appctrl] " << "sync mode " << (sync ? "on" : "off") << std::endl;
     m_p->m_syncMode = sync;
 }
 
@@ -480,7 +480,7 @@ void AppController::setSyncMode(const bool sync)
 //******************************************************************************
 void AppController::selectDevice(const dc::media::DeviceDescr & dev)
 {
-    std::cout << "select " << dev.deviceClass << " device <" << dev.internalName << "> " << dev.deviceName << std::endl;
+    std::cout << "[appctrl] " << "select " << dev.deviceClass << " device <" << dev.internalName << "> " << dev.deviceName << std::endl;
     m_p->m_currentDevices[dev.deviceClass] = dev;
 }
 
@@ -490,19 +490,19 @@ void AppController::startStreaming()
 {
     if (!m_p->m_rpcClient)
     {
-        std::cout << "not subscribed" << std::endl;
+        std::cout << "[appctrl] startStreaming " << "not subscribed" << std::endl;
         // TODO emit error
         return;
     }
     if (m_p->m_mediasender)
     {
-        std::cout << "already started" << std::endl;
+        std::cout << "[appctrl] startStreaming " << "already started" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_mediareceivers.empty())
     {
-        std::cout << "already receiving" << std::endl;
+        std::cout << "[appctrl] startStreaming " << "already receiving" << std::endl;
         // TODO emit error
         return;
     }
@@ -511,7 +511,7 @@ void AppController::startStreaming()
     // TODO only video used
     if (m_p->m_mediatype != media::MediaType::Video)
     {
-        std::cout << "temporaty video only" << std::endl;
+        std::cout << "[appctrl] startStreaming " << "temporaty video only" << std::endl;
         // TODO emit error
         return;
     }
@@ -519,7 +519,7 @@ void AppController::startStreaming()
     std::string deviceClass = "Video/Source";
     if (m_p->m_currentDevices.count(deviceClass) == 0)
     {
-        std::cout << "no video capture device selected" << std::endl;
+        std::cout << "[appctrl] startStreaming " << "no video capture device selected" << std::endl;
         // TODO emit error
         return;
     }
@@ -574,13 +574,13 @@ void AppController::receiveStream()
 {
     if (m_p->m_mediasender)
     {
-        std::cout << "i'm a sender" << std::endl;
+        std::cout << "[appctrl] receiveStream " << "i'm a sender" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_mediareceivers.empty())
     {
-        std::cout << "already receiving" << std::endl;
+        std::cout << "[appctrl] receiveStream " << "already receiving" << std::endl;
         // TODO emit error
         return;
     }
@@ -588,7 +588,7 @@ void AppController::receiveStream()
     // TODO only video
     if (m_p->m_mediatype != media::MediaType::Video)
     {
-        std::cout << "temporaty video only" << std::endl;
+        std::cout << "[appctrl] receiveStream " << "temporaty video only" << std::endl;
         // TODO emit error
         return;
     }
@@ -609,7 +609,7 @@ void AppController::receiveStream()
             // disconnect
             if (!m_p->m_rpcClient->p2pDisconnect(peer.id(), "get stream"))
             {
-                std::cout << "p2p disconnect error" << std::endl;
+                std::cout << "[appctrl] receiveStream " << "p2p disconnect error" << std::endl;
                 continue;
             }
 
@@ -641,7 +641,7 @@ void AppController::receiveStream()
         // start connection
         if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))
         {
-            std::cout << "p2p init error with " << peer.id() << std::endl;
+            std::cout << "[appctrl] receiveStream " << "p2p init error with " << peer.id() << std::endl;
             continue;
         }
 
@@ -663,7 +663,7 @@ void AppController::stopStream()
 
             if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "stopped"))
             {
-                std::cout << "p2p disconnect error" << std::endl;
+                std::cout << "[appctrl] stopStream " << "p2p disconnect error" << std::endl;
                 continue;
             }
 

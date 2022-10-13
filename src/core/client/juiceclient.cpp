@@ -81,7 +81,7 @@ JuiceClient::JuiceClient(const std::string & id,
                 {
                     if (m_p->m_lastReceived + std::chrono::milliseconds(5000) < std::chrono::system_clock::now())
                     {
-                        std::cout << "disconnected???" << std::endl;
+                        std::cout << "[juice] pinger " << "disconnected???" << std::endl;
 
                         // TODO disconnected? reconnect?
                         m_p->m_onStateChangedHandler(m_p->m_agent, JUICE_STATE_DISCONNECTED, this);
@@ -93,6 +93,7 @@ JuiceClient::JuiceClient(const std::string & id,
 
                 if (m_p->m_agent && juice_get_state(m_p->m_agent) >= JUICE_STATE_CONNECTED)
                 {
+                    std::cout << "[juice] pinger " << "JUICE_STATE_CONNECTED" << std::endl;
                     // send ping, raw message
                     sendMessage(reinterpret_cast<const uint8_t *>(pingmsg.c_str()), pingmsg.size());
                 }
@@ -118,6 +119,8 @@ JuiceClient::~JuiceClient()
 // static
 void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
 {
+    std::cout << "[juice] onStateChanged\n";
+
     // TODO ugly, use bind etc.
     dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
     dc::JuiceClient::impl * cimpl  = caller->m_p.get();
@@ -133,6 +136,8 @@ void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t stat
 // static
 void JuiceClient::impl::onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr)
 {
+    std::cout << "[juice] onCandidate\n";
+
     // TODO ugly, use bind etc.
     dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
     dc::JuiceClient::impl * cimpl  = caller->m_p.get();
@@ -146,6 +151,8 @@ void JuiceClient::impl::onCandidate(juice_agent_t * agent, const char * sdp, voi
 // static
 void JuiceClient::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr)
 {
+    std::cout << "[juice] onCandidate\n";
+
     // TODO ugly, use bind etc.
     dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
     dc::JuiceClient::impl * cimpl  = caller->m_p.get();

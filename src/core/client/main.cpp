@@ -34,11 +34,11 @@ void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
     std::string id = caller->id();
 
     // std::cout << "onStateChanged " << state << " " << juice_state_to_string(state) << std::endl;
-    std::cout << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
+    std::cout << "[juice-main] onStateChanged " << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
 
     if (state == JUICE_STATE_COMPLETED)
     {
-        std::cout << "P2P connection, " << id << " connected" << std::endl;
+        std::cout << "[juice-main] onStateChanged " << "P2P connection, " << id << " connected" << std::endl;
 
 //        if (!mediasender)
 //        {
@@ -71,7 +71,7 @@ void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
             mediareceiver->stop();
             mediareceiver.reset();
         }
-        std::cout << "P2P connection, " << id << " disconnected" << std::endl;
+        std::cout << "[juice-main] onStateChanged " << "P2P connection, " << id << " disconnected" << std::endl;
     }
 }
 
@@ -147,7 +147,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
         jcclient_ptr_t ptr = getJccClient(from);
         if (ptr)
         {
-            std::cout << "juice already initialized " << from << std::endl;
+            std::cout << "[main] onGrpcMessage " << "juice already initialized " << from << std::endl;
             return;
         }
 
@@ -156,7 +156,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
 
         if (!grclient->p2pAccept(from, ptr->sdp()))
         {
-            std::cout << "p2p not accepted " << from << std::endl;
+            std::cout << "[main] onGrpcMessage " << "p2p not accepted " << from << std::endl;
             return;
         }
 
@@ -168,7 +168,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
         jcclient_ptr_t ptr = getJccClient(from);
         if (!ptr)
         {
-            std::cout << "juice not initialized " << from << std::endl;
+            std::cout << "[main] onGrpcMessage " << "juice not initialized " << from << std::endl;
             return;
         }
 
@@ -180,7 +180,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
         jcclient_ptr_t ptr = getJccClient(from);
         if (!ptr)
         {
-            std::cout << "juice not initialized " << from << std::endl;
+            std::cout << "[main] onGrpcMessage " << "juice not initialized " << from << std::endl;
             return;
         }
         ptr->addRemote(msg.substr(6));
@@ -192,13 +192,13 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
         {
             mediasender->removeReceiver(from);
         }
-        std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+        std::cout << "[main] onGrpcMessage " << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
         jcclients.erase(from);
     }
     else
     {
         // simple message
-        std::cout << "msg from <" << from << "> " << msg << std::endl;
+        std::cout << "[main] onGrpcMessage " << "msg from <" << from << "> " << msg << std::endl;
     }
 }
 
