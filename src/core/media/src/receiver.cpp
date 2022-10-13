@@ -72,6 +72,11 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     g_free(padname);
 }
 
+static void actual_sink_added_callback (GstChildProxy *, GObject * actual_sink, gchar *, gpointer) {
+    std::cout << "[gst-receiver] actual_sink_added_callback\n";
+    g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
+}
+
 static GstElement *get_audio_device(const std::string &id) {
     GstElement *sink;
 
@@ -121,6 +126,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         MAKE_ELEMENT(decoder, "vp8dec", ("rx-" + id + "-dec").c_str());
         MAKE_ELEMENT(convert, "videoconvert", ("rx-" + id + "-cvrt").c_str());
         MAKE_ELEMENT(sink, "autovideosink", ("rx-" + id + "-sink").c_str());
+        g_signal_connect(sink, "child-added", G_CALLBACK(actual_sink_added_callback), NULL);
         g_object_set(
             appsrc, "caps",
             gst_caps_from_string("application/"
@@ -192,10 +198,10 @@ media::Receiver::~Receiver() {
 
 void media::Receiver::start() {
     thread = std::make_unique<std::thread>([this] {
-        g_print("Setting the pipeline to playing\n");
+        g_print("[gst-receiver] Setting the pipeline to playing\n");
         gst_element_set_state(pipeline, GST_STATE_PLAYING);
 
-        g_print("Running mainloop\n");
+        g_print("[gst-receiver] Running mainloop\n");
 
         GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
                                   "rx-pipeline");
@@ -208,7 +214,7 @@ void media::Receiver::start() {
 void media::Receiver::stop() {
     g_main_loop_quit(loop);
 
-    g_print("stopping playback\n");
+    g_print("[gst-receiver] stopping playback\n");
     gst_element_set_state(pipeline, GST_STATE_NULL);
 
     thread->join();
