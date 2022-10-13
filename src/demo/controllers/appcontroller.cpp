@@ -78,7 +78,7 @@ protected:
     // receiver
     bool                                   m_syncMode = true;
     media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
-    std::chrono::duration<int>             m_delay;
+    std::chrono::duration<int, std::milli> m_delay = {500};
     std::map<std::string, dc::ReceiverPtr> m_mediareceivers;
 };
 

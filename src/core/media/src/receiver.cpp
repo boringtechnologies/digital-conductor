@@ -175,8 +175,12 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         gst_pipeline_use_clock(GST_PIPELINE(pipeline), net_clock);
         /* Set this high enough so that it's higher than the minimum latency
          * on all receivers */
-        gst_pipeline_set_latency(GST_PIPELINE(pipeline),
-                                 delay.count() * GST_MSECOND);
+
+        long latency = delay.count() * GST_MSECOND;
+
+        g_print("Reciever latency %ld ns\n", latency);
+
+        gst_pipeline_set_latency(GST_PIPELINE(pipeline), latency);
     }
 }
 
