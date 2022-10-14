@@ -64,6 +64,7 @@ class GStPluginsGoodConan(ConanFile):
 
     def requirements(self):
         self.requires("glib/2.70.0")
+        self.requires("libvpx/1.11.0")
         self.requires("gstreamer/1.19.1")
         self.requires("gst-plugins-base/1.19.1")
 
