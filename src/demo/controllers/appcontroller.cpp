@@ -108,7 +108,7 @@ void AppController::impl::updatePeerList()
 //*****************************************************************************
 void AppController::impl::onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg)
 {
-    std::cout << "[appgrpc]" << "Message from " << from << " --> " << msg << std::endl;
+    std::cout << "[appctrl] onGrpcMessage" << "Message from " << from << " --> " << msg << std::endl;
 
     // TODO move juice messages to another instance
     if (msg.rfind("JP2PI", 0) == 0)
@@ -117,7 +117,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (ptr)
         {
-            std::cout << "juice already initialized " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage juice already initialized " << from << std::endl;
             return;
         }
 
@@ -130,7 +130,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
 
         if (!m_rpcClient->p2pAccept(from, ptr->sdp()))
         {
-            std::cout << "p2p not accepted " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage " << "p2p not accepted " << from << std::endl;
             return;
         }
 
@@ -142,7 +142,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
         {
-            std::cout << "juice not initialized " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage " << "juice not initialized " << from << std::endl;
             return;
         }
 
@@ -154,7 +154,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
         {
-            std::cout << "juice not initialized " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage " << "juice not initialized " << from << std::endl;
             return;
         }
         ptr->addRemote(msg.substr(6));
@@ -173,7 +173,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
             res->stop();
             res.reset();
         }
-        std::cout << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+        std::cout << "[appctrl] onGrpcMessage " << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
 
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (ptr)
@@ -187,7 +187,7 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
     else
     {
         // TODO simple message
-        std::cout << "msg from <" << from << "> " << msg << std::endl;
+        std::cout << "[appctrl] onGrpcMessage " << "msg from <" << from << "> " << msg << std::endl;
     }
 }
 
@@ -198,13 +198,10 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
     dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
     std::string id = caller->id();
 
-    // std::cout << "onStateChanged " << state << " " << juice_state_to_string(state) << std::endl;
-    std::cout << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
+    std::cout << "[appctrl] onStateChanged " << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
 
-    if (state == JUICE_STATE_COMPLETED)
+    if (state == JUICE_STATE_CONNECTED)
     {
-        std::cout << "P2P connection, " << id << " connected" << std::endl;
-
         if (m_mediasender)
         {
             dc::JuiceClientPtr ptr = getP2PClient(id);
@@ -228,6 +225,10 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
             res->start();
         }
     }
+    else if (state == JUICE_STATE_COMPLETED)
+    {
+        // the best client found, probably we can adjust reviever to improve network perfomance
+    }
     else if (state == JUICE_STATE_DISCONNECTED)
     {
         if (m_mediasender)
@@ -248,9 +249,8 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
             ptr.reset();
         }
         m_p2pConnections.erase(id);
-
-        std::cout << "P2P connection, " << id << " disconnected" << std::endl;
     }
+    std::cout << "[appctrl] onStateChanged handled" << std::endl;
 }
 
 //******************************************************************************
