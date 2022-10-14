@@ -22,6 +22,11 @@ if(WITH_CONAN)
   list(APPEND CMAKE_MODULE_PATH ${CONAN_MODULE_PATH})
 endif()
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${CCACHE_PROGRAM})
+endif()
+
 if(WIN32)
   find_program(PYTHON "python")
 else()
