@@ -1,5 +1,6 @@
 from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 from conans.errors import ConanInvalidConfiguration
+from conans.model.version import Version
 from conan.tools.microsoft import msvc_runtime_flag
 import glob
 import os
@@ -108,13 +109,14 @@ class GStPluginsBadConan(ConanFile):
                 add_compiler_flag("-Dsnprintf=_snprintf")
         if self.settings.get_safe("compiler.runtime"):
             defs["b_vscrt"] = str(self.settings.compiler.runtime).lower()
-        defs["tools"] = "disabled"
         defs["examples"] = "disabled"
-        defs["benchmarks"] = "disabled"
+        if Version(self.version) < "1.21.1":
+            defs["tools"] = "disabled"
+            defs["benchmarks"] = "disabled"
         defs["tests"] = "disabled"
-        ## hack to avoid build with wrong local imath lib
+        # hack to avoid build with wrong local imath lib
         defs["openexr"] = "disabled"
-        ## end hack 
+        # end hack
         defs["wrap_mode"] = "nofallback"
         defs["introspection"] = "enabled" if self.options.with_introspection else "disabled"
         meson.configure(build_folder=self._build_subfolder,
@@ -158,9 +160,6 @@ class GStPluginsBadConan(ConanFile):
                    "adpcmdec",
                    "adpcmenc",
                    "aiff",
-                   # begin of hack
-                   "applemedia",
-                   # end of hack
                    "asfmux",
                    "audiobuffersplit",
                    "audiofxbad",
@@ -223,6 +222,9 @@ class GStPluginsBadConan(ConanFile):
                    "videosignal",
                    "vmnc",
                    "y4mdec"]
+
+        if self.settings.os == "Macos" or self.settings.os == "iOS":
+            plugins.append("applemedia")
 
         gst_plugin_path = os.path.join(self.package_folder, "lib", "gstreamer-1.0")
         if self.options.shared:

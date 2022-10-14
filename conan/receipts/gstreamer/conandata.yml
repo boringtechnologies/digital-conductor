@@ -1,0 +1,7 @@
+sources:
+  1.19.1:
+    sha256: 2e51f61e59564e48883b5f1996871b0d1c404406aadb9aa1b306de8a2a331a90
+    url: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/archive/1.19.1/gstreamer-1.19.1.tar.gz
+  1.21.1:
+    sha256: 9a41769bcbbb2d5ed015660c3b80902af758a884c4e30592752a3ae27b22307a
+    url: https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.21.1.tar.xz

@@ -2,3 +2,6 @@ sources:
   1.19.1:
     sha256: eef44e835a8425a79d69241853040a24769067707c1012ade5cae55175392dcf
     url: https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad/-/archive/1.19.1/gst-plugins-bad-1.19.1.tar.bz2
+  1.21.1:
+    sha256: 13a2d02e7c275c100c92b8a8cc813b9ddf9e8d2940ec471cbfc2082764c5af9a
+    url: https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-1.21.1.tar.xz

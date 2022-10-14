@@ -3,7 +3,7 @@ os=Macos
 os.version=11.0
 arch=armv8
 compiler=apple-clang
-compiler.version=13.1
+compiler.version=13.0
 compiler.libcxx=libc++
 build_type=Release
 cppstd=17
@@ -12,5 +12,6 @@ cppstd=17
 flex:m4/1.4.19
 glib/2.72.0
 pkgconf/1.9.3
+meson/0.63.3
 [env]
 CXXFLAGS=-std=c++17

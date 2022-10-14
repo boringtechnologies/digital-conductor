@@ -1,15 +1,21 @@
+[build_requires]
+meson/0.63.3
+
 [requires]
 glib/2.72.0
 libiconv/1.17
 pango/1.50.10
-gstreamer/1.19.1
-gst-libav/1.19.1
-gst-plugins-base/1.19.1
-gst-plugins-good/1.19.1
-gst-plugins-bad/1.19.1
+gstreamer/1.21.1
+gst-libav/1.21.1
+gst-plugins-base/1.21.1
+gst-plugins-good/1.21.1
+gst-plugins-bad/1.21.1
 grpc/1.48.0
 cxxopts/3.0.0
 libjuice/1.0.5
+
+[options]
+gst-plugins-good:with_vpx=True
 
 [generators]
 cmake_find_package

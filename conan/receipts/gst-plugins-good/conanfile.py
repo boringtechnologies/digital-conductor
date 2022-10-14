@@ -1,5 +1,6 @@
 from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 from conans.errors import ConanInvalidConfiguration
+from conans.model.version import Version
 from conan.tools.microsoft import msvc_runtime_flag
 import glob
 import os
@@ -18,11 +19,13 @@ class GStPluginsGoodConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
+        "with_vpx": [True, False],
         "with_introspection": [True, False],
         }
     default_options = {
         "shared": False,
         "fPIC": True,
+        "with_vpx": False,
         "with_introspection": False,
         }
     _source_subfolder = "source_subfolder"
@@ -49,6 +52,9 @@ class GStPluginsGoodConan(ConanFile):
             )
         if self.options.shared and str(msvc_runtime_flag(self)).startswith("MT"):
             raise ConanInvalidConfiguration('shared build with static runtime is not supported due to the FlsAlloc limit')
+        if Version(self.version) >= "1.21.1" and self.options.with_introspection:
+            raise ConanInvalidConfiguration(
+                "gst-plugins-good %s doesn't support introspection" % self.version)
 
     def configure(self):
         if self.options.shared:
@@ -64,9 +70,10 @@ class GStPluginsGoodConan(ConanFile):
 
     def requirements(self):
         self.requires("glib/2.70.0")
-        self.requires("libvpx/1.11.0")
         self.requires("gstreamer/1.19.1")
         self.requires("gst-plugins-base/1.19.1")
+        if self.options.with_vpx:
+            self.requires("libvpx/1.11.0")
 
     def build_requirements(self):
         self.build_requires("meson/0.54.2")
@@ -109,12 +116,13 @@ class GStPluginsGoodConan(ConanFile):
                 add_compiler_flag("-Dsnprintf=_snprintf")
         if self.settings.get_safe("compiler.runtime"):
             defs["b_vscrt"] = str(self.settings.compiler.runtime).lower()
-        defs["tools"] = "disabled"
+        if Version(self.version) < "1.21.1":
+            defs["tools"] = "disabled"
+            defs["benchmarks"] = "disabled"
+            defs["introspection"] = "enabled" if self.options.with_introspection else "disabled"
         defs["examples"] = "disabled"
-        defs["benchmarks"] = "disabled"
         defs["tests"] = "disabled"
         defs["wrap_mode"] = "nofallback"
-        defs["introspection"] = "enabled" if self.options.with_introspection else "disabled"
         meson.configure(build_folder=self._build_subfolder,
                         source_folder=self._source_subfolder,
                         defs=defs)
@@ -194,12 +202,14 @@ class GStPluginsGoodConan(ConanFile):
                    "videomixer",
                    # begin of hack
                    "vpx",
-                   "osxaudio",
-                   "osxvideo",
                    # end of hack
                    "wavenc",
                    "wavparse",
                    "y4menc"]
+
+        if self.settings.os == "Macos" or self.settings.os == "iOS":
+            plugins.append("osxaudio")
+            plugins.append("osxvideo")
 
         gst_plugin_path = os.path.join(self.package_folder, "lib", "gstreamer-1.0")
         if self.options.shared:
