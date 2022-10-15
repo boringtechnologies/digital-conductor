@@ -5,3 +5,7 @@ sources:
   1.21.1:
     sha256: 959011ffaea7d4cd4e5433e408544466b4a1ea09676e6bc64f8d36efb01f5605
     url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.21.1.tar.xz
+patches:
+  1.21.1:
+    - patch_file: "patches/00001-osxvideo-retina-aspect-ratio-fixes.patch"
+      base_path: "source_subfolder"

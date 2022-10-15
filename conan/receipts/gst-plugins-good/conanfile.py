@@ -1,6 +1,7 @@
 from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 from conans.errors import ConanInvalidConfiguration
 from conans.model.version import Version
+from conan.tools.files import apply_conandata_patches, copy
 from conan.tools.microsoft import msvc_runtime_flag
 import glob
 import os
@@ -129,8 +130,7 @@ class GStPluginsGoodConan(ConanFile):
         return meson
 
     def build(self):
-        for patch in self.conan_data.get("patches", {}).get(self.version, []):
-            tools.patch(**patch)
+        apply_conandata_patches(self)
 
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()

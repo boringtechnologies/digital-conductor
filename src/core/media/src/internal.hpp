@@ -18,7 +18,6 @@ extern "C" {
     // base
     GST_PLUGIN_STATIC_DECLARE(app);
     GST_PLUGIN_STATIC_DECLARE(coreelements);
-    GST_PLUGIN_STATIC_DECLARE(opengl);
     // good
     GST_PLUGIN_STATIC_DECLARE(autodetect);
 #if GST_CHECK_VERSION(1, 21, 0)
@@ -33,7 +32,7 @@ extern "C" {
     GST_PLUGIN_STATIC_DECLARE(rtpmanager);
 #if __APPLE__
     GST_PLUGIN_STATIC_DECLARE(osxaudio);
-    // GST_PLUGIN_STATIC_DECLARE(osxvideo);
+    GST_PLUGIN_STATIC_DECLARE(osxvideo);
     // bad
     GST_PLUGIN_STATIC_DECLARE(applemedia);
 #endif
@@ -46,7 +45,6 @@ static void gst_register_static_plugins() {
 #if GST_USE_STATIC_PLUGINS
     GST_PLUGIN_STATIC_REGISTER(app);
     GST_PLUGIN_STATIC_REGISTER(coreelements);
-    GST_PLUGIN_STATIC_REGISTER(opengl);
     GST_PLUGIN_STATIC_REGISTER(autodetect);
 #if GST_CHECK_VERSION(1, 21, 0)
     GST_PLUGIN_STATIC_REGISTER(videoconvertscale);
@@ -60,7 +58,7 @@ static void gst_register_static_plugins() {
     GST_PLUGIN_STATIC_REGISTER(rtpmanager);
 #if __APPLE__
     GST_PLUGIN_STATIC_REGISTER(osxaudio);
-    // GST_PLUGIN_STATIC_REGISTER(osxvideo);
+    GST_PLUGIN_STATIC_REGISTER(osxvideo);
     GST_PLUGIN_STATIC_REGISTER(applemedia);
 #endif
     GST_PLUGIN_STATIC_REGISTER(libav);
