@@ -12,7 +12,7 @@ namespace dc
 //******************************************************************************
 std::vector<Peer> GRpcClient::getPeerList()
 {
-    std::cout << "[grpc] " << "getPeerList()" << std::endl;
+    // std::cout << "[grpc] " << "getPeerList()" << std::endl;
 
     std::vector<Peer> result;
 
