@@ -424,11 +424,23 @@ AppController::~AppController()
         // r.second.reset();
     }
     m_p->m_videoreceivers.clear();
+    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_audioreceivers)
+    {
+        r.second->stop();
+        // r.second.reset();
+    }
+    m_p->m_audioreceivers.clear();
 
     if (m_p->m_videosender)
     {
         m_p->m_videosender->stop();
         m_p->m_videosender.reset();
+    }
+
+    if (m_p->m_audiosender)
+    {
+        m_p->m_audiosender->stop();
+        m_p->m_audiosender.reset();
     }
 
     for (const std::pair<std::string, dc::JuiceClientPtr> & it : m_p->m_p2pConnections)
@@ -565,19 +577,19 @@ void AppController::startStreaming()
 {
     if (!m_p->m_rpcClient)
     {
-        std::cout << "[appctrl] startStreaming " << "not subscribed" << std::endl;
+        std::cerr << "[appctrl] startStreaming " << "not subscribed" << std::endl;
         // TODO emit error
         return;
     }
     if (m_p->m_videosender)
     {
-        std::cout << "[appctrl] startStreaming " << "already started" << std::endl;
+        std::cerr << "[appctrl] startStreaming " << "already started" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_videoreceivers.empty())
     {
-        std::cout << "[appctrl] startStreaming " << "already receiving" << std::endl;
+        std::cerr << "[appctrl] startStreaming " << "already receiving" << std::endl;
         // TODO emit error
         return;
     }
@@ -585,7 +597,7 @@ void AppController::startStreaming()
     std::string videoDeviceClass = "Video/Source";
     if (m_p->m_currentDevices.count(videoDeviceClass) == 0)
     {
-        std::cout << "[appctrl] startStreaming " << "no video capture device selected" << std::endl;
+        std::cerr << "[appctrl] startStreaming " << "no video capture device selected" << std::endl;
         // TODO emit error
         return;
     }
@@ -593,7 +605,7 @@ void AppController::startStreaming()
     std::string audioDeviceClass = "Audio/Source";
     if (m_p->m_currentDevices.count(audioDeviceClass) == 0)
     {
-        std::cout << "[appctrl] startStreaming " << "no audio capture device selected" << std::endl;
+        std::cerr << "[appctrl] startStreaming " << "no audio capture device selected" << std::endl;
         // TODO emit error
         return;
     }
@@ -651,13 +663,13 @@ void AppController::receiveStream()
 {
     if (m_p->m_videosender)
     {
-        std::cout << "[appctrl] receiveStream " << "i'm a sender, abort receiving" << std::endl;
+        std::cerr << "[appctrl] receiveStream " << "i'm a sender, abort receiving" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_videoreceivers.empty())
     {
-        std::cout << "[appctrl] receiveStream " << "already receiving, abort receiving" << std::endl;
+        std::cerr << "[appctrl] receiveStream " << "already receiving, abort receiving" << std::endl;
         // TODO emit error
         return;
     }
