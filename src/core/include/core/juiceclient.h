@@ -30,7 +30,9 @@ class JuiceClient
 public:
     JuiceClient(const std::string & id,
                 on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-                on_gathering_done_t onGatheringDoneHandler, on_recv_t onReceiveHandler);
+                on_gathering_done_t onGatheringDoneHandler,
+                on_recv_t onVideoReceiveHandler,
+                on_recv_t onAudioReceiveHandler);
     ~JuiceClient();
 
 public:
@@ -41,6 +43,8 @@ public:
     void addRemote(const std::string & sdpRemote);
     void sendMessage(const std::string & message);
     void sendMessage(const uint8_t * data, const uint32_t size);
+    void sendVideo(const uint8_t * data, const uint32_t size);
+    void sendAudio(const uint8_t * data, const uint32_t size);
 
     std::string id() const;
     std::string sdp() const;

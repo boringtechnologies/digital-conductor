@@ -65,6 +65,7 @@ class Sender {
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline, *tee;
+    MediaType media_type;
 
    public:
     // The constructor takes:
@@ -123,6 +124,7 @@ class Receiver {
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline, *appsrc;
+    MediaType media_type;
     // XXX: Make the instantation of the Clock global to all the receivers in a
     // single app
 

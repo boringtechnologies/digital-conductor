@@ -16,6 +16,13 @@
 namespace dc
 {
 
+constexpr const char * const JP2P_PING  = "JP2PING ";
+constexpr const char * const JP2P_PONG  = "JP2PONG ";
+constexpr const char * const JP2P_MSG   = "JP2PMSG ";
+constexpr const char * const JP2P_VIDEO = "JP2PVID ";
+constexpr const char * const JP2P_AUDIO = "JP2PAUD ";
+constexpr const size_t JP2P_HEADER_SIZE = 8;
+
 //******************************************************************************
 //******************************************************************************
 class JuiceClient::impl
@@ -24,13 +31,15 @@ class JuiceClient::impl
 
     impl(JuiceClient * owner, const std::string & id,
          on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-         on_gathering_done_t onGatheringDoneHandler, on_recv_t onReceiveHandler)
+         on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
+         on_recv_t onAudioReceiveHandler)
         : m_o(owner)
         , m_id(id)
         , m_onStateChangedHandler(onStateChangedHandler)
         , m_onCandidateHandler(onCandidateHandler)
         , m_onGatheringDoneHandler(onGatheringDoneHandler)
-        , m_onReceiveHandler(onReceiveHandler)
+        , m_onVideoReceiveHandler(onVideoReceiveHandler)
+        , m_onAudioReceiveHandler(onAudioReceiveHandler)
     {
     }
 
@@ -43,7 +52,8 @@ class JuiceClient::impl
     on_state_changed_t  m_onStateChangedHandler;
     on_candidate_t      m_onCandidateHandler;
     on_gathering_done_t m_onGatheringDoneHandler;
-    on_recv_t           m_onReceiveHandler;
+    on_recv_t           m_onVideoReceiveHandler;
+    on_recv_t           m_onAudioReceiveHandler;
 
     std::atomic<bool>   m_destroymarker;
     std::mutex          m_sendLocker;
@@ -61,15 +71,16 @@ class JuiceClient::impl
 //******************************************************************************
 JuiceClient::JuiceClient(const std::string & id,
                          on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-                         on_gathering_done_t onGatheringDoneHandler, on_recv_t onReceiveHandler)
+                         on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
+                         on_recv_t onAudioReceiveHandler)
     : m_p(new impl(this, id,
                    onStateChangedHandler, onCandidateHandler,
-                   onGatheringDoneHandler, onReceiveHandler))
+                   onGatheringDoneHandler, onVideoReceiveHandler, onAudioReceiveHandler))
 {
     m_p->m_destroymarker = false;
     m_p->m_pinger = std::thread([this]()
     {
-        const std::string pingmsg = "JP2PING " + this->id();
+        const std::string pingmsg = JP2P_PING + this->id();
 
         while (!m_p->m_destroymarker)
         {
@@ -176,33 +187,40 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     // TODO need incapsulate in client
-    if (memcmp(data, "JP2PMSG ", 8) == 0)
+    if (memcmp(data, JP2P_MSG, JP2P_HEADER_SIZE) == 0)
     {
         // p2p text message, need forward to handler?
         std::cout << size << " bytes from " << caller->id() << std::endl;
         std::cout << "    " << std::string(data+8, size-8) << std::endl;
-        return;
     }
-    if (memcmp(data, "JP2PING ", 8) == 0)
+    else if (memcmp(data, JP2P_PING, JP2P_HEADER_SIZE) == 0)
     {
         // ping
 //        std::cout << size << " bytes ping from " << caller->id() << std::endl;
 //        std::cout << "    " << std::string(data, size) << std::endl;
 
-        std::string pongmsg = "JP2PONG " + caller->id();
+        std::string pongmsg = JP2P_PONG + caller->id();
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());
-        return;
     }
-    if (memcmp(data, "JP2PONG ", 8) == 0)
+    else if (memcmp(data, JP2P_PONG, JP2P_HEADER_SIZE) == 0)
     {
         // pong
 //        std::cout << size << " bytes pong from " << caller->id() << std::endl;
 //        std::cout << "    " << std::string(data, size) << std::endl;
-        return;
     }
-
-    // default, call handler
-    caller->m_p->m_onReceiveHandler(agent, data, size, user_ptr);
+    else if (memcmp(data, JP2P_AUDIO, JP2P_HEADER_SIZE) == 0)
+    {
+        caller->m_p->m_onAudioReceiveHandler(agent, data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE, user_ptr);
+    }
+    else if (memcmp(data, JP2P_VIDEO, JP2P_HEADER_SIZE) == 0)
+    {
+        caller->m_p->m_onVideoReceiveHandler(agent, data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE, user_ptr);
+    }
+    else
+    {
+        std::cerr << "Unknow type of traffic\n";
+        assert(false);
+    }
 }
 
 //******************************************************************************
@@ -286,12 +304,12 @@ void JuiceClient::sendMessage(const std::string & message)
 
     // text message with prefix
 
-    const static size_t prefixsize = 8;
     const static size_t datasize   = 1096;
-    char buffer[datasize] = "JP2PMSG ";
+    char buffer[datasize];
+    memcpy(buffer, JP2P_MSG, JP2P_HEADER_SIZE);
     const uint32_t size = std::min(message.size(), datasize);
-    memcpy(buffer + 8, message.c_str(), size);
-    juice_send(m_p->m_agent, buffer, size + prefixsize);
+    memcpy(buffer + JP2P_HEADER_SIZE, message.c_str(), size);
+    juice_send(m_p->m_agent, buffer, size + JP2P_HEADER_SIZE);
 }
 
 //******************************************************************************
@@ -303,6 +321,35 @@ void JuiceClient::sendMessage(const uint8_t * data, const uint32_t size)
     // plain message
 
     juice_send(m_p->m_agent, reinterpret_cast<const char *>(data), size);
+}
+
+
+//******************************************************************************
+//******************************************************************************
+void JuiceClient::sendVideo(const uint8_t * data, const uint32_t size)
+{
+    std::lock_guard<std::mutex> l(m_p->m_sendLocker);
+
+    static char buffer[512000];
+    memcpy(buffer, JP2P_VIDEO, JP2P_HEADER_SIZE);
+    memcpy(buffer + JP2P_HEADER_SIZE, data, size);
+
+    // video payload
+    juice_send(m_p->m_agent, const_cast<const char *>(buffer), size + JP2P_HEADER_SIZE);
+}
+
+//******************************************************************************
+//******************************************************************************
+void JuiceClient::sendAudio(const uint8_t * data, const uint32_t size)
+{
+    std::lock_guard<std::mutex> l(m_p->m_sendLocker);
+
+    static char buffer[256000];
+    memcpy(buffer, JP2P_AUDIO, JP2P_HEADER_SIZE);
+    memcpy(buffer + JP2P_HEADER_SIZE, data, size);
+
+    // audio payload
+    juice_send(m_p->m_agent, const_cast<const char *>(buffer), size + JP2P_HEADER_SIZE);
 }
 
 //******************************************************************************

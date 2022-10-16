@@ -151,7 +151,7 @@ void onGrpcMessage(const std::string & from, const std::string & to, const std::
             return;
         }
 
-        ptr.reset(new dc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
+        ptr.reset(new dc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv, &onRecv));
         ptr->init(msg.substr(6));
 
         if (!grclient->p2pAccept(from, ptr->sdp()))
@@ -354,7 +354,7 @@ int main(int argc, char * argv[])
                 continue;
             }
 
-            jcclient_ptr_t ptr(new dc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv));
+            jcclient_ptr_t ptr(new dc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv, &onRecv));
             ptr->init();
 
             if (!grclient->p2pInit(v[0], ptr->sdp()))
