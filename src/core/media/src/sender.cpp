@@ -84,7 +84,7 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
 
     loop = g_main_loop_new(nullptr, FALSE);
 
-    pipeline = gst_pipeline_new(id.c_str());
+    pipeline = gst_pipeline_new(("snd-" + id + (media_type ? "-video" : "-audio")).c_str());
 
     if (type == media::MediaType::Audio) {
         source = get_audio_device(device, id);

@@ -106,7 +106,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 
     loop = g_main_loop_new(nullptr, FALSE);
 
-    pipeline = gst_pipeline_new(("rx-" + id).c_str());
+    pipeline = gst_pipeline_new(("rx-" + id + (media_type ? "-video" : "-audio")).c_str());
     MAKE_ELEMENT(appsrc, "appsrc", ("rx-" + id + "-appsrc").c_str());
     g_object_set(appsrc, "format", GST_FORMAT_TIME, nullptr);
     g_object_set(appsrc, "do-timestamp", true, nullptr);
@@ -123,6 +123,9 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                                  "x-rtp,media=(string)audio,clock-rate=(int)"
                                  "48000,encoding-name=(string)OPUS,payload=97"),
             nullptr);
+
+        MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
+        MAKE_ELEMENT(sink, "autoaudiosink", ("rx-" + id + "-sink").c_str());
     } else if (type == media::MediaType::Video) {
         MAKE_ELEMENT(depayloader, "rtpvp8depay",
                      ("rx-" + id + "-depay").c_str());
@@ -207,10 +210,10 @@ void media::Receiver::start() {
         g_print("[gst-receiver-%d] Running mainloop\n", media_type);
 
         GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
-                                  "rx-pipeline");
+                                  (std::string("rx-pipeline-") + (media_type ? "video" : "audio")).c_str());
         g_main_loop_run(loop);
         GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
-                                  "error");
+                                  (std::string("stopped-") + (media_type ? "video" : "audio")).c_str());
     });
 }
 

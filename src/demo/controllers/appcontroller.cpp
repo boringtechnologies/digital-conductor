@@ -244,10 +244,16 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
             }
         }
 
-        dc::ReceiverPtr res = getVideoReceiver(id);
-        if (res)
+        dc::ReceiverPtr videoReciever = getVideoReceiver(id);
+        if (videoReciever)
         {
-            res->start();
+            videoReciever->start();
+        }
+
+        dc::ReceiverPtr audioReciever = getAudioReceiver(id);
+        if (audioReciever)
+        {
+            audioReciever->start();
         }
     }
     else if (state == JUICE_STATE_COMPLETED)
@@ -260,12 +266,23 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
         {
             m_videosender->removeReceiver(id);
         }
-        dc::ReceiverPtr res = getVideoReceiver(id);
-        if (res)
+        if (m_audiosender)
+        {
+            m_audiosender->removeReceiver(id);
+        }
+        dc::ReceiverPtr videoReciever = getVideoReceiver(id);
+        if (videoReciever)
         {
             m_videoreceivers.erase(id);
-            res->stop();
-            res.reset();
+            videoReciever->stop();
+            videoReciever.reset();
+        }
+        dc::ReceiverPtr audioReciever = getAudioReceiver(id);
+        if (audioReciever)
+        {
+            m_audioreceivers.erase(id);
+            audioReciever->stop();
+            audioReciever.reset();
         }
 
         dc::JuiceClientPtr ptr = getP2PClient(id);
@@ -306,7 +323,7 @@ void AppController::impl::onVideoRecv(juice_agent_t * agent, const char * data, 
 {
     dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // std::cout << size << " bytes from " << caller->id() << std::endl;
+    // std::cout << size << " bytes of video from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     std::string id = caller->id();
@@ -327,7 +344,7 @@ void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, 
 {
     dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // std::cout << size << " bytes from " << caller->id() << std::endl;
+    // std::cout << size << " bytes of audio from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     std::string id = caller->id();
