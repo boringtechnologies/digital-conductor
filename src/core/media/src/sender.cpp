@@ -148,6 +148,7 @@ media::Sender::~Sender() {
     gst_object_unref(GST_OBJECT(pipeline));
     g_source_remove(bus_watch_id);
     g_main_loop_unref(loop);
+    g_print("[gst-receiver-%d] ~deconstructed\n", media_type);
 }
 
 void media::Sender::start() {
@@ -212,7 +213,7 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     g_printerr("[gst-sender] %s pad added\n", padname);
     if (g_str_has_prefix(padname, prefix)) {
         GstElement *downstream = (GstElement *)userdata;
-        GstPad *sinkpad = gst_element_get_request_pad(downstream, "sink_%u");
+        GstPad *sinkpad = gst_element_request_pad_simple(downstream, "sink_%u");
         gst_pad_link(pad, sinkpad);
         gst_object_unref(sinkpad);
     }
@@ -272,7 +273,7 @@ void media::Sender::addReceiver(const std::string &id,
                      nullptr);
 
     GstPad *rtp_send_sinkpad =
-        gst_element_get_request_pad(rtpbin, "send_rtp_sink_%u");
+        gst_element_request_pad_simple(rtpbin, "send_rtp_sink_%u");
     if (!gst_element_link_pads(rtpbin, "send_rtcp_src_%u", funnel, "sink_%u"))
         g_printerr("[gst-sender-%d] Failed to link rtcp src and funnel", media_type);
 
@@ -353,42 +354,4 @@ void media::Sender::removeReceiver(const std::string &id) {
 
     gst_object_unref(bin_ghost_pad);
     gst_object_unref(tee_src_pad);
-}
-
-bool media::Sender::push(const std::string &id, const uint8_t *payload,
-                         size_t len) {
-    GstState cur_state = GST_STATE_NULL, pending_state;
-    GstElement *rtcp_appsrc;
-    GstBuffer *buf;
-    GstMapInfo info;
-    GstFlowReturn ret;
-
-    gst_element_get_state(pipeline, &cur_state, &pending_state, 0);
-    if (cur_state != GST_STATE_PAUSED && cur_state != GST_STATE_PLAYING)
-        return true;
-
-    rtcp_appsrc = gst_bin_get_by_name(GST_BIN(pipeline),
-                                      (id + "-publisher-rtcp-appsrc").c_str());
-
-    buf = gst_buffer_new_allocate(nullptr, len, nullptr);
-    if (buf == nullptr) {
-        g_printerr("[gst-sender-%d] Failed to allocate buffer\n", media_type);
-        return false;
-    }
-
-    if (!gst_buffer_map(buf, &info, GST_MAP_WRITE)) {
-        g_printerr("[gst-sender-%d] Failed to get buffer map\n", media_type);
-        return false;
-    }
-    memcpy(info.data, payload, len);
-    gst_buffer_unmap(buf, &info);
-
-    g_signal_emit_by_name(rtcp_appsrc, "push-buffer", buf, &ret);
-    gst_buffer_unref(buf);
-    if (ret == GST_FLOW_ERROR) {
-        g_printerr("[gst-sender-%d] Failed to do 'push-buffer'\n", media_type);
-        return false;
-    }
-
-    return true;
 }

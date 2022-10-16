@@ -170,13 +170,26 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         {
             m_videosender->removeReceiver(from);
         }
-        dc::ReceiverPtr res = getVideoReceiver(from);
-        if (res)
+        if (m_audiosender)
+        {
+            m_audiosender->removeReceiver(from);
+        }
+
+        dc::ReceiverPtr videoReciever = getVideoReceiver(from);
+        if (videoReciever)
         {
             m_videoreceivers.erase(from);
-            res->stop();
-            res.reset();
+            videoReciever->stop();
+            videoReciever.reset();
         }
+        dc::ReceiverPtr audioReciever = getAudioReceiver(from);
+        if (audioReciever)
+        {
+            m_audioreceivers.erase(from);
+            audioReciever->stop();
+            audioReciever.reset();
+        }
+
         std::cout << "[appctrl] onGrpcMessage " << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
 
         dc::JuiceClientPtr ptr = getP2PClient(from);
@@ -333,18 +346,13 @@ void AppController::impl::onVideoRecv(juice_agent_t * agent, const char * data, 
     {
         ptr->push(reinterpret_cast<const uint8_t *>(data), size);
     }
-    // TODO findout why we need the code below
-    if (m_videosender)
-    {
-        m_videosender->push(id, reinterpret_cast<const uint8_t *>(data), size);
-    }
 }
 
 void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
 {
     dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // std::cout << size << " bytes of audio from " << caller->id() << std::endl;
+    std::cout << size << " bytes of audio from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     std::string id = caller->id();
@@ -353,11 +361,6 @@ void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, 
     if (ptr)
     {
         ptr->push(reinterpret_cast<const uint8_t *>(data), size);
-    }
-    // TODO findout why we need the code below
-    if (m_audiosender)
-    {
-        m_audiosender->push(id, reinterpret_cast<const uint8_t *>(data), size);
     }
 }
 
@@ -713,22 +716,12 @@ void AppController::receiveStream()
         media::PlaybackDevice videodevice;
         m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video,
                                                                    videodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode,
-                    [ptr](const uint8_t *data, size_t len)
-                    {
-                        ptr->sendVideo(data, len);
-                        // std::cout << len << " bytes to " << id << std::endl;
-                    }));
+                                                                   m_p->m_delay, m_p->m_syncMode));
 
         media::PlaybackDevice audiodevice;
         m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio,
                                                                    audiodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode,
-                    [ptr](const uint8_t *data, size_t len)
-                    {
-                        ptr->sendAudio(data, len);
-                        // std::cout << len << " bytes to " << id << std::endl;
-                    }));
+                                                                   m_p->m_delay, m_p->m_syncMode));
 
         // start connection
         if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))

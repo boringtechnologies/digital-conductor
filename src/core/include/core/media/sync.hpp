@@ -106,10 +106,6 @@ class Sender {
 
     // FIXME: Can we make this private?
     std::map<std::string, WriteCallback> write_cbs;
-    // Push the data to the appsrc for the given receiver id
-    // returns TRUE is push is successful
-    // returns FALSE in case of an error
-    bool push(const std::string &id, const uint8_t *payload, size_t len);
 };
 
 struct PlaybackDevice {
@@ -142,8 +138,7 @@ class Receiver {
     // XXX: If a Sender sends audio and video, this API will need to change too.
     Receiver(const std::string &id, MediaType type,
              const PlaybackDevice &device, const ClockInfo &clock,
-             std::chrono::duration<int, std::milli> delay, bool synchronize,
-             WriteCallback write_cb);
+             std::chrono::duration<int, std::milli> delay, bool synchronize);
 
     // Just tear everything down
     ~Receiver();
@@ -161,8 +156,6 @@ class Receiver {
     // returns TRUE is push is successful
     // returns FALSE in case of an error
     bool push(const uint8_t *payload, size_t len);
-
-    WriteCallback write_cb;
 };
 }  // namespace media
 
