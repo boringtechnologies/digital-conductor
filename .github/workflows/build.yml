@@ -106,7 +106,7 @@ jobs:
             popd
           fi
           conan/add_cmake_cache_entry.sh LibJuice_DIR "$(pwd)/libjuice/install/lib/cmake/LibJuice"
-          conan/add_cmake_cache_entry.sh LibJuice_INCLUDE_DIRS "$(pwd)/libjuice/install/install/include"
+          conan/add_cmake_cache_entry.sh LibJuice_INCLUDE_DIRS "$(pwd)/libjuice/install/include"
 
           # grpc
           if [ ! -d "grpc/install" ]; then
@@ -141,6 +141,9 @@ jobs:
           conan install m4/1.4.19@
 
       - run: cmake -B build -S . -C CMakeCache.txt
+
+      - if: ${{ failure() }}
+        run: cat ~/.conan/data/libiconv/1.16/_/_/build/*/build-release/config.log
 
       - run: cmake --build build
 

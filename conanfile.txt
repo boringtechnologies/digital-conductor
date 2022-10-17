@@ -5,6 +5,7 @@ meson/0.63.3
 glib/2.72.0
 expat/2.4.8
 libiconv/1.17
+libpng/1.6.37
 pango/1.50.10
 gstreamer/1.21.1
 gst-libav/1.21.1
