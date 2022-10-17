@@ -82,7 +82,7 @@ jobs:
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
             sudo apt-get install -y build-essential cmake clang \
               fakeroot dpkg debconf debhelper lintian md5deep   \
-              libc++-dev libva-dev
+              libc++-dev libva-dev libvdpau-dev
           fi
 
       - name: install packages with system package-manager (+ compile missing)

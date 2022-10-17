@@ -1,5 +1,7 @@
 # digital conductor
 
+[![build](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml/badge.svg)](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml)
+
 simple build flow
 
 ## Install dependencies with Conan package manager
