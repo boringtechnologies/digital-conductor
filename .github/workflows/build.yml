@@ -1,0 +1,113 @@
+name: rake
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_call:
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref || github.ref_name }}'
+  cancel-in-progress: true
+
+jobs:
+  rake:
+    name: Build on ${{ matrix.os }} with packages from ${{ matrix.package-manager }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        os: [ ubuntu-latest ]
+        experimental: [ false ]
+        package-manager: [ default ]
+        output-package: [ deb ]
+        include:
+          - os: macos-latest
+            experimental: false
+            package-manager: conan
+            conan-profile: conan/profiles/intel
+            output-package: dmg
+          - os: ubuntu-latest
+            experimental: true
+            package-manager: conan
+            conan-profile: conan/profiles/linux
+            output-package: deb
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.4.*
+          cache: true
+          dir: ${{ github.workspace }}/qt
+
+      - run: echo "QT_DIR:PATH=${{ github.workspace }}/qt/lib/cmake" > CMakeCache.txt
+
+      - name: install packages with system package-manager (+ compile missing)
+        if: matrix.package-manager == 'default'
+        run: |
+          if [ "$(uname)" == "Darwin" ]; then
+            brew install gstreamer gst-plugins-{base,good,bad,ugly} gst-libav
+          elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            sudo apt-get install -y build-essential autoconf libtool pkg-config cmake clang libc++-dev
+
+            # gstreamer
+            sudo apt install -y libgstreamer1.0-dev \
+              libgstreamer-plugins-base1.0-dev      \
+              libgstreamer-plugins-bad1.0-dev       \
+              gstreamer1.0-plugins-base             \
+              gstreamer1.0-plugins-good             \
+              gstreamer1.0-plugins-bad              \
+              gstreamer1.0-libav                    \
+              gstreamer1.0-x                        \
+              gstreamer1.0-alsa                     \
+              gstreamer1.0-gl                       \
+              gstreamer1.0-pulseaudio
+          fi
+
+          # libjuice
+          git clone -b v1.0.5 https://github.com/paullouisageneau/libjuice.git
+          pushd libjuice/
+          cmake -S . -B build --install-prefix $(pwd)/install
+          cmake --build build --target juice-static --target juice
+          cmake --install build
+          cp build/libjuice-static.a install/lib/
+          popd
+          echo "LibJuice_DIR:PATH=$(pwd)/libjuice/install/lib/cmake/LibJuice" >> CMakeCache.txt
+          echo "LibJuice_INCLUDE_DIRS:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
+
+          # grpc
+          git clone -b v1.48.0 https://github.com/grpc/grpc
+          pushd grpc
+          git submodule update --init
+          cmake -S . -B build --install-prefix $(pwd)/install
+          cmake --build build
+          cmake --install build
+          popd
+          echo "Protobuf_DIR:PATH=$(pwd)/grpc/install/lib/cmake/protobuf" >> CMakeCache.txt
+          echo "gRPC_DIR:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
+
+      - name: install packages with conan package-manager
+        if: matrix.package-manager == 'default'
+        run: |
+          pip3 install conan
+          echo "WITH_CONAN:BOOL=ON" >> CMakeCache.txt
+          echo "WITH_CONAN_PROFILE:PATH=" >> CMakeCache.txt
+
+          sh conan/export_receipts.sh
+
+      - run: cmake -B build -S .
+
+      - run: cmake --build build
+
+      - run: env PATH="${{ github.workspace }}/qt/bin:$PATH" ./build-package.sh
+        working-directory: package/${{ matrix.output-package }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-${{ matrix.package-manager }}-${{ matrix.output-package }}
+          path: |
+            bin/*.dmg
+            bin/*.deb

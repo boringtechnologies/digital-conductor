@@ -7,6 +7,7 @@ compile_commands.json
 
 # ide
 .vscode
+CMakeLists.txt.user
 
 #package
 package/nix/digitalconductor/usr/share/*

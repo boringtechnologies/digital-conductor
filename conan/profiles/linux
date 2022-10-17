@@ -1,0 +1,16 @@
+[settings]
+os=Linux
+arch=x86_64
+compiler=clang
+compiler.version=13
+compiler.libcxx=libstdc++
+build_type=Release
+cppstd=17
+[options]
+[build_requires]
+flex:m4/1.4.19
+glib/2.72.0
+pkgconf/1.9.3
+meson/0.63.3
+[env]
+CXXFLAGS=-std=c++17
