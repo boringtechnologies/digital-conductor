@@ -120,6 +120,7 @@ jobs:
           fi
           conan/add_cmake_cache_entry.sh Protobuf_DIR "$(pwd)/grpc/install/lib/cmake/protobuf"
           conan/add_cmake_cache_entry.sh gRPC_DIR "$(pwd)/grpc/install/lib/cmake/grpc"
+          conan/add_cmake_cache_entry.sh CMAKE_PREFIX_PATH "$(pwd)/grpc/install"
 
           git clone -b v3.0.0 https://github.com/jarro2783/cxxopts.git
           pushd cxxopts
