@@ -89,6 +89,11 @@ jobs:
           echo "Protobuf_DIR:PATH=$(pwd)/grpc/install/lib/cmake/protobuf" >> CMakeCache.txt
           echo "gRPC_DIR:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
 
+      - uses: actions/cache@v3
+        with:
+          path: ~/.conan/data
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
+
       - name: install packages with conan package-manager
         if: matrix.package-manager == 'default'
         run: |
@@ -111,3 +116,5 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.deb
+
+      - run: conan remove --build --src --force '*'
