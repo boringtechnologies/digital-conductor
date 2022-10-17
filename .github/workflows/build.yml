@@ -137,6 +137,8 @@ jobs:
 
           sh conan/export_receipts.sh
 
+          conan install m4/1.4.19@
+
       - run: cmake -B build -S . -C CMakeCache.txt
 
       - run: cmake --build build

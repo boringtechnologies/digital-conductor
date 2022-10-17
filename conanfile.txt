@@ -3,6 +3,7 @@ meson/0.63.3
 
 [requires]
 glib/2.72.0
+expat/2.4.8
 libiconv/1.17
 pango/1.50.10
 gstreamer/1.21.1
