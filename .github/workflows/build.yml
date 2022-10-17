@@ -49,7 +49,7 @@ jobs:
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
             QT_ROOT=${{ github.workspace }}/Qt/6.4.0/gcc_64
           fi
-          echo "QT_DIR:PATH=${QT_ROOT}/lib/cmake" > CMakeCache.txt
+          conan/add_cmake_cache_entry.sh QT_DIR "${QT_ROOT}/lib/cmake"
           echo "QT_ROOT=${QT_ROOT}" >> $GITHUB_ENV
 
       - name: cache build deps
@@ -100,8 +100,8 @@ jobs:
             cp build/libjuice-static.a install/lib/
             popd
           fi
-          echo "LibJuice_DIR:PATH=$(pwd)/libjuice/install/lib/cmake/LibJuice" >> CMakeCache.txt
-          echo "LibJuice_INCLUDE_DIRS:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
+          conan/add_cmake_cache_entry.sh LibJuice_DIR "$(pwd)/libjuice/install/lib/cmake/LibJuice"
+          conan/add_cmake_cache_entry.sh LibJuice_INCLUDE_DIRS "$(pwd)/libjuice/install/install/include"
 
           # grpc
           if [ ! -d "grpc/install" ]; then
@@ -113,16 +113,16 @@ jobs:
             cmake --install build
             popd
           fi
-          echo "Protobuf_DIR:PATH=$(pwd)/grpc/install/lib/cmake/protobuf" >> CMakeCache.txt
-          echo "gRPC_DIR:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
+          conan/add_cmake_cache_entry.sh Protobuf_DIR "$(pwd)/grpc/install/lib/cmake/protobuf"
+          conan/add_cmake_cache_entry.sh gRPC_DIR "$(pwd)/libjuice/install/install/include"
 
       - name: install packages with conan package-manager
         if: matrix.package-manager == 'conan'
         run: |
           pip3 install conan
 
-          echo "WITH_CONAN:BOOL=ON" >> CMakeCache.txt
-          echo "WITH_CONAN_PROFILE:PATH=${{ matrix.conan-profile }}" >> CMakeCache.txt
+          sh conan/add_cmake_cache_entry.sh WITH_CONAN ON BOOL
+          sh conan/add_cmake_cache_entry.sh WITH_CONAN_PROFILE "${{ matrix.conan-profile }}"
 
           sh conan/export_receipts.sh
 
