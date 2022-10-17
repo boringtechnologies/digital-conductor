@@ -9,7 +9,7 @@ cppstd=17
 [options]
 [build_requires]
 flex:m4/1.4.19
-glib/2.72.0
+gstreamer:glib/2.72.0
 pkgconf/1.9.3
 meson/0.63.3
 [env]
