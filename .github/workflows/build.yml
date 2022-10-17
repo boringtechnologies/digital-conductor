@@ -1,4 +1,4 @@
-name: rake
+name: build
 
 on:
   push:

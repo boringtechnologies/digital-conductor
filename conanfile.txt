@@ -4,6 +4,7 @@ meson/0.63.3
 [requires]
 glib/2.72.0
 expat/2.4.8
+libffi/3.4.2
 libiconv/1.17
 libpng/1.6.37
 pango/1.50.10
