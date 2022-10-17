@@ -126,7 +126,7 @@ jobs:
 
           sh conan/export_receipts.sh
 
-      - run: cmake -B build -S .
+      - run: cmake -B build -S . -C CMakeCache.txt
 
       - run: cmake --build build
 
