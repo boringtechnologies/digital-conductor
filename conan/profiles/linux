@@ -13,3 +13,5 @@ gst*:pkgconf/1.9.3
 gst*:meson/0.63.3
 [env]
 CXXFLAGS=-std=c++17
+[conf]
+tools.system.package_manager:mode=install
