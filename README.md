@@ -12,10 +12,11 @@ pip3 install conan
 sh conan/export_receipts.sh
 cmake -S . -B build -DQT_DIR="/usr/local/opt/qt/lib/cmake" -DWITH_CONAN=ON -DWITH_CONAN_PROFILE=$(pwd)/conan/profiles/linux
 cmake --build build
-
 ```
 
 > NOTE: Install Qt from (official distribution)[https://www.qt.io/download-open-source) to avoid https://github.com/Homebrew/discussions/discussions/2823 issue with macdeployqt
+
+> NOTE: In case of any isssues building dependencies try run `conan` command directly (check [CI](.github/workflows/build.yml))
 
 ## Manual dependencies install
 

@@ -62,8 +62,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            grpc
-            libjuice
+            grpc/install
+            libjuice/install
+            cxxopts
+
           key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
 
       - name: cache conan deps
@@ -73,16 +75,26 @@ jobs:
           path: ~/.conan/data
           key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
 
+      - name: install tools
+        run: |
+          if [ "$(uname)" == "Darwin" ]; then
+            brew install cmake
+          elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            sudo apt-get install -y build-essential cmake clang \
+              fakeroot dpkg debconf debhelper lintian md5deep   \
+              libc++-dev libva-dev
+          fi
+
       - name: install packages with system package-manager (+ compile missing)
         if: matrix.package-manager == 'default'
         run: |
           if [ "$(uname)" == "Darwin" ]; then
-            brew install autoconf automake libtool cmake
+            brew install autoconf automake libtool
 
             # gstreamer
             brew install gstreamer gst-plugins-{base,good,bad,ugly} gst-libav
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential autoconf libtool pkg-config cmake clang libc++-dev libva-dev
+            sudo apt-get install -y autoconf libtool pkg-config
 
             # gstreamer
             sudo apt install -y libgstreamer1.0-dev \
@@ -125,10 +137,13 @@ jobs:
           conan/add_cmake_cache_entry.sh gRPC_DIR "$(pwd)/grpc/install/lib/cmake/grpc"
           conan/add_cmake_cache_entry.sh CMAKE_PREFIX_PATH "$(pwd)/grpc/install"
 
-          git clone -b v3.0.0 https://github.com/jarro2783/cxxopts.git
-          pushd cxxopts
-          cmake .
-          popd
+          # cxxopts
+          if [ ! -d "cxxopts" ]; then
+            git clone -b v3.0.0 https://github.com/jarro2783/cxxopts.git
+            pushd cxxopts
+            cmake .
+            popd
+          fi
           conan/add_cmake_cache_entry.sh cxxopts_DIR "$(pwd)/cxxopts"
           conan/add_cmake_cache_entry.sh cxxopts_INCLUDE_DIRS "$(pwd)/cxxopts/include"
 
@@ -142,15 +157,14 @@ jobs:
 
           sh conan/export_receipts.sh
 
-          # TODO fix circle dependency other way
-          conan install m4/1.4.19@ --build missing --profile="${{ github.workspace }}/${{ matrix.conan-profile }}"
-          # when installed from conan file miss -isysroot (looks like bug in conan)
-          conan install libiconv/1.17@ --build missing --profile="${{ github.workspace }}/${{ matrix.conan-profile }}"
+          conan install $(pwd)/conanfile.txt      \
+            --install-folder $(pwd)/build/conan   \
+            --build missing                       \
+            --settings build_type=Release         \
+            --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
+          conan remove --build --src --force '*'
 
       - run: cmake -B build -S . -C CMakeCache.txt
-
-      - if: ${{ failure() }}
-        run: cat ~/.conan/data/libiconv/1.16/_/_/build/*/build-release/config.log
 
       - run: cmake --build build
 
@@ -163,6 +177,3 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.deb
-
-      - if: matrix.package-manager == 'conan'
-        run: conan remove --build --src --force '*'
