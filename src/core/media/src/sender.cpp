@@ -213,7 +213,7 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     g_printerr("[gst-sender] %s pad added\n", padname);
     if (g_str_has_prefix(padname, prefix)) {
         GstElement *downstream = (GstElement *)userdata;
-        GstPad *sinkpad = gst_element_request_pad_simple(downstream, "sink_%u");
+        GstPad *sinkpad = gst_element_get_request_pad(downstream, "sink_%u");
         gst_pad_link(pad, sinkpad);
         gst_object_unref(sinkpad);
     }
@@ -273,7 +273,7 @@ void media::Sender::addReceiver(const std::string &id,
                      nullptr);
 
     GstPad *rtp_send_sinkpad =
-        gst_element_request_pad_simple(rtpbin, "send_rtp_sink_%u");
+        gst_element_get_request_pad(rtpbin, "send_rtp_sink_%u");
     if (!gst_element_link_pads(rtpbin, "send_rtcp_src_%u", funnel, "sink_%u"))
         g_printerr("[gst-sender-%d] Failed to link rtcp src and funnel", media_type);
 
