@@ -3,6 +3,7 @@
 
 #include "core/juiceclient.h"
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <thread>
