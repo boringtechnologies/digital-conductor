@@ -1,6 +1,6 @@
 #include "licensing/LicenseManager.hpp"
 #include "auto-discovery/DiscoveryManager.hpp"
-#include "cxxopts.hpp"
+#include <cxxopts.hpp>
 #include <thread>
 
 using namespace dc;
