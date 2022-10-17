@@ -41,9 +41,32 @@ jobs:
         with:
           version: 6.4.*
           cache: true
-          dir: ${{ github.workspace }}/qt
+          dir: ${{ github.workspace }}
 
-      - run: echo "QT_DIR:PATH=${{ github.workspace }}/qt/lib/cmake" > CMakeCache.txt
+      - run: |
+          if [ "$(uname)" == "Darwin" ]; then
+            QT_ROOT=${{ github.workspace }}/Qt/6.4.0/macos
+          elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            QT_ROOT=${{ github.workspace }}/Qt/6.4.0/gcc_64
+          fi
+          echo "QT_DIR:PATH=${QT_ROOT}/lib/cmake" > CMakeCache.txt
+          echo "QT_ROOT=${QT_ROOT}" >> $GITHUB_ENV
+
+      - name: cache build deps
+        if: matrix.package-manager == 'default'
+        uses: actions/cache@v3
+        with:
+          path: |
+            grpc
+            libjuice
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
+
+      - name: cache conan deps
+        if: matrix.package-manager == 'conan'
+        uses: actions/cache@v3
+        with:
+          path: ~/.conan/data
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
 
       - name: install packages with system package-manager (+ compile missing)
         if: matrix.package-manager == 'default'
@@ -68,38 +91,38 @@ jobs:
           fi
 
           # libjuice
-          git clone -b v1.0.5 https://github.com/paullouisageneau/libjuice.git
-          pushd libjuice/
-          cmake -S . -B build --install-prefix $(pwd)/install
-          cmake --build build --target juice-static --target juice
-          cmake --install build
-          cp build/libjuice-static.a install/lib/
-          popd
+          if [ ! -d "libjuice/install" ]; then
+            git clone -b v1.0.5 https://github.com/paullouisageneau/libjuice.git
+            pushd libjuice/
+            cmake -S . -B build --install-prefix $(pwd)/install
+            cmake --build build --target juice-static --target juice
+            cmake --install build
+            cp build/libjuice-static.a install/lib/
+            popd
+          fi
           echo "LibJuice_DIR:PATH=$(pwd)/libjuice/install/lib/cmake/LibJuice" >> CMakeCache.txt
           echo "LibJuice_INCLUDE_DIRS:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
 
           # grpc
-          git clone -b v1.48.0 https://github.com/grpc/grpc
-          pushd grpc
-          git submodule update --init
-          cmake -S . -B build --install-prefix $(pwd)/install
-          cmake --build build
-          cmake --install build
-          popd
+          if [ ! -d "grpc/install" ]; then
+            git clone -b v1.48.0 https://github.com/grpc/grpc
+            pushd grpc
+            git submodule update --init
+            cmake -S . -B build --install-prefix $(pwd)/install
+            cmake --build build
+            cmake --install build
+            popd
+          fi
           echo "Protobuf_DIR:PATH=$(pwd)/grpc/install/lib/cmake/protobuf" >> CMakeCache.txt
           echo "gRPC_DIR:PATH=$(pwd)/libjuice/install/install/include" >> CMakeCache.txt
 
-      - uses: actions/cache@v3
-        with:
-          path: ~/.conan/data
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
-
       - name: install packages with conan package-manager
-        if: matrix.package-manager == 'default'
+        if: matrix.package-manager == 'conan'
         run: |
           pip3 install conan
+
           echo "WITH_CONAN:BOOL=ON" >> CMakeCache.txt
-          echo "WITH_CONAN_PROFILE:PATH=" >> CMakeCache.txt
+          echo "WITH_CONAN_PROFILE:PATH=${{ matrix.conan-profile }}" >> CMakeCache.txt
 
           sh conan/export_receipts.sh
 
@@ -107,7 +130,7 @@ jobs:
 
       - run: cmake --build build
 
-      - run: env PATH="${{ github.workspace }}/qt/bin:$PATH" ./build-package.sh
+      - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
         working-directory: package/${{ matrix.output-package }}
 
       - uses: actions/upload-artifact@v3
