@@ -82,7 +82,7 @@ jobs:
             # gstreamer
             brew install gstreamer gst-plugins-{base,good,bad,ugly} gst-libav
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential autoconf libtool pkg-config cmake clang libc++-dev
+            sudo apt-get install -y build-essential autoconf libtool pkg-config cmake clang libc++-dev libva-dev
 
             # gstreamer
             sudo apt install -y libgstreamer1.0-dev \
@@ -130,6 +130,7 @@ jobs:
           cmake .
           popd
           conan/add_cmake_cache_entry.sh cxxopts_DIR "$(pwd)/cxxopts"
+          conan/add_cmake_cache_entry.sh cxxopts_INCLUDE_DIRS "$(pwd)/cxxopts/include"
 
       - name: install packages with conan package-manager
         if: matrix.package-manager == 'conan'
@@ -141,7 +142,10 @@ jobs:
 
           sh conan/export_receipts.sh
 
-          conan install m4/1.4.19@
+          # TODO fix circle dependency other way
+          conan install m4/1.4.19@ --build missing --profile="${{ github.workspace }}/${{ matrix.conan-profile }}"
+          # when installed from conan file miss -isysroot (looks like bug in conan)
+          conan install libiconv/1.17@ --build missing --profile="${{ github.workspace }}/${{ matrix.conan-profile }}"
 
       - run: cmake -B build -S . -C CMakeCache.txt
 

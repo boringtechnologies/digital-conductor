@@ -1,4 +1,4 @@
-function(conan_install conan_file host_profile build_profile)
+function(conan_install conan_file conan_profile)
   # download helper conan.cmake
   if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
     message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
@@ -13,19 +13,14 @@ function(conan_install conan_file host_profile build_profile)
   # install dependencies from conanfile.txt
   set(CONAN_MODULE_PATH ${CMAKE_BINARY_DIR}/conan)
 
-  if(NOT host_profile)
-    set(host_profile "default")
-  endif()
-
-  if(NOT build_profile)
-    set(build_profile ${host_profile})
+  if(NOT conan_profile)
+    set(conan_profile "default")
   endif()
 
   conan_cmake_install(PATH_OR_REFERENCE ${conan_file}
                       BUILD missing
                       INSTALL_FOLDER ${CONAN_MODULE_PATH}
-                      PROFILE_HOST ${host_profile}
-                      PROFILE_BUILD ${build_profile}
+                      PROFILE ${conan_profile}
                       SETTINGS build_type=Release) # ${CMAKE_BUILD_TYPE})
 
   # fix aliases

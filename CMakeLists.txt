@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.0.0)
 project(DigitalConductor)
 
 option(WITH_CONAN "Install all required deps with conan" OFF)
-option(WITH_CONAN_PROFILE "Conan profile to build packages" ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/default)
+option(WITH_CONAN_PROFILE "Conan profile to build packages" ${CMAKE_CURRENT_SOURCE_DIR}/conan/profiles/intel)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -19,7 +19,7 @@ endif()
 
 if(WITH_CONAN)
   include(conan/cmake/conan_install.cmake)
-  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt ${WITH_CONAN_PROFILE} ${WITH_CONAN_PROFILE})
+  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt ${WITH_CONAN_PROFILE})
   list(APPEND CMAKE_MODULE_PATH ${CONAN_MODULE_PATH})
 endif()
 

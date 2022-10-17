@@ -4,13 +4,13 @@ simple build flow
 
 ## Install dependencies with Conan package manager
 
-All deps except Qt can be installed with `conan`, for this just pass `-DWITH_CONAN=ON`
+All deps except Qt can be installed with `conan`, for this just pass `-DWITH_CONAN=ON` and appropriate `-DWITH_CONAN_PROFILE=$(pwd)/conan/profiles/{intel,linux,mx}`
 
 ```
 brew install cmake
 pip3 install conan
 sh conan/export_receipts.sh
-cmake -S . -B build -DQT_DIR="/usr/local/opt/qt/lib/cmake" -DWITH_CONAN=ON
+cmake -S . -B build -DQT_DIR="/usr/local/opt/qt/lib/cmake" -DWITH_CONAN=ON -DWITH_CONAN_PROFILE=$(pwd)/conan/profiles/linux
 cmake --build build
 
 ```
