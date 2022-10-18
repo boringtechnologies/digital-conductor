@@ -109,7 +109,7 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
         // Generates a keyframe every 5s, with RTCP feedback in place
         g_object_set(encoder, "deadline", 1,
                      "keyframe-max-dist", 150,
-                     "bit-per-pixel", 0.1f, nullptr);
+                     "bits-per-pixel", 0.1f, nullptr);
         payloader = gst_element_factory_make(
             "rtpvp8pay", (id + "-publisher-videopayload").c_str());
         g_object_set(payloader, "pt", 101, NULL);
