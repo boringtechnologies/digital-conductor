@@ -93,10 +93,12 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
         MAKE_ELEMENT(capsf, "capsfilter", (id + "-publisher-capsf").c_str());
         g_object_set(capsf, "caps",
                      gst_caps_from_string("audio/x-raw,rate=48000"), nullptr);
-        MAKE_ELEMENT(encoder, "opusenc", "publisher-audioenc");
+        MAKE_ELEMENT(encoder, "vorbisenc", "publisher-audioenc");
         payloader = gst_element_factory_make(
-            "rtpopuspay", (id + "-publisher-audiopayload").c_str());
-        g_object_set(payloader, "pt", 97, NULL);
+            "rtpvorbispay", (id + "-publisher-audiopayload").c_str());
+        g_object_set(payloader,
+                     "pt", 97,
+                     "config-interval", 5, NULL);
     } else if (type == media::MediaType::Video) {
         source = get_video_device(device, id);
         MAKE_ELEMENT(conv, "videoconvert", (id + "-publisher-conv").c_str());

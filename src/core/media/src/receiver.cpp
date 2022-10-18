@@ -86,15 +86,15 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     g_object_set(appsrc, "is-live", true, nullptr);
     MAKE_ELEMENT(rtpbin, "rtpbin", ("rx-" + id + "-rtpbin").c_str());
     if (type == media::MediaType::Audio) {
-        MAKE_ELEMENT(depayloader, "rtpopusdepay", ("rx-" + id + "-depay").c_str());
-        MAKE_ELEMENT(decoder, "opusdec", ("rx-" + id + "-dec").c_str());
+        MAKE_ELEMENT(depayloader, "rtpvorbisdepay", ("rx-" + id + "-depay").c_str());
+        MAKE_ELEMENT(decoder, "vorbisdec", ("rx-" + id + "-dec").c_str());
         MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
         sink = get_audio_device(device, id);
         g_object_set(
             appsrc, "caps",
             gst_caps_from_string("application/"
                                  "x-rtp,media=(string)audio,clock-rate=(int)"
-                                 "48000,encoding-name=(string)OPUS,payload=97"),
+                                 "48000,encoding-name=(string)VORBIS,payload=97"),
             nullptr);
 
     } else if (type == media::MediaType::Video) {

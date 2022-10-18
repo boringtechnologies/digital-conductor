@@ -20,7 +20,7 @@ extern "C" {
     GST_PLUGIN_STATIC_DECLARE(audioconvert);
     GST_PLUGIN_STATIC_DECLARE(audioresample);
     GST_PLUGIN_STATIC_DECLARE(coreelements);
-    GST_PLUGIN_STATIC_DECLARE(opus);
+    GST_PLUGIN_STATIC_DECLARE(vorbis);
     // good
     GST_PLUGIN_STATIC_DECLARE(autodetect);
 #if GST_CHECK_VERSION(1, 21, 0)
@@ -40,6 +40,10 @@ extern "C" {
     GST_PLUGIN_STATIC_DECLARE(applemedia);
 #endif
     GST_PLUGIN_STATIC_DECLARE(libav);
+#if DEBUG
+    GST_PLUGIN_STATIC_DECLARE(debug);
+    GST_PLUGIN_STATIC_DECLARE(debugutilsbad);
+#endif
 }
 
 #endif
@@ -50,7 +54,7 @@ static void gst_register_static_plugins() {
     GST_PLUGIN_STATIC_REGISTER(audioconvert);
     GST_PLUGIN_STATIC_REGISTER(audioresample);
     GST_PLUGIN_STATIC_REGISTER(coreelements);
-    GST_PLUGIN_STATIC_REGISTER(opus);
+    GST_PLUGIN_STATIC_REGISTER(vorbis);
     GST_PLUGIN_STATIC_REGISTER(autodetect);
 #if GST_CHECK_VERSION(1, 21, 0)
     GST_PLUGIN_STATIC_REGISTER(videoconvertscale);
@@ -68,6 +72,10 @@ static void gst_register_static_plugins() {
     GST_PLUGIN_STATIC_REGISTER(applemedia);
 #endif
     GST_PLUGIN_STATIC_REGISTER(libav);
+#if DEBUG
+    GST_PLUGIN_STATIC_REGISTER(debug);
+    GST_PLUGIN_STATIC_REGISTER(debugutilsbad);
+#endif
 #endif
 }
 
