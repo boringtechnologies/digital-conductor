@@ -142,6 +142,14 @@ qt_add_qml_module(DigitalConductorDemo
   QML_FILES ${QML_SOURCES}
   )
 
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+  message("-- Qml debugging enabled")
+  target_compile_definitions(DigitalConductorDemo PRIVATE
+    QT_DECLARATIVE_DEBUG
+    QT_QML_DEBUG
+  )
+endif()
+
 add_dependencies(DigitalConductorDemo
   DigitalConductorCore_lib
   DigitalConductorLib)
