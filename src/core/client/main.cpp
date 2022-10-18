@@ -109,6 +109,16 @@ void onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_p
     {
         mediareceiver->push(reinterpret_cast<const uint8_t *>(data), size);
     }
+    else if (mediasender)
+    {
+        for (const auto &jc : jcclients)
+        {
+            if (jc.second.get() == caller)
+            {
+                mediasender->push(jc.first, reinterpret_cast<const uint8_t *>(data), size);
+            }
+        }
+    }
 }
 
 //******************************************************************************
@@ -518,7 +528,19 @@ int main(int argc, char * argv[])
 
             std::string id = v[0];
             bool synchronize = true;
-            mediareceiver.reset(new media::Receiver(id, mediatype, playbackDevice, receiverclock, delay,synchronize));
+            mediareceiver.reset(new media::Receiver(id, mediatype, playbackDevice, receiverclock, delay,synchronize,
+                        [id](const uint8_t *data, size_t len)
+                        {
+                            if (mediatype == media::MediaType::Audio)
+                            {
+                                jcclients[id]->sendAudio(data, len);
+                            }
+                            else if (mediatype == media::MediaType::Video)
+                            {
+                                jcclients[id]->sendVideo(data, len);
+                            }
+                            // std::cout << len << " bytes to " << id << std::endl;
+                        }));
             mediareceiver->start();
         }
         else if (command == "stopstream")

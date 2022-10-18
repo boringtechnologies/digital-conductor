@@ -174,22 +174,18 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         {
             m_audiosender->removeReceiver(from);
         }
-
-        dc::ReceiverPtr videoReciever = getVideoReceiver(from);
-        if (videoReciever)
+        if (dc::ReceiverPtr res = getVideoReceiver(from))
         {
             m_videoreceivers.erase(from);
-            videoReciever->stop();
-            videoReciever.reset();
+            res->stop();
+            res.reset();
         }
-        dc::ReceiverPtr audioReciever = getAudioReceiver(from);
-        if (audioReciever)
+        if (dc::ReceiverPtr res = getAudioReceiver(from))
         {
             m_audioreceivers.erase(from);
-            audioReciever->stop();
-            audioReciever.reset();
+            res->stop();
+            res.reset();
         }
-
         std::cout << "[appctrl] onGrpcMessage " << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
 
         dc::JuiceClientPtr ptr = getP2PClient(from);
@@ -341,10 +337,13 @@ void AppController::impl::onVideoRecv(juice_agent_t * agent, const char * data, 
 
     std::string id = caller->id();
 
-    dc::ReceiverPtr ptr = getVideoReceiver(id);
-    if (ptr)
+    if (dc::ReceiverPtr ptr = getVideoReceiver(id))
     {
         ptr->push(reinterpret_cast<const uint8_t *>(data), size);
+    }
+    if (m_videosender)
+    {
+        m_videosender->push(id, reinterpret_cast<const uint8_t *>(data), size);
     }
 }
 
@@ -352,15 +351,18 @@ void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, 
 {
     dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    std::cout << size << " bytes of audio from " << caller->id() << std::endl;
+    // std::cout << size << " bytes of audio from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     std::string id = caller->id();
 
-    dc::ReceiverPtr ptr = getAudioReceiver(id);
-    if (ptr)
+    if (dc::ReceiverPtr ptr = getAudioReceiver(id))
     {
         ptr->push(reinterpret_cast<const uint8_t *>(data), size);
+    }
+    if (m_audiosender)
+    {
+        m_audiosender->push(id, reinterpret_cast<const uint8_t *>(data), size);
     }
 }
 
@@ -716,12 +718,22 @@ void AppController::receiveStream()
         media::PlaybackDevice videodevice;
         m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video,
                                                                    videodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode));
+                                                                   m_p->m_delay, m_p->m_syncMode,
+                    [ptr](const uint8_t *data, size_t len)
+                    {
+                        ptr->sendVideo(data, len);
+                        // std::cout << len << " bytes to " << id << std::endl;
+                    }));
 
         media::PlaybackDevice audiodevice;
         m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio,
                                                                    audiodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode));
+                                                                   m_p->m_delay, m_p->m_syncMode,
+                    [ptr](const uint8_t *data, size_t len)
+                    {
+                        ptr->sendAudio(data, len);
+                        // std::cout << len << " bytes to " << id << std::endl;
+                    }));
 
         // start connection
         if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))

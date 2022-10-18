@@ -32,6 +32,32 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
     return TRUE;
 }
 
+static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
+    GstSample *sample;
+    media::Receiver *self = static_cast<media::Receiver *>(userdata);
+
+    /* Retrieve the buffer */
+    sample = gst_app_sink_pull_sample(sink);
+    if (sample) {
+        /* The only thing we do in this example is print a * to indicate a
+         * received buffer */
+        GstBuffer *buf = gst_sample_get_buffer(sample);
+        GstMapInfo info;
+        gst_buffer_map(buf, &info, GST_MAP_READ);
+
+        if (self->write_cb) {
+            self->write_cb((const uint8_t *)info.data, info.size);
+        }
+
+        gst_buffer_unmap(buf, &info);
+
+        gst_sample_unref(sample);
+        return GST_FLOW_OK;
+    }
+
+    return GST_FLOW_ERROR;
+}
+
 static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     gchar *padname = gst_pad_get_name(pad);
     gchar *prefix = g_strdup_printf("recv_rtp_src_");
@@ -71,11 +97,12 @@ static GstElement *get_audio_device(const media::PlaybackDevice &device, const s
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device, const ClockInfo &clock,
-                          std::chrono::duration<int, std::milli> delay, bool synchronize)
-    : media_type(type), thread(nullptr)
+                          std::chrono::duration<int, std::milli> delay,
+                          bool synchronize, media::WriteCallback write_cb)
+    : media_type(type), thread(nullptr), write_cb(write_cb)
 {
     GstBus *bus;
-    GstElement *rtpbin, *depayloader, *decoder, *convert, *sink;
+    GstElement *rtpbin, *depayloader, *decoder, *convert, *sink, *appsink;
 
     loop = g_main_loop_new(nullptr, FALSE);
 
@@ -97,6 +124,8 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                                  "48000,encoding-name=(string)VORBIS,payload=97"),
             nullptr);
 
+        MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
+        MAKE_ELEMENT(sink, "autoaudiosink", ("rx-" + id + "-sink").c_str());
     } else if (type == media::MediaType::Video) {
         MAKE_ELEMENT(depayloader, "rtpvp8depay",
                      ("rx-" + id + "-depay").c_str());
@@ -111,6 +140,12 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                                  "90000,encoding-name=(string)VP8,payload=101"),
             nullptr);
     }
+
+    MAKE_ELEMENT(appsink, "appsink", ("rx-" + id + "-appsink-rtcp").c_str());
+    GstAppSinkCallbacks callbacks = {0};
+    callbacks.new_sample = new_sample;
+    gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, this, NULL);
+    g_object_set(appsink, "emit-signals", FALSE, nullptr);
 
     g_signal_connect(rtpbin, "pad-added", G_CALLBACK(rtpbin_pad_padded),
                      depayloader);
@@ -130,9 +165,10 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     gst_object_unref(bus);
 
     gst_bin_add_many(GST_BIN(pipeline), appsrc, rtpbin, depayloader, decoder,
-                     convert, sink, nullptr);
+                     convert, sink, appsink, nullptr);
 
     gst_pad_link(src_pad, recv_rtp_sink_pad);
+    gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
     if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
         g_printerr("[gst-receiver-%d] failed to link the elements\n", media_type);
         return;
@@ -164,6 +200,7 @@ media::Receiver::~Receiver() {
     gst_object_unref(GST_OBJECT(pipeline));
     g_source_remove(bus_watch_id);
     g_main_loop_unref(loop);
+
     g_print("[gst-reciever-%d] ~deconstructed\n", media_type);
 }
 
