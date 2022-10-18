@@ -15,3 +15,4 @@ gst*:meson/0.63.3
 CXXFLAGS=-std=c++17
 [conf]
 tools.system.package_manager:mode=install
+tools.system.package_manager:sudo=True
