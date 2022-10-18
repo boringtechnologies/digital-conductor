@@ -66,24 +66,37 @@ jobs:
             libjuice/install
             cxxopts
 
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+            ${{ runner.os }}-${{ matrix.package-manager }}-
 
       - name: cache conan deps
         if: matrix.package-manager == 'conan'
         uses: actions/cache@v3
         with:
           path: ~/.conan/data
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conan.lock') }}
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+            ${{ runner.os }}-${{ matrix.package-manager }}-
+
+      - name: cache compiled objects
+        uses: actions/cache@v3
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}
 
       - name: install tools
         run: |
           if [ "$(uname)" == "Darwin" ]; then
-            brew install cmake
+            brew install cmake ccache
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential cmake clang \
+            sudo apt-get install -y build-essential cmake clang ccache \
               fakeroot dpkg debconf debhelper lintian md5deep   \
               libc++-dev libva-dev libvdpau-dev libvulkan-dev
           fi
+          ccache -M 1G
 
       - name: install packages with system package-manager (+ compile missing)
         if: matrix.package-manager == 'default'
