@@ -17,6 +17,9 @@
 #include <QTimer>
 
 #include <memory>
+#include <future>
+#include <chrono>
+#include <thread>
 
 //******************************************************************************
 //******************************************************************************
@@ -769,12 +772,16 @@ void AppController::stopStream()
                 continue;
             }
 
-            dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
-            if (ptr)
-            {
-                ptr->disconnect();
-                // m_p->m_p2pConnections.erase(p.id());
-            }
+            std::async(std::launch::async, [&]{
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                if (dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id()))
+                {
+                    ptr->disconnect();
+                    // m_p->m_p2pConnections.erase(p.id());
+                }
+            });
+
         }
 
         m_p->m_p2pConnections.clear();
