@@ -172,7 +172,7 @@ jobs:
 
           conan install $(pwd)/conanfile.txt      \
             --install-folder $(pwd)/build/conan   \
-            --build missing                       \
+            --build=outdated                      \
             --settings build_type=Release         \
             --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
           conan remove --build --src --force '*'

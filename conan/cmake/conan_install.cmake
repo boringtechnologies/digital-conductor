@@ -18,7 +18,7 @@ function(conan_install conan_file conan_profile)
   endif()
 
   conan_cmake_install(PATH_OR_REFERENCE ${conan_file}
-                      BUILD missing
+                      BUILD outdated
                       INSTALL_FOLDER ${CONAN_MODULE_PATH}
                       PROFILE ${conan_profile}
                       SETTINGS build_type=Release) # ${CMAKE_BUILD_TYPE})
