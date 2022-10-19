@@ -1,0 +1,31 @@
+--- a/sys/osxvideo/osxvideosink.m
++++ b/sys/osxvideo/osxvideosink.m
+@@ -862,7 +862,9 @@
+   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+   GstBuffer *buf = object->buf;
+ 
+-  GST_OBJECT_LOCK (osxvideosink);
++  if (!GST_OBJECT_TRYLOCK (osxvideosink))
++      goto exit;
++
+   if (osxvideosink->osxwindow == NULL)
+       goto no_window;
+ 
+@@ -888,8 +890,9 @@
+ 
+ out:
+   GST_OBJECT_UNLOCK (osxvideosink);
+-  [object release];
+ 
++exit:
++  [object release];
+   [pool release];
+   return;
+ 
+@@ -1008,4 +1011,4 @@
+     GST_VERSION_MINOR,
+     osxvideo,
+     "OSX native video output plugin",
+-    plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
+\ No newline at end of file
++    plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
