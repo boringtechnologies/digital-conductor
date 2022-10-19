@@ -29,11 +29,12 @@ jobs:
             package-manager: conan
             conan-profile: conan/profiles/intel
             output-package: dmg
-          - os: ubuntu-latest
-            experimental: true
-            package-manager: conan
-            conan-profile: conan/profiles/linux
-            output-package: deb
+          # disabled as non-priority right now
+          # - os: ubuntu-latest
+          #   experimental: true
+          #   package-manager: conan
+          #   conan-profile: conan/profiles/linux
+          #   output-package: deb
     steps:
       - uses: actions/checkout@v3
 
