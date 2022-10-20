@@ -218,54 +218,38 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
 
     if (state == JUICE_STATE_CONNECTED)
     {
-        if (m_videosender)
+        if (dc::JuiceClientPtr ptr = getP2PClient(id))
         {
-            dc::JuiceClientPtr ptr = getP2PClient(id);
-            if (!ptr)
-            {
-                std::cout << "    no receiver named " << id << std::endl;
-            }
-            else
+            if (m_videosender)
             {
                 m_videosender->addReceiver(id, [ptr](const uint8_t *data, size_t len)
                 {
-
-
-
                     ptr->sendVideo(data, len);
                     // std::cout << len << " bytes to " << id << std::endl;
                 });
             }
-        }
-
-        if (m_audiosender)
-        {
-            dc::JuiceClientPtr ptr = getP2PClient(id);
-            if (!ptr)
-            {
-                std::cout << "    no receiver named " << id << std::endl;
-            }
-            else
+            if (m_audiosender)
             {
                 m_audiosender->addReceiver(id, [ptr](const uint8_t *data, size_t len)
                 {
-
                     ptr->sendAudio(data, len);
                     // std::cout << len << " bytes to " << id << std::endl;
                 });
             }
         }
-
-        dc::ReceiverPtr videoReciever = getVideoReceiver(id);
-        if (videoReciever)
+        else
         {
-            videoReciever->start();
+            std::cout << "    no receiver named " << id << std::endl;
         }
 
-        dc::ReceiverPtr audioReciever = getAudioReceiver(id);
-        if (audioReciever)
+        if (dc::ReceiverPtr res = getVideoReceiver(id))
         {
-            audioReciever->start();
+            res->start();
+        }
+
+        if (dc::ReceiverPtr res = getAudioReceiver(id))
+        {
+            res->start();
         }
     }
     else if (state == JUICE_STATE_COMPLETED)
@@ -282,23 +266,19 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
         {
             m_audiosender->removeReceiver(id);
         }
-        dc::ReceiverPtr videoReciever = getVideoReceiver(id);
-        if (videoReciever)
+        if (dc::ReceiverPtr res = getVideoReceiver(id))
         {
             m_videoreceivers.erase(id);
-            videoReciever->stop();
-            videoReciever.reset();
+            res->stop();
+            res.reset();
         }
-        dc::ReceiverPtr audioReciever = getAudioReceiver(id);
-        if (audioReciever)
+        if (dc::ReceiverPtr res = getAudioReceiver(id))
         {
             m_audioreceivers.erase(id);
-            audioReciever->stop();
-            audioReciever.reset();
+            res->stop();
+            res.reset();
         }
-
-        dc::JuiceClientPtr ptr = getP2PClient(id);
-        if (ptr)
+        if (dc::JuiceClientPtr ptr = getP2PClient(id))
         {
             ptr.reset();
         }
