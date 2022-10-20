@@ -41,6 +41,7 @@ class JuiceClient::impl
         , m_onGatheringDoneHandler(onGatheringDoneHandler)
         , m_onVideoReceiveHandler(onVideoReceiveHandler)
         , m_onAudioReceiveHandler(onAudioReceiveHandler)
+        , m_destroymarker(false)
     {
     }
 
@@ -78,7 +79,6 @@ JuiceClient::JuiceClient(const std::string & id,
                    onStateChangedHandler, onCandidateHandler,
                    onGatheringDoneHandler, onVideoReceiveHandler, onAudioReceiveHandler))
 {
-    m_p->m_destroymarker = false;
     m_p->m_pinger = std::thread([this]()
     {
         const std::string pingmsg = JP2P_PING + this->id();
@@ -89,20 +89,6 @@ JuiceClient::JuiceClient(const std::string & id,
 
             if (m_p->m_agent)
             {
-                if (juice_get_state(m_p->m_agent) > JUICE_STATE_DISCONNECTED)
-                {
-                    if (m_p->m_lastReceived + std::chrono::milliseconds(5000) < std::chrono::system_clock::now())
-                    {
-                        std::cout << "[juice] pinger " << "disconnected???" << std::endl;
-
-                        // TODO disconnected? reconnect?
-                        m_p->m_onStateChangedHandler(m_p->m_agent, JUICE_STATE_DISCONNECTED, this);
-
-                        // TODO what else?
-                        disconnect();
-                    }
-                }
-
                 if (m_p->m_agent && juice_get_state(m_p->m_agent) >= JUICE_STATE_CONNECTED)
                 {
                     // std::cout << "[juice] pinger " << "JUICE_STATE_CONNECTED" << std::endl;
