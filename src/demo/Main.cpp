@@ -75,7 +75,11 @@ int main(int argc, char *argv[])
         signallingServer = parser.value(server);
     }
 
+#ifdef NDEBUG
     QString userGroup("default");
+#else
+    QString userGroup("test");
+#endif
     if (parser.isSet(group))
     {
         userGroup = parser.value(group);
