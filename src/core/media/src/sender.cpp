@@ -39,26 +39,20 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
     return TRUE;
 }
 
-static GstElement *get_audio_device(const media::CaptureDevice &device, const std::string &id)
+static GstElement *get_device(const media::CaptureDevice &device, const std::string &id, media::MediaType media_type)
 {
     GstElement *source;
-    MAKE_ELEMENT(source, device.name.c_str(), (id + "-publisher-audiosrc").c_str());
-    return source;
-}
-
-static GstElement *get_video_device(const media::CaptureDevice &device, const std::string &id)
-{
-    GstElement *source;
+    std::string mt = media_type == media::MediaType::Video ? "video" : "audio";
 
     std::cout << "use " << device.name << std::endl;
-    MAKE_ELEMENT(source, device.name.c_str(), (id + "-publisher-videosrc").c_str());
+    MAKE_ELEMENT(source, device.name.c_str(), (id + "-publisher" + mt + "-src").c_str());
     if (!device.params.empty())
     {
         std::cout <<     "with params:" << std::endl;
         for (const std::pair<std::string, std::string> & param : device.params)
         {
             std::cout << "        " << param.first << "=" << param.second << std::endl;
-            if (param.first == "device-index")
+            if (param.first == "device-index" || param.first == "device")
             {
                 // TODO temporary ugly hack for mac os users
                 // TODO use G_VALUE_TYPE or gst_value_deserialize ...
@@ -85,9 +79,9 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
     loop = g_main_loop_new(nullptr, FALSE);
 
     pipeline = gst_pipeline_new(("snd-" + id + (media_type ? "-video" : "-audio")).c_str());
+    source = get_device(device, id, media_type);
 
     if (type == media::MediaType::Audio) {
-        source = get_audio_device(device, id);
         MAKE_ELEMENT(conv, "audioconvert", (id + "-publisher-conv").c_str());
         MAKE_ELEMENT(rate, "audioresample", (id + "-publisher-rate").c_str());
         MAKE_ELEMENT(capsf, "capsfilter", (id + "-publisher-capsf").c_str());
@@ -100,7 +94,6 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
                      "pt", 97,
                      "config-interval", 5, NULL);
     } else if (type == media::MediaType::Video) {
-        source = get_video_device(device, id);
         MAKE_ELEMENT(conv, "videoconvert", (id + "-publisher-conv").c_str());
         MAKE_ELEMENT(rate, "videorate", (id + "-publisher-rate").c_str());
         MAKE_ELEMENT(scale, "videoscale", (id + "-publisher-scale").c_str());
