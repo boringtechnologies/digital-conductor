@@ -18,6 +18,10 @@ Rectangle {
     
     color: Common.transparent
 
+    Component.onCompleted: {
+        Controller.onSenderViewReady()
+    }
+
     ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right

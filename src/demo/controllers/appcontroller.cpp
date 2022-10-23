@@ -7,6 +7,7 @@
 
 #include "core/grpcclient.h"
 #include "core/juiceclient.h"
+#include "core/permissionmgr.hpp"
 
 #undef signals // for gstreamer
 #include "core/media/sync.hpp"
@@ -541,6 +542,14 @@ void AppController::copyToClipboard(QString data)
 {
     QClipboard * clipboard = QGuiApplication::clipboard();
     clipboard->setText(data);
+}
+
+//******************************************************************************
+//******************************************************************************
+void AppController::onSenderViewReady()
+{
+    dc::PermissionManager mgr;
+    mgr.requestMissingPermissions();
 }
 
 //******************************************************************************

@@ -81,6 +81,8 @@ public slots:
     void receiveStream();
     void stopStream();
 
+    void onSenderViewReady();
+
 private:
     class impl;
     std::shared_ptr<impl> m_p;

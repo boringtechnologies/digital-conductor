@@ -84,6 +84,12 @@ set_target_properties(DigitalConductorCore_proto PROPERTIES
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 include_directories(${CMAKE_SOURCE_DIR}/src/core/include)
 
+if(APPLE)
+    set(PERMISSION_MGR_IMPL_CPP permission/permissionmgr.mm)
+else(APPLE)
+    set(PERMISSION_MGR_IMPL_CPP permission/permissionmgr.cpp)
+endif(APPLE)
+
 add_library(DigitalConductorCore_lib
             include/core/grpcclient.h
             include/core/juiceclient.h
@@ -94,7 +100,8 @@ add_library(DigitalConductorCore_lib
             media/src/internal.hpp
             media/src/receiver.cpp
             media/src/sender.cpp
-            media/src/util.cpp)
+            media/src/util.cpp
+            ${PERMISSION_MGR_IMPL_CPP})
 
 target_include_directories(DigitalConductorCore_lib PRIVATE
             ${GST_INCLUDE_DIRS})
