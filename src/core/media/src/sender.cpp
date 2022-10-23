@@ -79,7 +79,7 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
                       const media::ClockInfo &clock)
     : media_type(type), thread(nullptr), write_cbs() {
     GstBus *bus;
-    GstElement *source, *conv, *rate, *capsf, *encoder, *payloader, *queue,
+    GstElement *source, *conv, *rate, *scale, *capsf, *encoder, *payloader, *queue,
         *fakesink;
 
     loop = g_main_loop_new(nullptr, FALSE);
@@ -103,9 +103,10 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
         source = get_video_device(device, id);
         MAKE_ELEMENT(conv, "videoconvert", (id + "-publisher-conv").c_str());
         MAKE_ELEMENT(rate, "videorate", (id + "-publisher-rate").c_str());
+        MAKE_ELEMENT(scale, "videoscale", (id + "-publisher-scale").c_str());
         MAKE_ELEMENT(capsf, "capsfilter", (id + "-publisher-capsf").c_str());
         g_object_set(capsf, "caps",
-                     gst_caps_from_string("video/x-raw,framerate=30/1"),
+                     gst_caps_from_string("video/x-raw,width=640,height=480,framerate=30/1"),
                      nullptr);
         MAKE_ELEMENT(encoder, "vp8enc", (id + "-publisher-videoenc").c_str());
         // Generates a keyframe every 5s, with RTCP feedback in place
@@ -125,13 +126,24 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
     bus_watch_id = gst_bus_add_watch(bus, bus_callback, loop);
     gst_object_unref(bus);
 
-    gst_bin_add_many(GST_BIN(pipeline), source, conv, rate, capsf, encoder,
-                     payloader, tee, queue, fakesink, nullptr);
+    if (type == media::MediaType::Audio) {
+        gst_bin_add_many(GST_BIN(pipeline), source, conv, rate, capsf, encoder,
+                         payloader, tee, queue, fakesink, nullptr);
 
-    if (!gst_element_link_many(source, conv, rate, capsf, encoder, payloader,
-                               tee, queue, fakesink, nullptr)) {
-        g_printerr("[gst-sender-%d] failed to link the elements\n", media_type);
-        return;
+        if (!gst_element_link_many(source, conv, rate, capsf, encoder, payloader,
+                                   tee, queue, fakesink, nullptr)) {
+            g_printerr("[gst-sender-%d] failed to link the elements\n", media_type);
+            return;
+        }
+    } else if (type == media::MediaType::Video) {
+        gst_bin_add_many(GST_BIN(pipeline), source, conv, rate, scale, capsf, encoder,
+                         payloader, tee, queue, fakesink, nullptr);
+
+        if (!gst_element_link_many(source, conv, rate, scale, capsf, encoder, payloader,
+                                   tee, queue, fakesink, nullptr)) {
+            g_printerr("[gst-sender-%d] failed to link the elements\n", media_type);
+            return;
+        }
     }
     g_print("[gst-sender-%d] elements linked successfully\n", media_type);
     GstClock *net_clock = gst_net_client_clock_new(
