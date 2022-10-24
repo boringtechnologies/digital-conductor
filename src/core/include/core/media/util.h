@@ -4,6 +4,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include <vector>
