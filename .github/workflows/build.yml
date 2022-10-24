@@ -24,12 +24,12 @@ jobs:
         package-manager: [ conan ]
         conan-profile: [ conan/profiles/linux ]
         output-package: [ deb ]
-        # include:
-        #   - os: macos-latest
-        #     experimental: false
-        #     package-manager: conan
-        #     conan-profile: conan/profiles/intel
-        #     output-package: dmg
+        include:
+          - os: macos-latest
+            experimental: false
+            package-manager: conan
+            conan-profile: conan/profiles/intel
+            output-package: dmg
           # - os: ubuntu-latest
           #   experimental: false
           #   package-manager: default
