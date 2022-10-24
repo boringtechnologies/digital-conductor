@@ -160,7 +160,7 @@ jobs:
 
           sh conan/export_receipts.sh
 
-          conan install $(pwd)/conanfile.txt      \
+          conan install $(pwd)/conanfile.py       \
             --install-folder $(pwd)/build/conan   \
             --build=outdated                      \
             --settings build_type=Release         \
