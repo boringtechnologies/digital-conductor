@@ -96,7 +96,8 @@ jobs:
               # libva-dev libvdpau-dev libvulkan-dev
             sudo snap install cqtdeployer
           fi
-          ccache -M 1G
+          ccache -M 2G
+          ccache -p
 
       - name: install packages with system package-manager (+ compile missing)
         if: matrix.package-manager == 'default'
