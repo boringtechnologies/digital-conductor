@@ -81,9 +81,11 @@ jobs:
           if [ "$(uname)" == "Darwin" ]; then
             brew install cmake ccache
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential cmake clang ccache   \
-              libc++-dev libvulkan-dev libva-dev libvdpau-dev libx11-dev \
-              libx11-xcb-dev
+            sudo apt-get install -y build-essential cmake clang ccache 
+              # libc++-dev libvulkan-dev libva-dev libvdpau-dev libx11-dev \
+              # libx11-xcb-dev libfontenc-dev libopengl-dev libwayland-dev \
+              # libopenjp2-7-dev libxau-dev
+              
             sudo snap install cqtdeployer
           fi
           ccache -M 2G
@@ -161,9 +163,15 @@ jobs:
 
           sh conan/export_receipts.sh
 
+          if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+            conan install egl/system@ --build="egl"
+            conan install xorg/system@ --build="xorg"
+            conan install opengl/system@ --build="opengl"
+          fi
+
           conan install $(pwd)/conanfile.py       \
             --install-folder $(pwd)/build/conan   \
-            --build=outdated                      \
+            --build=outdated --build="*/system"   \
             --settings build_type=Release         \
             --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
           conan remove --build --src --force '*'
