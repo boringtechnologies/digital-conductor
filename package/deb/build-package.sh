@@ -6,6 +6,6 @@ cqtdeployer -deb $(pwd)/digitalconductor/DEBIAN         \
             -bin ${PROJ_ROOT}/bin/digitalconductor-demo \
             -qmake ${QT_ROOT}/bin/qmake -binOut bin     \
             -qmlDir ${PROJ_ROOT}/src/demo/              \
-            -debOut digitalconductor_1.0-1_amd64
+            -debOut digitalconductor_1.0-1_amd64.deb
 
-mv DistributionKit/digitalconductor* ../../bin/
+mv DistributionKit/*.deb* ../../bin/
