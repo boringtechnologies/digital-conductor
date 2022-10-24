@@ -1,7 +1,11 @@
 #/bin/sh
 
-# sudo apt-get install fakeroot dpkg debconf debhelper lintian 
+PROJ_ROOT="$(pwd)/../../"
 
-md5deep -r digitalconductor/usr > digitalconductor/DEBIAN/md5sums
-fakeroot dpkg-deb --build digitalconductor
-mv digitalconductor.deb ../../bin/digitalconductor_1.0-1_amd64.deb
+cqtdeployer -deb $(pwd)/digitalconductor/DEBIAN         \
+            -bin ${PROJ_ROOT}/bin/digitalconductor-demo \
+            -qmake ${QT_ROOT}/bin/qmake -binOut bin     \
+            -qmlDir ${PROJ_ROOT}/src/demo/              \
+            -debOut digitalconductor_1.0-1_amd64.deb
+
+mv DistributionKit/*.deb* ../../bin/

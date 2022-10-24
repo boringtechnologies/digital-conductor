@@ -10,5 +10,6 @@ compile_commands.json
 CMakeLists.txt.user
 
 #package
-package/nix/digitalconductor/usr/share/*
-package/nix/*.deb
+package/deb/digitalconductor/usr/*
+package/deb/*.deb*
+package/deb/DistributionKit

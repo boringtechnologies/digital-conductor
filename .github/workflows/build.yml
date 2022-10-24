@@ -21,19 +21,18 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         experimental: [ false ]
-        package-manager: [ default ]
+        package-manager: [ conan ]
+        conan-profile: [ conan/profiles/linux ]
         output-package: [ deb ]
-        include:
-          - os: macos-latest
-            experimental: false
-            package-manager: conan
-            conan-profile: conan/profiles/intel
-            output-package: dmg
-          # disabled as non-priority right now
+        # include:
+        #   - os: macos-latest
+        #     experimental: false
+        #     package-manager: conan
+        #     conan-profile: conan/profiles/intel
+        #     output-package: dmg
           # - os: ubuntu-latest
-          #   experimental: true
-          #   package-manager: conan
-          #   conan-profile: conan/profiles/linux
+          #   experimental: false
+          #   package-manager: default
           #   output-package: deb
     steps:
       - uses: actions/checkout@v3
@@ -58,28 +57,17 @@ jobs:
         with:
           xcode-version: '13.2.1'
 
-      - name: cache build deps
-        if: matrix.package-manager == 'default'
+      - name: cache deps
         uses: actions/cache@v3
         with:
           path: |
+            ~/.conan/data
             grpc/install
             libjuice/install
             cxxopts
-
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
-            ${{ runner.os }}-${{ matrix.package-manager }}-
-
-      - name: cache conan deps
-        if: matrix.package-manager == 'conan'
-        uses: actions/cache@v3
-        with:
-          path: ~/.conan/data
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
             ${{ runner.os }}-${{ matrix.package-manager }}-
 
       - name: cache compiled objects
@@ -93,11 +81,11 @@ jobs:
           if [ "$(uname)" == "Darwin" ]; then
             brew install cmake ccache
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential cmake clang ccache \
-              fakeroot dpkg debconf debhelper lintian md5deep   \
-              libc++-dev libva-dev libvdpau-dev libvulkan-dev
+            sudo apt-get install -y build-essential cmake clang ccache libc++-dev libvulkan-dev
+            sudo snap install cqtdeployer
           fi
-          ccache -M 1G
+          ccache -M 2G
+          ccache -p
 
       - name: install packages with system package-manager (+ compile missing)
         if: matrix.package-manager == 'default'
@@ -171,7 +159,7 @@ jobs:
 
           sh conan/export_receipts.sh
 
-          conan install $(pwd)/conanfile.txt      \
+          conan install $(pwd)/conanfile.py       \
             --install-folder $(pwd)/build/conan   \
             --build=outdated                      \
             --settings build_type=Release         \
@@ -180,10 +168,10 @@ jobs:
 
       - run: cmake -B build -S . -C CMakeCache.txt
 
-      - run: cmake --build build
+      # - run: cmake --build build
 
-      - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
-        working-directory: package/${{ matrix.output-package }}
+      # - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
+      #  working-directory: package/${{ matrix.output-package }}
 
       - uses: actions/upload-artifact@v3
         with:

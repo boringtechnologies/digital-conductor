@@ -19,7 +19,7 @@ endif()
 
 if(WITH_CONAN)
   include(conan/cmake/conan_install.cmake)
-  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.txt ${WITH_CONAN_PROFILE})
+  conan_install(${CMAKE_CURRENT_SOURCE_DIR}/conanfile.py ${WITH_CONAN_PROFILE})
   list(APPEND CMAKE_MODULE_PATH ${CONAN_MODULE_PATH})
 endif()
 
