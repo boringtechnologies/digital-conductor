@@ -81,8 +81,7 @@ jobs:
           if [ "$(uname)" == "Darwin" ]; then
             brew install cmake ccache
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            sudo apt-get install -y build-essential cmake clang ccache libc++-dev
-              # libva-dev libvdpau-dev libvulkan-dev
+            sudo apt-get install -y build-essential cmake clang ccache libc++-dev libvulkan-dev
             sudo snap install cqtdeployer
           fi
           ccache -M 2G
@@ -169,10 +168,10 @@ jobs:
 
       - run: cmake -B build -S . -C CMakeCache.txt
 
-      - run: cmake --build build
+      # - run: cmake --build build
 
-      - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
-        working-directory: package/${{ matrix.output-package }}
+      # - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
+      #  working-directory: package/${{ matrix.output-package }}
 
       - uses: actions/upload-artifact@v3
         with:
