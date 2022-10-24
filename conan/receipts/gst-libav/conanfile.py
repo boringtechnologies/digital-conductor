@@ -174,4 +174,3 @@ class GStLibAVConan(ConanFile):
             self.cpp_info.libs.extend(["gst%s" % plugin for plugin in plugins])
 
         self.cpp_info.includedirs = ["include", os.path.join("include", "gstreamer-1.0")]
-        self.cpp_info.system_libs.append("m")

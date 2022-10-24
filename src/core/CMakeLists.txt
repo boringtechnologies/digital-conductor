@@ -15,15 +15,19 @@ find_package(LibJuice REQUIRED)
 find_package(Threads REQUIRED)
 
 if(WITH_CONAN)
-    find_package(gstreamer REQUIRED)
-    find_package(gst-plugins-base REQUIRED)
-    find_package(gst-plugins-good REQUIRED)
-    find_package(gst-plugins-bad REQUIRED)
-    find_package(gst-libav REQUIRED)
-
-    set(GST_INCLUDE_DIRS "${gstreamer_INCLUDE_DIRS};${gst-plugins-base_INCLUDE_DIRS};${gst-plugins-good_INCLUDE_DIRS};${gst-plugins-bad_INCLUDE_DIRS};${gst-libav_INCLUDE_DIRS}")
+    set(GST_INCLUDE_DIRS)
     set(GST_LIBRARY_DIRS "")
-    set(GST_LIBRARIES "${gstreamer_LIBRARIES};${gst-plugins-base_LIBRARIES};${gst-plugins-good_LIBRARIES};${gst-plugins-bad_LIBRARIES};${gst-libav_LIBRARIES}")
+    set(GST_LIBRARIES)
+    foreach (gst_lib gstreamer gstpluginsbase gstpluginsgood gstpluginsbad gstlibav)
+        find_package(${gst_lib} REQUIRED)
+        list(APPEND GST_INCLUDE_DIRS ${${gst_lib}_INCLUDE_DIRS})
+        list(APPEND GST_LIBRARIES ${${gst_lib}_LIBRARIES})
+    endforeach()
+
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+        # https://stackoverflow.com/questions/4802624/
+        list(APPEND GST_LIBRARIES ${gstreamer_LIBRARIES})
+    endif()
 
     if(APPLE)
         find_library(io_surface_lib IOSurface)

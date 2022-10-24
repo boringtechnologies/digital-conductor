@@ -28,7 +28,14 @@ class Conan(ConanFile):
         self.requires("libjuice/1.0.5")
 
     def config_options(self):
-        self.options['gst-plugins-good'].with_vpx = True
+        self.options["gst-plugins-good"].with_vpx = True
+
+        if self.settings.os == "Linux":
+            # workaround for vanila libx264 which need to be re-built
+            # with -fno-builtin to avoid undefined reference to __log2f_finite
+            self.options["ffmpeg"].with_libx264 = False
+            # https://github.com/conan-io/conan-center-index/issues/10442
+            self.options["ffmpeg"].with_openjpeg = False
 
     def build(self):
         cmake = CMake(self)

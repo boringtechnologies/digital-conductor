@@ -28,6 +28,11 @@ function(conan_install conan_file conan_profile)
   alias_package(${CONAN_MODULE_PATH} libjuice LibJuice)
   alias_package(${CONAN_MODULE_PATH} grpc gRPC)
   alias_package(${CONAN_MODULE_PATH} protobuf Protobuf)
+  alias_package(${CONAN_MODULE_PATH} gst-plugins-base gstpluginsbase)
+  alias_package(${CONAN_MODULE_PATH} gst-plugins-good gstpluginsgood)
+  alias_package(${CONAN_MODULE_PATH} gst-plugins-bad gstpluginsbad)
+  alias_package(${CONAN_MODULE_PATH} gst-libav gstlibav)
+
 
   set(CONAN_MODULE_PATH ${CONAN_MODULE_PATH} PARENT_SCOPE)
 endfunction()
