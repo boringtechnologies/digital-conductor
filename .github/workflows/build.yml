@@ -164,7 +164,8 @@ jobs:
           sh conan/export_receipts.sh
 
           if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            conan remove */system@ --force
+            echo "!!! drop system packages"
+            conan remove */system@ --system-reqs --force
           fi
 
           conan install $(pwd)/conanfile.py       \
