@@ -19,21 +19,21 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ macos-latest ]
         experimental: [ false ]
-        package-manager: [ default ]
-        output-package: [ deb ]
+        package-manager: [ conan ]
+        conan-profile: [ conan/profiles/intel ]
+        output-package: [ dmg ]
         include:
-          - os: macos-latest
-            experimental: false
-            package-manager: conan
-            conan-profile: conan/profiles/intel
-            output-package: dmg
           - os: ubuntu-latest
             experimental: true
             package-manager: conan
             conan-profile: conan/profiles/linux
             output-package: deb
+          # - os: ubuntu-latest
+          #   experimental: false
+          #   package-manager: default
+          #   output-package: deb
     steps:
       - uses: actions/checkout@v3
 
@@ -57,28 +57,17 @@ jobs:
         with:
           xcode-version: '13.2.1'
 
-      - name: cache build deps
-        if: matrix.package-manager == 'default'
+      - name: cache deps
         uses: actions/cache@v3
         with:
           path: |
+            ~/.conan/data
             grpc/install
             libjuice/install
             cxxopts
-
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
-            ${{ runner.os }}-${{ matrix.package-manager }}-
-
-      - name: cache conan deps
-        if: matrix.package-manager == 'conan'
-        uses: actions/cache@v3
-        with:
-          path: ~/.conan/data
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.txt') }}
+            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
             ${{ runner.os }}-${{ matrix.package-manager }}-
 
       - name: cache compiled objects
