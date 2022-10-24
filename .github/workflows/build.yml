@@ -168,10 +168,10 @@ jobs:
 
       - run: cmake -B build -S . -C CMakeCache.txt
 
-      # - run: cmake --build build
+      - run: cmake --build build
 
-      # - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
-      #  working-directory: package/${{ matrix.output-package }}
+      - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
+        working-directory: package/${{ matrix.output-package }}
 
       - uses: actions/upload-artifact@v3
         with:
