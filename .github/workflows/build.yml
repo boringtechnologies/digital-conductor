@@ -165,7 +165,7 @@ jobs:
 
           if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
             echo "!!! drop system packages"
-            conan remove */system@ --system-reqs --force
+            conan remove */system@ --system-reqs --build --src --packages --force
           fi
 
           conan install $(pwd)/conanfile.py       \
