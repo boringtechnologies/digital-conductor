@@ -423,35 +423,13 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
             DeviceDescr descr;
             descr.deviceName  = devName;
             descr.deviceClass = devClass;
-//            if (devDescr)
-//            {
-//                descr.deviceDescr = devDescr;
-//            }
 
             m_p->getDeviceParams(dev, descr.internalName, descr.internalParams);
 
-//            std::cout << "found " << devClass << " device " << devName << std::endl;
-//            std::cout << "    " << descr.internalName;
-            if (descr.internalParams.empty())
-            {
-                std::cout << std::endl;
-            }
-            else
-            {
-//                std::cout << " params" << std::endl;
-//                for (uint32_t i = 0; i < descr.internalParams.size(); ++i)
-//                {
-//                    std::cout << "        "
-//                              << descr.internalParams[i].first
-//                              << ":"
-//                              << descr.internalParams[i].second
-//                              << std::endl;
-//                }
-            }
+            std::cout << "[utils] found " << descr.toStdString() << '\n';
 
             m_p->m_devicesDirect[descr.deviceClass + descr.deviceName] = descr;
 
-//            g_free(devDescr);
             g_free(devClass);
             g_free(devName);
         }

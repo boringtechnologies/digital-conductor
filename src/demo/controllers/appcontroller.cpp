@@ -564,7 +564,7 @@ void AppController::setSyncMode(const bool sync)
 //******************************************************************************
 void AppController::selectDevice(const dc::media::DeviceDescr & dev)
 {
-    std::cout << "[appctrl] " << "select " << dev.deviceClass << " device <" << dev.internalName << "> " << dev.deviceName << std::endl;
+    std::cout << "[appctrl] " << "selected " << dev.toStdString() << std::endl;
     m_p->m_currentDevices[dev.deviceClass] = dev;
 }
 

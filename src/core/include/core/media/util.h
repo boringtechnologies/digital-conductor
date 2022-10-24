@@ -5,6 +5,7 @@
 #define UTIL_H
 
 #include <string>
+#include <sstream>
 #include <vector>
 #include <memory>
 
@@ -25,6 +26,19 @@ struct DeviceDescr
 
     std::string internalName;
     std::vector<std::pair<std::string, std::string> > internalParams;
+
+    std::string toStdString() const
+    {
+        std::stringstream paramsStr;
+        std::for_each(internalParams.begin(), internalParams.end(), [&](const auto &p) {
+            paramsStr << p.first;
+            paramsStr << '=';
+            paramsStr << p.second;
+            paramsStr << ';';
+        });
+
+        return "\"" + deviceName + "\" (" + deviceClass + ") device with params: " + paramsStr.str();
+    }
 };
 
 //******************************************************************************
