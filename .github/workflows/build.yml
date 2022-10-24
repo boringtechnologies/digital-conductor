@@ -19,17 +19,17 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        os: [ macos-latest ]
+        os: [ ubuntu-latest ]
         experimental: [ false ]
         package-manager: [ conan ]
-        conan-profile: [ conan/profiles/intel ]
-        output-package: [ dmg ]
-        include:
-          - os: ubuntu-latest
-            experimental: true
-            package-manager: conan
-            conan-profile: conan/profiles/linux
-            output-package: deb
+        conan-profile: [ conan/profiles/linux ]
+        output-package: [ deb ]
+        # include:
+        #   - os: macos-latest
+        #     experimental: false
+        #     package-manager: conan
+        #     conan-profile: conan/profiles/intel
+        #     output-package: dmg
           # - os: ubuntu-latest
           #   experimental: false
           #   package-manager: default
