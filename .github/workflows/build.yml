@@ -164,9 +164,7 @@ jobs:
           sh conan/export_receipts.sh
 
           if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-            conan install egl/system@ --build="egl"
-            conan install xorg/system@ --build="xorg"
-            conan install opengl/system@ --build="opengl"
+            conan remove */system@ --force
           fi
 
           conan install $(pwd)/conanfile.py       \
