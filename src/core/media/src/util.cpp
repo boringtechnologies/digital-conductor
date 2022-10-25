@@ -416,10 +416,6 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
             gchar * devName  = gst_device_get_display_name(dev);
             gchar * devClass = gst_device_get_device_class(dev);
 
-//            GstStructure * s = gst_device_get_properties(dev);
-//            gchar * devDescr = nullptr;
-//            gst_structure_get(s, "device.adapter.description", G_TYPE_STRING, &devDescr, nullptr);
-
             DeviceDescr descr;
             descr.deviceName  = devName;
             descr.deviceClass = devClass;
@@ -435,6 +431,8 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(const std::string & deviceCla
         }
 
         g_list_free_full(devices, gst_object_unref);
+        gst_device_monitor_stop(monitor);
+        g_object_unref(monitor);
 
         m_p->m_lastDevicesRequested = std::chrono::system_clock::now();
 
