@@ -1,0 +1,15 @@
+{
+    "bin": "../../bin/digitalconductor-demo",
+    "qmlDir": "../../src/demo",
+    "clear": true,
+    "force-clear": false,
+    "targetPackage": "digitalconductor",
+    "verbose": 3,
+    "name": "digitalconductor",
+    "description": "digital-conductor",
+    "deployVersion": "1.0-1",
+    "icon": "../../src/demo/images/app_icon.svg",
+    "publisher": "BoringApp",
+    "deb": "./",
+    "debOut": "digitalconductor_1.0-1_amd64.deb"
+}

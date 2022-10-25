@@ -1,11 +1,9 @@
 #/bin/sh
 
-PROJ_ROOT="$(pwd)/../../"
+BIN_PATH=../../bin/
 
-cqtdeployer -deb $(pwd)/digitalconductor/DEBIAN         \
-            -bin ${PROJ_ROOT}/bin/digitalconductor-demo \
-            -qmake ${QT_ROOT}/bin/qmake -binOut bin     \
-            -qmlDir ${PROJ_ROOT}/src/demo/              \
-            -debOut digitalconductor_1.0-1_amd64.deb
+cqtdeployer -confFile ./CQtDeployer.json -qmake ${QT_ROOT}/bin/qmake -verbose 3
 
-mv DistributionKit/*.deb* ../../bin/
+cp DistributionKit/*.deb* ${BIN_PATH}
+
+dpkg -I ${BIN_PATH}/*.deb
