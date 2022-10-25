@@ -82,28 +82,10 @@ Rectangle {
                 bottomPadding: 5
             }
 
-//            DeviceModel {
-//                id: idVideoOutDevices
-//                // deviceClass: "Video/Source"
-//            }
-
             DCComboBox {
                 id: outputVideoDeviceSelector
                 enabled: false
                 width: parent.width
-                currentIndex: idVideoOutDevices.currentIndex
-
-                onCurrentIndexChanged: {
-                    idVideoOutDevices.selectItem(currentIndex);
-                }
-
-                onRequestUpdate: {
-                    idVideoOutDevices.update()
-                }
-            }
-
-            Component.onCompleted: {
-                idVideoOutDevices.update();
             }
         }
 
