@@ -12,6 +12,7 @@ class Conan(ConanFile):
         if self.settings.os == "Linux":
             self.requires("expat/2.4.8", override=True)
             self.requires("wayland/1.21.0", override=True)
+            self.requires("libalsa/1.2.7.2", override=True)
 
         self.requires("glib/2.72.0", override=True)
         self.requires("libffi/3.4.2", override=True)
@@ -36,6 +37,7 @@ class Conan(ConanFile):
             self.options["ffmpeg"].with_libx264 = False
             # https://github.com/conan-io/conan-center-index/issues/10442
             self.options["ffmpeg"].with_openjpeg = False
+            self.options["gst-plugins-good"].with_pulseaudio = True
 
     def build(self):
         cmake = CMake(self)
