@@ -21,12 +21,14 @@ class GStPluginsGoodConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "with_vpx": [True, False],
+        "with_pulseaudio": [True, False],
         "with_introspection": [True, False],
         }
     default_options = {
         "shared": False,
         "fPIC": True,
         "with_vpx": False,
+        "with_pulseaudio": False,
         "with_introspection": False,
         }
     _source_subfolder = "source_subfolder"
@@ -68,6 +70,8 @@ class GStPluginsGoodConan(ConanFile):
     def config_options(self):
         if self.settings.os == 'Windows':
             del self.options.fPIC
+        if self.settings.os != "Linux":
+            del self.options.with_pulseaudio
 
     def requirements(self):
         self.requires("glib/2.70.0")
@@ -75,6 +79,8 @@ class GStPluginsGoodConan(ConanFile):
         self.requires("gst-plugins-base/1.19.1")
         if self.options.with_vpx:
             self.requires("libvpx/1.11.0")
+        if self.options.get_safe("with_pulseaudio"):
+            self.requires("pulseaudio/14.2")
 
     def build_requirements(self):
         self.build_requires("meson/0.54.2")
@@ -200,9 +206,6 @@ class GStPluginsGoodConan(ConanFile):
                    "videocrop",
                    "videofilter",
                    "videomixer",
-                   # begin of hack
-                   "vpx",
-                   # end of hack
                    "wavenc",
                    "wavparse",
                    "y4menc"]
@@ -210,6 +213,15 @@ class GStPluginsGoodConan(ConanFile):
         if self.settings.os == "Macos" or self.settings.os == "iOS":
             plugins.append("osxaudio")
             plugins.append("osxvideo")
+
+        if self.settings.os == "Linux":
+            plugins.append("video4linux2")
+
+        if self.options.with_vpx:
+            plugins.append("vpx")
+
+        if self.options.get_safe("with_pulseaudio"):
+            plugins.append("pulseaudio")
 
         gst_plugin_path = os.path.join(self.package_folder, "lib", "gstreamer-1.0")
         if self.options.shared:
