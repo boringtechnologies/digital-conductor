@@ -11,14 +11,30 @@ package dc;
 // greeting service definition.
 service DcRpc
 {
-    rpc getPeerList(GetPeerList) returns (stream Peer) {}
-    rpc subscribe(Peer) returns (stream Message) {}
-    rpc unsubscribe(Peer) returns (Empty) {}
-    rpc sendMessage(Message) returns (Empty) {}
-    rpc p2pInit(P2PInit) returns (Empty) {}
-    rpc p2pAccept(P2PAccept) returns (Empty) {}
-    rpc p2pCandidate(P2PCandidate) returns (Empty) {}
-    rpc p2pDisconnect(P2PDisconnect) returns (Empty) {}
+    rpc getPeerList(GetPeerList) returns (stream Peer)
+    {
+    }
+    rpc subscribe(Peer) returns (stream Message)
+    {
+    }
+    rpc unsubscribe(Peer) returns (Empty)
+    {
+    }
+    rpc sendMessage(Message) returns (Empty)
+    {
+    }
+    rpc p2pInit(P2PInit) returns (Empty)
+    {
+    }
+    rpc p2pAccept(P2PAccept) returns (Empty)
+    {
+    }
+    rpc p2pCandidate(P2PCandidate) returns (Empty)
+    {
+    }
+    rpc p2pDisconnect(P2PDisconnect) returns (Empty)
+    {
+    }
 }
 
 message Empty
@@ -42,42 +58,42 @@ enum PeerType
 // response peer list
 message Peer
 {
-    string id = 1;
+    string id    = 1;
     string group = 2;
-    uint32 type = 3;
+    uint32 type  = 3;
 }
 
 message Message
 {
     string from = 1;
-    string to = 2;
-    string msg = 3;
+    string to   = 2;
+    string msg  = 3;
 }
 
 message P2PInit
 {
     string from = 1;
-    string to = 2;
-    string sdp = 3;
+    string to   = 2;
+    string sdp  = 3;
 }
 
 message P2PAccept
 {
     string from = 1;
-    string to = 2;
-    string sdp = 3;
+    string to   = 2;
+    string sdp  = 3;
 }
 
 message P2PCandidate
 {
-    string from = 1;
-    string to = 2;
+    string from      = 1;
+    string to        = 2;
     string candidate = 3;
 }
 
 message P2PDisconnect
 {
-    string from = 1;
-    string to = 2;
+    string from   = 1;
+    string to     = 2;
     string reason = 3;
 }
