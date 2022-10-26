@@ -12,14 +12,14 @@
 #undef signals // for gstreamer
 #include "core/media/sync.hpp"
 
-#include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
+#include <QGuiApplication>
 #include <QTimer>
 
-#include <memory>
-#include <future>
 #include <chrono>
+#include <future>
+#include <memory>
 #include <thread>
 
 //******************************************************************************
@@ -27,7 +27,7 @@
 namespace dc
 {
 
-typedef std::shared_ptr<::media::Sender>   SenderPtr;
+typedef std::shared_ptr<::media::Sender> SenderPtr;
 typedef std::shared_ptr<::media::Receiver> ReceiverPtr;
 
 } // namespace dc
@@ -38,37 +38,37 @@ class AppController::impl : public QObject
 {
     friend class AppController;
 
-protected:
-    impl(AppController * owner);
+  protected:
+    impl(AppController *owner);
 
     void updatePeerList();
 
-    void onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg);
+    void onGrpcMessage(const std::string &from, const std::string &to, const std::string &msg);
 
-    void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr);
-    void onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr);
-    void onGatheringDone(juice_agent_t * agent, void * user_ptr);
-    void onVideoRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
-    void onAudioRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
+    void onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr);
+    void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr);
+    void onGatheringDone(juice_agent_t *agent, void *user_ptr);
+    void onVideoRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr);
+    void onAudioRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr);
 
-    dc::JuiceClientPtr getP2PClient(const std::string & id);
-    dc::ReceiverPtr    getVideoReceiver(const std::string & id);
-    dc::ReceiverPtr    getAudioReceiver(const std::string & id);
+    dc::JuiceClientPtr getP2PClient(const std::string &id);
+    dc::ReceiverPtr getVideoReceiver(const std::string &id);
+    dc::ReceiverPtr getAudioReceiver(const std::string &id);
 
-protected:
-    AppController       * m_o;
+  protected:
+    AppController *m_o;
 
-    AppController::State  m_state;
+    AppController::State m_state;
 
-    std::string           m_target;
-    std::string           m_user;
-    std::string           m_group;
-    std::string           m_type;
+    std::string m_target;
+    std::string m_user;
+    std::string m_group;
+    std::string m_type;
 
-    dc::GRpcClientPtr     m_rpcClient;
+    dc::GRpcClientPtr m_rpcClient;
 
     // TODO mutex?
-    QTimer                m_updatePeersTimer;
+    QTimer m_updatePeersTimer;
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
@@ -77,23 +77,21 @@ protected:
     std::map<std::string, dc::media::DeviceDescr> m_currentDevices;
 
     // sender
-    media::ClockInfo                       m_mediaclock    = {"66.228.38.186", 10000};
-    dc::SenderPtr                          m_videosender;
-    dc::SenderPtr                          m_audiosender;
+    media::ClockInfo m_mediaclock = {"66.228.38.186", 10000};
+    dc::SenderPtr m_videosender;
+    dc::SenderPtr m_audiosender;
 
     // receiver
-    bool                                   m_syncMode = true;
-    media::ClockInfo                       m_receiverclock = {"66.228.38.186", 10000};
-    std::chrono::duration<int, std::milli> m_delay {500};
+    bool m_syncMode                  = true;
+    media::ClockInfo m_receiverclock = {"66.228.38.186", 10000};
+    std::chrono::duration<int, std::milli> m_delay{500};
     std::map<std::string, dc::ReceiverPtr> m_videoreceivers;
     std::map<std::string, dc::ReceiverPtr> m_audioreceivers;
 };
 
 //******************************************************************************
 //******************************************************************************
-AppController::impl::impl(AppController * owner)
-    : m_o(owner)
-    , m_state(AppController::StateWelcome)
+AppController::impl::impl(AppController *owner) : m_o(owner), m_state(AppController::StateWelcome)
 {
     connect(&m_updatePeersTimer, &QTimer::timeout, this, &impl::updatePeerList);
     m_updatePeersTimer.start(5000);
@@ -113,9 +111,10 @@ void AppController::impl::updatePeerList()
 
 //*****************************************************************************
 //*****************************************************************************
-void AppController::impl::onGrpcMessage(const std::string & from, const std::string & to, const std::string & msg)
+void AppController::impl::onGrpcMessage(const std::string &from, const std::string &to, const std::string &msg)
 {
-    std::cout << "[appctrl] onGrpcMessage" << "Message from " << from << " --> " << msg << std::endl;
+    std::cout << "[appctrl] onGrpcMessage"
+              << "Message from " << from << " --> " << msg << std::endl;
 
     // TODO move juice messages to another instance
     if (msg.rfind("JP2PI", 0) == 0)
@@ -128,17 +127,21 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
             return;
         }
 
-        ptr.reset(new dc::JuiceClient(from,
-                                      std::bind(&impl::onStateChanged,  this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onCandidate,     this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onGatheringDone, this, std::placeholders::_1, std::placeholders::_2),
-                                      std::bind(&impl::onVideoRecv,     this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                                      std::bind(&impl::onAudioRecv,     this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
+        ptr.reset(new dc::JuiceClient(
+            from,
+            std::bind(&impl::onStateChanged, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+            std::bind(&impl::onCandidate, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+            std::bind(&impl::onGatheringDone, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&impl::onVideoRecv, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                      std::placeholders::_4),
+            std::bind(&impl::onAudioRecv, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                      std::placeholders::_4)));
         ptr->init(msg.substr(6));
 
         if (!m_rpcClient->p2pAccept(from, ptr->sdp()))
         {
-            std::cout << "[appctrl] onGrpcMessage " << "p2p not accepted " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage "
+                      << "p2p not accepted " << from << std::endl;
             return;
         }
 
@@ -150,7 +153,8 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
         {
-            std::cout << "[appctrl] onGrpcMessage " << "juice not initialized " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage "
+                      << "juice not initialized " << from << std::endl;
             return;
         }
 
@@ -162,7 +166,8 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
         {
-            std::cout << "[appctrl] onGrpcMessage " << "juice not initialized " << from << std::endl;
+            std::cout << "[appctrl] onGrpcMessage "
+                      << "juice not initialized " << from << std::endl;
             return;
         }
         ptr->addRemote(msg.substr(6));
@@ -190,7 +195,8 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
             res->stop();
             res.reset();
         }
-        std::cout << "[appctrl] onGrpcMessage " << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+        std::cout << "[appctrl] onGrpcMessage "
+                  << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
 
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (ptr)
@@ -204,18 +210,20 @@ void AppController::impl::onGrpcMessage(const std::string & from, const std::str
     else
     {
         // TODO simple message
-        std::cout << "[appctrl] onGrpcMessage " << "msg from <" << from << "> " << msg << std::endl;
+        std::cout << "[appctrl] onGrpcMessage "
+                  << "msg from <" << from << "> " << msg << std::endl;
     }
 }
 
 //******************************************************************************
 //******************************************************************************
-void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
+void AppController::impl::onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr)
 {
-    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    std::string id = caller->id();
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    std::string id          = caller->id();
 
-    std::cout << "[appctrl] onStateChanged " << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
+    std::cout << "[appctrl] onStateChanged "
+              << "P2P connection <" << state << "> " << juice_state_to_string(state) << std::endl;
 
     if (state == JUICE_STATE_CONNECTED)
     {
@@ -223,16 +231,14 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
         {
             if (m_videosender)
             {
-                m_videosender->addReceiver(id, [ptr](const uint8_t *data, size_t len)
-                {
+                m_videosender->addReceiver(id, [ptr](const uint8_t *data, size_t len) {
                     ptr->sendVideo(data, len);
                     // std::cout << len << " bytes to " << id << std::endl;
                 });
             }
             if (m_audiosender)
             {
-                m_audiosender->addReceiver(id, [ptr](const uint8_t *data, size_t len)
-                {
+                m_audiosender->addReceiver(id, [ptr](const uint8_t *data, size_t len) {
                     ptr->sendAudio(data, len);
                     // std::cout << len << " bytes to " << id << std::endl;
                 });
@@ -290,31 +296,29 @@ void AppController::impl::onStateChanged(juice_agent_t * agent, juice_state_t st
 
 //******************************************************************************
 //******************************************************************************
-void AppController::impl::onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr)
+void AppController::impl::onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr)
 {
     // std::cout << "onCandidate " << sdp << std::endl;
 
-    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
     if (m_rpcClient)
     {
         m_rpcClient->sendMessage(caller->id(), std::string("JP2PC ") + sdp);
     }
-
 }
 
 //******************************************************************************
 //******************************************************************************
-void AppController::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr)
+void AppController::impl::onGatheringDone(juice_agent_t *agent, void *user_ptr)
 {
-
 }
 
 //******************************************************************************
 //******************************************************************************
-void AppController::impl::onVideoRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
+void AppController::impl::onVideoRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr)
 {
-    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
     // std::cout << size << " bytes of video from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
@@ -331,9 +335,9 @@ void AppController::impl::onVideoRecv(juice_agent_t * agent, const char * data, 
     }
 }
 
-void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
+void AppController::impl::onAudioRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr)
 {
-    dc::JuiceClient * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
     // std::cout << size << " bytes of audio from " << caller->id() << std::endl;
     // std::cout << "    " << std::string(data, size) << std::endl;
@@ -352,7 +356,7 @@ void AppController::impl::onAudioRecv(juice_agent_t * agent, const char * data, 
 
 //******************************************************************************
 //******************************************************************************
-dc::JuiceClientPtr AppController::impl::getP2PClient(const std::string & id)
+dc::JuiceClientPtr AppController::impl::getP2PClient(const std::string &id)
 {
     if (m_p2pConnections.count(id) == 0)
     {
@@ -364,7 +368,7 @@ dc::JuiceClientPtr AppController::impl::getP2PClient(const std::string & id)
 
 //*****************************************************************************
 //*****************************************************************************
-dc::ReceiverPtr AppController::impl::getVideoReceiver(const std::string & id)
+dc::ReceiverPtr AppController::impl::getVideoReceiver(const std::string &id)
 {
     if (m_videoreceivers.count(id) == 0)
     {
@@ -376,7 +380,7 @@ dc::ReceiverPtr AppController::impl::getVideoReceiver(const std::string & id)
 
 //*****************************************************************************
 //*****************************************************************************
-dc::ReceiverPtr AppController::impl::getAudioReceiver(const std::string & id)
+dc::ReceiverPtr AppController::impl::getAudioReceiver(const std::string &id)
 {
     if (m_audioreceivers.count(id) == 0)
     {
@@ -388,18 +392,16 @@ dc::ReceiverPtr AppController::impl::getAudioReceiver(const std::string & id)
 
 //*****************************************************************************
 //*****************************************************************************
-AppController::AppController()
-    : m_p(new impl(this))
+AppController::AppController() : m_p(new impl(this))
 {
-
 }
 
 //******************************************************************************
 //******************************************************************************
 // static
-AppController * AppController::instance(QQmlEngine *, QJSEngine *)
+AppController *AppController::instance(QQmlEngine *, QJSEngine *)
 {
-    static AppController * c = new AppController;
+    static AppController *c = new AppController;
     return c;
 }
 
@@ -407,13 +409,13 @@ AppController * AppController::instance(QQmlEngine *, QJSEngine *)
 //*****************************************************************************
 AppController::~AppController()
 {
-    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_videoreceivers)
+    for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_videoreceivers)
     {
         r.second->stop();
         // r.second.reset();
     }
     m_p->m_videoreceivers.clear();
-    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_audioreceivers)
+    for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_audioreceivers)
     {
         r.second->stop();
         // r.second.reset();
@@ -432,7 +434,7 @@ AppController::~AppController()
         m_p->m_audiosender.reset();
     }
 
-    for (const std::pair<std::string, dc::JuiceClientPtr> & it : m_p->m_p2pConnections)
+    for (const std::pair<std::string, dc::JuiceClientPtr> &it : m_p->m_p2pConnections)
     {
         if (!m_p->m_rpcClient->p2pDisconnect(it.first, "destroyed"))
         {
@@ -446,26 +448,23 @@ AppController::~AppController()
 
 //******************************************************************************
 //******************************************************************************
-void AppController::init(const QString & userName, const QString & group, const QString & target)
+void AppController::init(const QString &userName, const QString &group, const QString &target)
 {
     m_p->m_user   = userName.toStdString();
     m_p->m_group  = group.toStdString();
     m_p->m_target = target.toStdString();
 
-    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group, grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
+    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group,
+                                              grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
 
     uint32_t type = 3;
     if (!m_p->m_type.empty())
     {
-        type = m_p->m_type == "r"  ? 1 :
-               m_p->m_type == "w"  ? 2 :
-               m_p->m_type == "rw" ? 3 : 0;
+        type = m_p->m_type == "r" ? 1 : m_p->m_type == "w" ? 2 : m_p->m_type == "rw" ? 3 : 0;
     }
 
-    m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(),
-                                                std::placeholders::_1,
-                                                std::placeholders::_2,
-                                                std::placeholders::_3));
+    m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1,
+                                                std::placeholders::_2, std::placeholders::_3));
 }
 
 //******************************************************************************
@@ -477,7 +476,7 @@ std::vector<dc::Peer> AppController::getPeers() const
 
 //******************************************************************************
 //******************************************************************************
-//std::shared_ptr<dc::GRpcClient> AppController::rpcClient()
+// std::shared_ptr<dc::GRpcClient> AppController::rpcClient()
 //{
 //    return m_p->m_rpcClient;
 //}
@@ -530,8 +529,7 @@ void AppController::registerLicense(const QString license)
 void AppController::checkLicense()
 {
     dc::LicenseManager licenseManager;
-    m_p->m_state = licenseManager.LicenseCheck() ? StateCompleted
-                                                 : StateRegisterLicense;
+    m_p->m_state = licenseManager.LicenseCheck() ? StateCompleted : StateRegisterLicense;
 
     emit stateChanged();
 }
@@ -540,7 +538,7 @@ void AppController::checkLicense()
 //******************************************************************************
 void AppController::copyToClipboard(QString data)
 {
-    QClipboard * clipboard = QGuiApplication::clipboard();
+    QClipboard *clipboard = QGuiApplication::clipboard();
     clipboard->setText(data);
 }
 
@@ -556,15 +554,17 @@ void AppController::onSenderViewReady()
 //******************************************************************************
 void AppController::setSyncMode(const bool sync)
 {
-    std::cout << "[appctrl] " << "sync mode " << (sync ? "on" : "off") << std::endl;
+    std::cout << "[appctrl] "
+              << "sync mode " << (sync ? "on" : "off") << std::endl;
     m_p->m_syncMode = sync;
 }
 
 //******************************************************************************
 //******************************************************************************
-void AppController::selectDevice(const dc::media::DeviceDescr & dev)
+void AppController::selectDevice(const dc::media::DeviceDescr &dev)
 {
-    std::cout << "[appctrl] " << "selected " << dev.toStdString() << std::endl;
+    std::cout << "[appctrl] "
+              << "selected " << dev.toStdString() << std::endl;
     m_p->m_currentDevices[dev.deviceClass] = dev;
 }
 
@@ -574,19 +574,22 @@ void AppController::startStreaming()
 {
     if (!m_p->m_rpcClient)
     {
-        std::cerr << "[appctrl] startStreaming " << "not subscribed" << std::endl;
+        std::cerr << "[appctrl] startStreaming "
+                  << "not subscribed" << std::endl;
         // TODO emit error
         return;
     }
     if (m_p->m_videosender)
     {
-        std::cerr << "[appctrl] startStreaming " << "already started" << std::endl;
+        std::cerr << "[appctrl] startStreaming "
+                  << "already started" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_videoreceivers.empty())
     {
-        std::cerr << "[appctrl] startStreaming " << "already receiving" << std::endl;
+        std::cerr << "[appctrl] startStreaming "
+                  << "already receiving" << std::endl;
         // TODO emit error
         return;
     }
@@ -594,7 +597,8 @@ void AppController::startStreaming()
     std::string videoDeviceClass = "Video/Source";
     if (m_p->m_currentDevices.count(videoDeviceClass) == 0)
     {
-        std::cerr << "[appctrl] startStreaming " << "no video capture device selected" << std::endl;
+        std::cerr << "[appctrl] startStreaming "
+                  << "no video capture device selected" << std::endl;
         // TODO emit error
         return;
     }
@@ -602,16 +606,17 @@ void AppController::startStreaming()
     std::string audioDeviceClass = "Audio/Source";
     if (m_p->m_currentDevices.count(audioDeviceClass) == 0)
     {
-        std::cerr << "[appctrl] startStreaming " << "no audio capture device selected" << std::endl;
+        std::cerr << "[appctrl] startStreaming "
+                  << "no audio capture device selected" << std::endl;
         // TODO emit error
         return;
     }
 
-    const dc::media::DeviceDescr & videoDevDescr = m_p->m_currentDevices[videoDeviceClass];
-    media::CaptureDevice videoDevice{ videoDevDescr.internalName, videoDevDescr.internalParams };
+    const dc::media::DeviceDescr &videoDevDescr = m_p->m_currentDevices[videoDeviceClass];
+    media::CaptureDevice videoDevice{videoDevDescr.internalName, videoDevDescr.internalParams};
 
-    const dc::media::DeviceDescr & audioDevDescr = m_p->m_currentDevices[audioDeviceClass];
-    media::CaptureDevice audioDevice{ audioDevDescr.internalName, audioDevDescr.internalParams };
+    const dc::media::DeviceDescr &audioDevDescr = m_p->m_currentDevices[audioDeviceClass];
+    media::CaptureDevice audioDevice{audioDevDescr.internalName, audioDevDescr.internalParams};
 
     // start senders
     m_p->m_videosender.reset(new media::Sender(m_p->m_user, media::MediaType::Video, videoDevice, m_p->m_mediaclock));
@@ -621,37 +626,40 @@ void AppController::startStreaming()
     m_p->m_audiosender->start();
 
     // connect peers
-//    for (const dc::Peer & p : m_p->m_rpcPeers)
-//    {
-//        dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
-//        if (ptr)
-//        {
-//            // already connected, start stream
-//            m_p->m_mediasender->addReceiver(p.id(), [ptr](const uint8_t *data, size_t len)
-//            {
-//                ptr->sendMessage(data, len);
-//                // std::cout << len << " bytes to " << id << std::endl;
-//            });
+    //    for (const dc::Peer & p : m_p->m_rpcPeers)
+    //    {
+    //        dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id());
+    //        if (ptr)
+    //        {
+    //            // already connected, start stream
+    //            m_p->m_mediasender->addReceiver(p.id(), [ptr](const uint8_t *data, size_t len)
+    //            {
+    //                ptr->sendMessage(data, len);
+    //                // std::cout << len << " bytes to " << id << std::endl;
+    //            });
 
-//            continue;
-//        }
+    //            continue;
+    //        }
 
-//        // establish connection
-//        ptr.reset(new dc::JuiceClient(p.id(),
-//                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-//                                      std::bind(&impl::onCandidate,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-//                                      std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
-//                                      std::bind(&impl::onRecv,          m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
-//        ptr->init();
+    //        // establish connection
+    //        ptr.reset(new dc::JuiceClient(p.id(),
+    //                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1,
+    //                                      std::placeholders::_2, std::placeholders::_3), std::bind(&impl::onCandidate,
+    //                                      m_p.get(), std::placeholders::_1, std::placeholders::_2,
+    //                                      std::placeholders::_3), std::bind(&impl::onGatheringDone, m_p.get(),
+    //                                      std::placeholders::_1, std::placeholders::_2), std::bind(&impl::onRecv,
+    //                                      m_p.get(), std::placeholders::_1, std::placeholders::_2,
+    //                                      std::placeholders::_3, std::placeholders::_4)));
+    //        ptr->init();
 
-//        if (!m_p->m_rpcClient->p2pInit(p.id(), ptr->sdp()))
-//        {
-//            std::cout << "p2p init error" << std::endl;
-//            continue;
-//        }
+    //        if (!m_p->m_rpcClient->p2pInit(p.id(), ptr->sdp()))
+    //        {
+    //            std::cout << "p2p init error" << std::endl;
+    //            continue;
+    //        }
 
-//        m_p->m_p2pConnections[p.id()] = ptr;
-//    }
+    //        m_p->m_p2pConnections[p.id()] = ptr;
+    //    }
 }
 
 //******************************************************************************
@@ -660,19 +668,21 @@ void AppController::receiveStream()
 {
     if (m_p->m_videosender)
     {
-        std::cerr << "[appctrl] receiveStream " << "i'm a sender, abort receiving" << std::endl;
+        std::cerr << "[appctrl] receiveStream "
+                  << "i'm a sender, abort receiving" << std::endl;
         // TODO emit error
         return;
     }
     if (!m_p->m_videoreceivers.empty())
     {
-        std::cerr << "[appctrl] receiveStream " << "already receiving, abort receiving" << std::endl;
+        std::cerr << "[appctrl] receiveStream "
+                  << "already receiving, abort receiving" << std::endl;
         // TODO emit error
         return;
     }
 
     // TODO one writer temporary
-    for (const dc::Peer & peer : m_p->m_rpcPeers)
+    for (const dc::Peer &peer : m_p->m_rpcPeers)
     {
         if (!(peer.type() & dc::PeerType::WRITER))
         {
@@ -687,7 +697,8 @@ void AppController::receiveStream()
             // disconnect
             if (!m_p->m_rpcClient->p2pDisconnect(peer.id(), "get stream"))
             {
-                std::cout << "[appctrl] receiveStream " << "p2p disconnect error" << std::endl;
+                std::cout << "[appctrl] receiveStream "
+                          << "p2p disconnect error" << std::endl;
                 continue;
             }
 
@@ -698,39 +709,43 @@ void AppController::receiveStream()
         }
 
         // connection to sender
-        ptr.reset(new dc::JuiceClient(peer.id(),
-                                      std::bind(&impl::onStateChanged,  m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onCandidate,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                      std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
-                                      std::bind(&impl::onVideoRecv,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                                      std::bind(&impl::onAudioRecv,     m_p.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)));
+        ptr.reset(new dc::JuiceClient(
+            peer.id(),
+            std::bind(&impl::onStateChanged, m_p.get(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3),
+            std::bind(&impl::onCandidate, m_p.get(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3),
+            std::bind(&impl::onGatheringDone, m_p.get(), std::placeholders::_1, std::placeholders::_2),
+            std::bind(&impl::onVideoRecv, m_p.get(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3, std::placeholders::_4),
+            std::bind(&impl::onAudioRecv, m_p.get(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3, std::placeholders::_4)));
         ptr->init();
 
         // no need to select anything for video
         media::PlaybackDevice videodevice;
-        m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video,
-                                                                   videodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode,
-                    [ptr](const uint8_t *data, size_t len)
-                    {
-                        ptr->sendVideo(data, len);
-                        // std::cout << len << " bytes to " << id << std::endl;
-                    }));
+        m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video, videodevice,
+                                                                   m_p->m_receiverclock, m_p->m_delay, m_p->m_syncMode,
+                                                                   [ptr](const uint8_t *data, size_t len) {
+                                                                       ptr->sendVideo(data, len);
+                                                                       // std::cout << len << " bytes to " << id <<
+                                                                       // std::endl;
+                                                                   }));
 
         media::PlaybackDevice audiodevice;
-        m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio,
-                                                                   audiodevice, m_p->m_receiverclock,
-                                                                   m_p->m_delay, m_p->m_syncMode,
-                    [ptr](const uint8_t *data, size_t len)
-                    {
-                        ptr->sendAudio(data, len);
-                        // std::cout << len << " bytes to " << id << std::endl;
-                    }));
+        m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio, audiodevice,
+                                                                   m_p->m_receiverclock, m_p->m_delay, m_p->m_syncMode,
+                                                                   [ptr](const uint8_t *data, size_t len) {
+                                                                       ptr->sendAudio(data, len);
+                                                                       // std::cout << len << " bytes to " << id <<
+                                                                       // std::endl;
+                                                                   }));
 
         // start connection
         if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))
         {
-            std::cout << "[appctrl] receiveStream " << "p2p init error with " << peer.id() << std::endl;
+            std::cout << "[appctrl] receiveStream "
+                      << "p2p init error with " << peer.id() << std::endl;
             continue;
         }
 
@@ -752,16 +767,17 @@ void AppController::stopStream()
         m_p->m_videosender->stop();
         m_p->m_videosender.reset();
 
-        for (const dc::Peer & p : m_p->m_rpcPeers)
+        for (const dc::Peer &p : m_p->m_rpcPeers)
         {
 
             if (!m_p->m_rpcClient->p2pDisconnect(p.id(), "stopped"))
             {
-                std::cout << "[appctrl] stopStream " << "p2p disconnect error" << std::endl;
+                std::cout << "[appctrl] stopStream "
+                          << "p2p disconnect error" << std::endl;
                 continue;
             }
 
-            std::async(std::launch::async, [&]{
+            std::async(std::launch::async, [&] {
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
                 if (dc::JuiceClientPtr ptr = m_p->getP2PClient(p.id()))
@@ -770,13 +786,12 @@ void AppController::stopStream()
                     // m_p->m_p2pConnections.erase(p.id());
                 }
             });
-
         }
 
         m_p->m_p2pConnections.clear();
     }
 
-    for (const std::pair<std::string, dc::ReceiverPtr> & r : m_p->m_videoreceivers)
+    for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_videoreceivers)
     {
         if (r.second)
         {

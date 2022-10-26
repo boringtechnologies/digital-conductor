@@ -6,15 +6,15 @@
 
 #include "QmlEngine/QmlEngine.hpp"
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QIcon>
 #include <QCommandLineParser>
+#include <QGuiApplication>
+#include <QIcon>
+#include <QQmlApplicationEngine>
 #include <QRandomGenerator>
 
 //*****************************************************************************
 //*****************************************************************************
-void registerTypes(QQmlEngine & engine);
+void registerTypes(QQmlEngine &engine);
 
 //*****************************************************************************
 //*****************************************************************************
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
     // init media
     // TODO use gst plugin path
-    dc::media::Util & util = dc::media::Util::instance();
+    dc::media::Util &util = dc::media::Util::instance();
     util.initializeMediaModule("");
 
     // TODO maybe remove custom engine?
@@ -56,13 +56,16 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption server(QStringList() << "s" << "server",
+    QCommandLineOption server(QStringList() << "s"
+                                            << "server",
                               QCoreApplication::translate("main", "Signalling server"),
                               QCoreApplication::translate("main", "ip:port"));
-    QCommandLineOption user(QStringList() << "u" << "user",
+    QCommandLineOption user(QStringList() << "u"
+                                          << "user",
                             QCoreApplication::translate("main", "User name"),
                             QCoreApplication::translate("main", "user"));
-    QCommandLineOption group(QStringList() << "g" << "group",
+    QCommandLineOption group(QStringList() << "g"
+                                           << "group",
                              QCoreApplication::translate("main", "User group"),
                              QCoreApplication::translate("main", "group"));
 
@@ -97,19 +100,20 @@ int main(int argc, char *argv[])
         userName = autogenerateName();
     }
 
-    std::cout << "connect to " << signallingServer.toStdString()
-              << " as " << userName.toStdString()
-              << "-" << userGroup.toStdString() << std::endl;
+    std::cout << "connect to " << signallingServer.toStdString() << " as " << userName.toStdString() << "-"
+              << userGroup.toStdString() << std::endl;
 
-    AppController * ac = AppController::instance();
+    AppController *ac = AppController::instance();
     ac->init(userName, userGroup, signallingServer);
 
     const QUrl url("qrc:dc/Main.qml");
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
-    }, Qt::QueuedConnection);
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated, &app,
+        [url](QObject *obj, const QUrl &objUrl) {
+            if (!obj && url == objUrl)
+                QCoreApplication::exit(-1);
+        },
+        Qt::QueuedConnection);
     engine.load(url);
 
     QPixmap appIcon(":img/app_icon.svg");

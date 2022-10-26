@@ -29,8 +29,10 @@
 //    include other threads created by GStreamer itself.
 //
 
-namespace media {
-enum MediaType {
+namespace media
+{
+enum MediaType
+{
     Audio,
     Video,
 };
@@ -40,34 +42,38 @@ enum MediaType {
 typedef std::function<void(const uint8_t *, size_t len)> WriteCallback;
 
 // Common clock information for all receivers
-struct ClockInfo {
+struct ClockInfo
+{
     // XXX: What clock type should we use? GstNetClock or NTP? Do we want to
     // support more than one?
     std::string address;
     uint16_t port;
 };
 
-struct SenderInfo {
+struct SenderInfo
+{
     // XXX: To be fleshed out, but this will contain any information we want to
     // publish to receivers (such as format information) so they can initialise
     // themselves for the data they will need to decode/render.
 };
 
-struct CaptureDevice {
+struct CaptureDevice
+{
     // XXX: This can be extended for other source types
     std::string name;
-    std::vector<std::pair<std::string, std::string> > params;
+    std::vector<std::pair<std::string, std::string>> params;
 };
 
-class Sender {
-   private:
+class Sender
+{
+  private:
     std::unique_ptr<std::thread> thread;
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline, *tee;
     MediaType media_type;
 
-   public:
+  public:
     // The constructor takes:
     //   * An instance id, for easier debugging
     //   * A media type (audio/video)
@@ -80,8 +86,7 @@ class Sender {
     // XXX: Do we want audio and video senders to be completely independent? If
     // not, we can add an audio and video device here, and the type might be
     // redundant
-    Sender(const std::string &id, MediaType type, const CaptureDevice &device,
-           const ClockInfo &clock);
+    Sender(const std::string &id, MediaType type, const CaptureDevice &device, const ClockInfo &clock);
 
     // Just tear everything down
     ~Sender();
@@ -112,14 +117,16 @@ class Sender {
     bool push(const std::string &id, const uint8_t *payload, size_t len);
 };
 
-struct PlaybackDevice {
+struct PlaybackDevice
+{
     // XXX: We can render to an audio device or a separate video window easily
     // enough, but we need a good way to provide a platform-specific surface to
     // render within the application itself.
 };
 
-class Receiver {
-   private:
+class Receiver
+{
+  private:
     std::unique_ptr<std::thread> thread;
     GMainLoop *loop;
     guint bus_watch_id;
@@ -128,7 +135,7 @@ class Receiver {
     // XXX: Make the instantation of the Clock global to all the receivers in a
     // single app
 
-   public:
+  public:
     // The constructor takes:
     //   * An instance id, for easier debugging
     //   * A media type (audio/video)
@@ -140,10 +147,8 @@ class Receiver {
     // happens yet. The ::start() method must be called.
     //
     // XXX: If a Sender sends audio and video, this API will need to change too.
-    Receiver(const std::string &id, MediaType type,
-             const PlaybackDevice &device, const ClockInfo &clock,
-             std::chrono::duration<int, std::milli> delay, bool synchronize,
-             WriteCallback write_cb);
+    Receiver(const std::string &id, MediaType type, const PlaybackDevice &device, const ClockInfo &clock,
+             std::chrono::duration<int, std::milli> delay, bool synchronize, WriteCallback write_cb);
 
     // Just tear everything down
     ~Receiver();
@@ -164,6 +169,6 @@ class Receiver {
 
     WriteCallback write_cb;
 };
-}  // namespace media
+} // namespace media
 
-#endif  // SYNC_H_
+#endif // SYNC_H_

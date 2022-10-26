@@ -5,8 +5,8 @@
 #include "appcontroller.h"
 #include "core/media/util.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <QTimer>
 
@@ -16,28 +16,26 @@ class DeviceModel::impl : public QObject
 {
     friend class DeviceModel;
 
-protected:
-    impl(DeviceModel * owner);
+  protected:
+    impl(DeviceModel *owner);
 
     void processUpdate();
 
-protected:
-    DeviceModel            * m_o;
+  protected:
+    DeviceModel *m_o;
 
-    QHash<int, QByteArray>              m_names;
+    QHash<int, QByteArray> m_names;
 
-    uint32_t                            m_currentIndex;
-    std::string                         m_deviceClass;
+    uint32_t m_currentIndex;
+    std::string m_deviceClass;
     std::vector<dc::media::DeviceDescr> m_devices;
 
-    QTimer                              m_updateTimer;
+    QTimer m_updateTimer;
 };
 
 //******************************************************************************
 //******************************************************************************
-DeviceModel::impl::impl(DeviceModel * owner)
-    : m_o(owner)
-    , m_currentIndex(-1)
+DeviceModel::impl::impl(DeviceModel *owner) : m_o(owner), m_currentIndex(-1)
 {
     connect(&m_updateTimer, &QTimer::timeout, this, &impl::processUpdate);
 }
@@ -48,20 +46,18 @@ void DeviceModel::impl::processUpdate()
 {
     m_o->beginResetModel();
 
-    dc::media::Util & util = dc::media::Util::instance();
-    m_devices = util.getDeviceList(m_deviceClass);
+    dc::media::Util &util = dc::media::Util::instance();
+    m_devices             = util.getDeviceList(m_deviceClass);
 
     m_o->endResetModel();
 }
 
 //******************************************************************************
 //******************************************************************************
-DeviceModel::DeviceModel(QObject * parent)
-    : QAbstractListModel(parent)
-    , m_p(new impl(this))
+DeviceModel::DeviceModel(QObject *parent) : QAbstractListModel(parent), m_p(new impl(this))
 {
-    m_p->m_names[RoleId]     = "id";
-    m_p->m_names[RoleName]   = "name";
+    m_p->m_names[RoleId]   = "id";
+    m_p->m_names[RoleName] = "name";
 
     // m_p->processUpdate();
     // m_p->m_updateTimer.start(5000);
@@ -69,7 +65,7 @@ DeviceModel::DeviceModel(QObject * parent)
 
 //******************************************************************************
 //******************************************************************************
-void DeviceModel::setDeviceClass(const QString & deviceClass)
+void DeviceModel::setDeviceClass(const QString &deviceClass)
 {
     m_p->m_deviceClass = deviceClass.toStdString();
     update();
@@ -77,7 +73,7 @@ void DeviceModel::setDeviceClass(const QString & deviceClass)
 
 //******************************************************************************
 //******************************************************************************
-int DeviceModel::rowCount(const QModelIndex&) const
+int DeviceModel::rowCount(const QModelIndex &) const
 {
     return m_p->m_devices.size();
 }
@@ -94,10 +90,10 @@ QVariant DeviceModel::data(const QModelIndex &index, int role) const
 
     switch (role)
     {
-        case RoleId:
-            return row;
-        case RoleName:
-            return QString::fromStdString(m_p->m_devices[row].deviceName);
+    case RoleId:
+        return row;
+    case RoleName:
+        return QString::fromStdString(m_p->m_devices[row].deviceName);
     }
 
     return QVariant();
@@ -124,8 +120,8 @@ void DeviceModel::update()
 {
     beginResetModel();
 
-    dc::media::Util & util = dc::media::Util::instance();
-    m_p->m_devices = util.getDeviceListDirect(m_p->m_deviceClass);
+    dc::media::Util &util = dc::media::Util::instance();
+    m_p->m_devices        = util.getDeviceListDirect(m_p->m_deviceClass);
 
     endResetModel();
 }
@@ -137,7 +133,7 @@ void DeviceModel::selectItem(const quint32 id)
     // qDebug() << Q_FUNC_INFO << "selected " << id;
     if (id < static_cast<quint32>(m_p->m_devices.size()))
     {
-        AppController * app = AppController::instance();
+        AppController *app = AppController::instance();
         app->selectDevice(m_p->m_devices[id]);
     }
 }

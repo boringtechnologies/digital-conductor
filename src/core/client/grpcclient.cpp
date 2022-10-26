@@ -26,15 +26,15 @@ std::vector<Peer> GRpcClient::getPeerList()
 
         grpc::ClientContext context;
 
-        std::unique_ptr<grpc::ClientReader<Peer> > reader(m_stub->getPeerList(&context, request));
+        std::unique_ptr<grpc::ClientReader<Peer>> reader(m_stub->getPeerList(&context, request));
 
         Peer peer;
-//        std::cout << "Received peer list:" << std::endl;
+        //        std::cout << "Received peer list:" << std::endl;
         while (reader->Read(&peer))
         {
-//            std::cout << "    <" << peer.id() << "@" << peer.group()
-//                      << "> type " << peer.type() << std::endl;
-                      // << " sdp (" << peer.sdp() << ")" << std::endl;
+            //            std::cout << "    <" << peer.id() << "@" << peer.group()
+            //                      << "> type " << peer.type() << std::endl;
+            // << " sdp (" << peer.sdp() << ")" << std::endl;
 
             // filter by group
             if (!m_group.empty() && peer.group() != m_group)
@@ -54,15 +54,16 @@ std::vector<Peer> GRpcClient::getPeerList()
         grpc::Status status = reader->Finish();
         if (!status.ok())
         {
-            std::cout << "[grpc] " << "getPeerList finished with error "
-                      << status.error_code() << ": " << status.error_message() << std::endl;
+            std::cout << "[grpc] "
+                      << "getPeerList finished with error " << status.error_code() << ": " << status.error_message()
+                      << std::endl;
             return result;
         }
 
         m_lastPeersRequested = std::chrono::system_clock::now();
     }
 
-    for (const std::pair<std::string, Peer> & p : m_peers)
+    for (const std::pair<std::string, Peer> &p : m_peers)
     {
         result.emplace_back(p.second);
     }
@@ -72,7 +73,7 @@ std::vector<Peer> GRpcClient::getPeerList()
 
 //******************************************************************************
 //******************************************************************************
-Peer GRpcClient::getPeer(const std::string & id) const
+Peer GRpcClient::getPeer(const std::string &id) const
 {
     if (m_peers.find(id) == m_peers.end())
     {
@@ -86,27 +87,26 @@ Peer GRpcClient::getPeer(const std::string & id) const
 //******************************************************************************
 void GRpcClient::subscribe(const uint32_t type, on_message_handler_t handler)
 {
-    std::cout << "[grpc] " << "subscribe()" << std::endl;
+    std::cout << "[grpc] "
+              << "subscribe()" << std::endl;
 
     if (m_reader.joinable())
     {
-        std::cout << "[grpc] " << "already subscribed" << std::endl;
+        std::cout << "[grpc] "
+                  << "already subscribed" << std::endl;
         return;
     }
 
     m_messageHandler = handler;
 
-    m_reader = std::thread([this, type]()
-    {
+    m_reader = std::thread([this, type]() {
         Peer peer;
         peer.set_id(m_id);
         peer.set_group(m_group);
-        peer.set_type(type == 2 ? WRITER :
-                      type == 3 ? READER | WRITER :
-                                  READER);
+        peer.set_type(type == 2 ? WRITER : type == 3 ? READER | WRITER : READER);
 
         grpc::ClientContext context;
-        std::unique_ptr<grpc::ClientReader<Message> > reader(m_stub->subscribe(&context, peer));
+        std::unique_ptr<grpc::ClientReader<Message>> reader(m_stub->subscribe(&context, peer));
 
         Message m;
         while (reader->Read(&m))
@@ -122,11 +122,12 @@ void GRpcClient::subscribe(const uint32_t type, on_message_handler_t handler)
         grpc::Status status = reader->Finish();
         if (!status.ok())
         {
-            std::cout << "[grpc] " << "subscribe error "
-                      << status.error_code() << ": " << status.error_message() << std::endl;
+            std::cout << "[grpc] "
+                      << "subscribe error " << status.error_code() << ": " << status.error_message() << std::endl;
         }
         m_messageHandler = nullptr;
-        std::cout << "[grpc] " << "subscribe finished" << std::endl;
+        std::cout << "[grpc] "
+                  << "subscribe finished" << std::endl;
     });
 }
 
@@ -134,11 +135,13 @@ void GRpcClient::subscribe(const uint32_t type, on_message_handler_t handler)
 //******************************************************************************
 void GRpcClient::unsubscribe()
 {
-    std::cout << "[grpc] " << "unsubscribe()" << std::endl;
+    std::cout << "[grpc] "
+              << "unsubscribe()" << std::endl;
 
     if (!m_reader.joinable())
     {
-        std::cout << "[grpc] " << "already unsubscribed" << std::endl;
+        std::cout << "[grpc] "
+                  << "already unsubscribed" << std::endl;
         return;
     }
 
@@ -153,8 +156,7 @@ void GRpcClient::unsubscribe()
     grpc::Status status = m_stub->unsubscribe(&context, peer, &resp);
     if (!status.ok())
     {
-        std::cout << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << status.error_code() << " : " << status.error_message() << std::endl;
         return;
     }
 
@@ -166,7 +168,7 @@ void GRpcClient::unsubscribe()
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::sendMessage(const std::string & to, const std::string & msg)
+void GRpcClient::sendMessage(const std::string &to, const std::string &msg)
 {
     Message m;
     m.set_from(m_id);
@@ -179,15 +181,14 @@ void GRpcClient::sendMessage(const std::string & to, const std::string & msg)
     grpc::Status status = m_stub->sendMessage(&context, m, &resp);
     if (!status.ok())
     {
-        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message() << std::endl;
         return;
     }
 }
 
 //******************************************************************************
 //******************************************************************************
-bool GRpcClient::p2pInit(const std::string & to, const std::string & sdp)
+bool GRpcClient::p2pInit(const std::string &to, const std::string &sdp)
 {
     P2PInit initmsg;
     initmsg.set_from(m_id);
@@ -200,8 +201,7 @@ bool GRpcClient::p2pInit(const std::string & to, const std::string & sdp)
     grpc::Status status = m_stub->p2pInit(&context, initmsg, &resp);
     if (!status.ok())
     {
-        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message() << std::endl;
         return false;
     }
 
@@ -210,7 +210,7 @@ bool GRpcClient::p2pInit(const std::string & to, const std::string & sdp)
 
 //******************************************************************************
 //******************************************************************************
-bool GRpcClient::p2pAccept(const std::string & to, const std::string & sdp)
+bool GRpcClient::p2pAccept(const std::string &to, const std::string &sdp)
 {
     std::cout << "[grpc] p2pAccept to:" << to << "\n";
 
@@ -225,8 +225,7 @@ bool GRpcClient::p2pAccept(const std::string & to, const std::string & sdp)
     grpc::Status status = m_stub->p2pAccept(&context, accmsg, &resp);
     if (!status.ok())
     {
-        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message() << std::endl;
         return false;
     }
 
@@ -235,7 +234,7 @@ bool GRpcClient::p2pAccept(const std::string & to, const std::string & sdp)
 
 //******************************************************************************
 //******************************************************************************
-bool GRpcClient::p2pCandidate(const std::string & to, const std::string & candidate)
+bool GRpcClient::p2pCandidate(const std::string &to, const std::string &candidate)
 {
     std::cout << "[grpc] p2pCandidate\n";
 
@@ -250,8 +249,7 @@ bool GRpcClient::p2pCandidate(const std::string & to, const std::string & candid
     grpc::Status status = m_stub->p2pCandidate(&context, cndmsg, &resp);
     if (!status.ok())
     {
-        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message() << std::endl;
         return false;
     }
 
@@ -260,7 +258,7 @@ bool GRpcClient::p2pCandidate(const std::string & to, const std::string & candid
 
 //******************************************************************************
 //******************************************************************************
-bool GRpcClient::p2pDisconnect(const std::string & to, const std::string & reason)
+bool GRpcClient::p2pDisconnect(const std::string &to, const std::string &reason)
 {
     std::cout << "[grpc] p2pDisconnect\n";
 
@@ -275,8 +273,7 @@ bool GRpcClient::p2pDisconnect(const std::string & to, const std::string & reaso
     grpc::Status status = m_stub->p2pDisconnect(&context, dmsg, &resp);
     if (!status.ok())
     {
-        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message()
-                  << std::endl;
+        std::cout << "[grpc] " << status.error_code() << " : " << status.error_message() << std::endl;
         return false;
     }
 

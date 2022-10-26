@@ -25,12 +25,12 @@ PermissionManager::~PermissionManager()
 
 bool PermissionManager::isAllPermissinsGranted()
 {
-	return true;
+    return true;
 }
 
 void PermissionManager::requestMissingPermissions()
 {
-	// Nothing to do in default implementation
+    // Nothing to do in default implementation
 }
 
 } // namespace dc

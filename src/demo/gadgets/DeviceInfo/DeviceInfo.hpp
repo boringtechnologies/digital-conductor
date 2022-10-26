@@ -10,14 +10,12 @@ class DeviceInfo
     struct DeviceInfoStruct
     {
         //! Device identifier.
-        std::string id {};
+        std::string id{};
 
         //! Human-readable one-line device label.
         std::string label;
 
-        DeviceInfoStruct(QString idVal, QString labelVal)
-            : id(idVal.toStdString())
-            , label(labelVal.toStdString())
+        DeviceInfoStruct(QString idVal, QString labelVal) : id(idVal.toStdString()), label(labelVal.toStdString())
         {
         }
         DeviceInfoStruct() = default;
@@ -26,7 +24,7 @@ class DeviceInfo
     Q_PROPERTY(QString id READ getID WRITE setID USER true)
     Q_PROPERTY(QString label READ getLabel WRITE setLabel USER true)
 
-public:
+  public:
     static DeviceInfo toQt(DeviceInfo::DeviceInfoStruct);
     static DeviceInfo::DeviceInfoStruct fromQt(DeviceInfo);
 
@@ -39,7 +37,7 @@ public:
     QString getLabel() const;
     void setLabel(QString);
 
-private:
+  private:
     DeviceInfo::DeviceInfoStruct info_;
 };
 

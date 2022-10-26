@@ -4,9 +4,9 @@
 #ifndef JUICECLIENT_H
 #define JUICECLIENT_H
 
+#include <functional>
 #include <memory>
 #include <thread>
-#include <functional>
 
 #include <juice/juice.h>
 
@@ -15,10 +15,10 @@
 namespace dc
 {
 
-typedef std::function<void(juice_agent_t * agent, juice_state_t state, void * user_ptr)> on_state_changed_t;
-typedef std::function<void(juice_agent_t * agent, const char * sdp, void * user_ptr)> on_candidate_t;
-typedef std::function<void(juice_agent_t * agent, void * user_ptr)> on_gathering_done_t;
-typedef std::function<void(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)> on_recv_t;
+typedef std::function<void(juice_agent_t *agent, juice_state_t state, void *user_ptr)> on_state_changed_t;
+typedef std::function<void(juice_agent_t *agent, const char *sdp, void *user_ptr)> on_candidate_t;
+typedef std::function<void(juice_agent_t *agent, void *user_ptr)> on_gathering_done_t;
+typedef std::function<void(juice_agent_t *agent, const char *data, size_t size, void *user_ptr)> on_recv_t;
 
 class JuiceClient;
 typedef std::shared_ptr<JuiceClient> JuiceClientPtr;
@@ -27,31 +27,29 @@ typedef std::shared_ptr<JuiceClient> JuiceClientPtr;
 //******************************************************************************
 class JuiceClient
 {
-public:
-    JuiceClient(const std::string & id,
-                on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-                on_gathering_done_t onGatheringDoneHandler,
-                on_recv_t onVideoReceiveHandler,
+  public:
+    JuiceClient(const std::string &id, on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
+                on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
                 on_recv_t onAudioReceiveHandler);
     ~JuiceClient();
 
-public:
+  public:
     bool init();
-    bool init(const std::string & sdp);
-    bool connect(const std::string & sdpRemote);
+    bool init(const std::string &sdp);
+    bool connect(const std::string &sdpRemote);
     void disconnect();
-    void addRemote(const std::string & sdpRemote);
-    void sendMessage(const std::string & message);
-    void sendMessage(const uint8_t * data, const uint32_t size);
-    void sendVideo(const uint8_t * data, const uint32_t size);
-    void sendAudio(const uint8_t * data, const uint32_t size);
+    void addRemote(const std::string &sdpRemote);
+    void sendMessage(const std::string &message);
+    void sendMessage(const uint8_t *data, const uint32_t size);
+    void sendVideo(const uint8_t *data, const uint32_t size);
+    void sendAudio(const uint8_t *data, const uint32_t size);
 
     std::string id() const;
     std::string sdp() const;
 
     juice_state_t state() const;
 
-private:
+  private:
     class impl;
     std::shared_ptr<impl> m_p;
 };

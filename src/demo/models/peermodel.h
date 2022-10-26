@@ -6,8 +6,8 @@
 
 #include <QAbstractListModel>
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 //******************************************************************************
 //******************************************************************************
@@ -22,28 +22,28 @@ class PeerModel : public QAbstractListModel
         RoleType
     };
 
-public:
+  public:
     Q_PROPERTY(QString type WRITE setType)
 
-public:
+  public:
     explicit PeerModel(QObject *parent = nullptr);
 
-public:
-    void setType(const QString & type);
+  public:
+    void setType(const QString &type);
 
-public:
-    virtual int rowCount(const QModelIndex & parent = QModelIndex()) const;
-    virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
+  public:
+    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
 
-public slots:
+  public slots:
     virtual void selectItem(const quint32 id);
 
-signals:
+  signals:
 
-private:
+  private:
     QHash<int, QByteArray> roleNames() const;
 
-private:
+  private:
     class impl;
     std::shared_ptr<impl> m_p;
 };

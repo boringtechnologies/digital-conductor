@@ -1,25 +1,24 @@
 #pragma once
 
-#include "PeerInfo/PeerInfo.hpp"
 #include "ControllerBase/ControllerBase.hpp"
+#include "PeerInfo/PeerInfo.hpp"
 
 #include <QList>
 
-class PeerController : public QObject,
-                       public ControllerBase<PeerController>
+class PeerController : public QObject, public ControllerBase<PeerController>
 {
     Q_OBJECT
 
-public:
+  public:
     Q_INVOKABLE QList<PeerInfo> getPeerList();
 
-signals:
+  signals:
     void peerListChanged();
 
-private slots:
+  private slots:
     void onPeerListChanged();
 
-private:
+  private:
     friend class ControllerBase;
 
     PeerController();

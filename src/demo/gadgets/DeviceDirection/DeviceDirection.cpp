@@ -1,2 +1,1 @@
 #include "DeviceDirection/DeviceDirection.hpp"
-
