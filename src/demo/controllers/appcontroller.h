@@ -16,7 +16,7 @@
 //*****************************************************************************
 namespace dc
 {
-    class GRpcClient;
+class GRpcClient;
 }
 
 //*****************************************************************************
@@ -25,7 +25,7 @@ class AppController : public QObject
 {
     Q_OBJECT
 
-public:
+  public:
     enum State
     {
         StateFirst,
@@ -41,18 +41,18 @@ public:
 
     Q_PROPERTY(bool syncModeEnabled READ syncModeEnabled WRITE setSyncMode NOTIFY syncModeChanged)
 
-protected:
+  protected:
     AppController();
 
-public:
-    static AppController * instance(QQmlEngine * = nullptr, QJSEngine * = nullptr);
+  public:
+    static AppController *instance(QQmlEngine * = nullptr, QJSEngine * = nullptr);
     virtual ~AppController();
 
-public:
+  public:
     // std::shared_ptr<dc::GRpcClient> rpcClient();
     std::vector<dc::Peer> getPeers() const;
 
-    State   state() const;
+    State state() const;
 
     QString group() const;
 
@@ -60,13 +60,13 @@ public:
 
     bool syncModeEnabled() const;
 
-signals:
-    void showMessage(const QString & text);
+  signals:
+    void showMessage(const QString &text);
     void stateChanged();
     void syncModeChanged();
 
-public slots:
-    void init(const QString & userName, const QString & group, const QString & target);
+  public slots:
+    void init(const QString &userName, const QString &group, const QString &target);
 
     void registerLicense(const QString license);
     void checkLicense();
@@ -75,7 +75,7 @@ public slots:
 
     void setSyncMode(const bool sync);
 
-    void selectDevice(const dc::media::DeviceDescr & dev);
+    void selectDevice(const dc::media::DeviceDescr &dev);
 
     void startStreaming();
     void receiveStream();
@@ -83,7 +83,7 @@ public slots:
 
     void onSenderViewReady();
 
-private:
+  private:
     class impl;
     std::shared_ptr<impl> m_p;
 };

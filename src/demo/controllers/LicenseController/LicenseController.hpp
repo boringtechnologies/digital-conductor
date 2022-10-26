@@ -5,19 +5,18 @@
 
 #include <QList>
 
-class LicenseController : public QObject,
-                          public ControllerBase<LicenseController>
+class LicenseController : public QObject, public ControllerBase<LicenseController>
 {
     Q_OBJECT
 
-public:
+  public:
     Q_INVOKABLE bool licenseCheck();
     Q_INVOKABLE QString generateDeviceToken();
     Q_INVOKABLE bool registerLicense(QString license);
 
     Q_INVOKABLE void copyToClipboard(QString data);
 
-private:
+  private:
     friend class ControllerBase;
 
     LicenseController();

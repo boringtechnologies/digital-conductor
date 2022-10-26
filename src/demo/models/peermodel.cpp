@@ -4,8 +4,8 @@
 #include "peermodel.h"
 #include "appcontroller.h"
 
-#include "core/grpcclient.h"
 #include "autodiscovery.pb.h"
+#include "core/grpcclient.h"
 
 #include <QTimer>
 
@@ -15,27 +15,25 @@ class PeerModel::impl : public QObject
 {
     friend class PeerModel;
 
-protected:
-    impl(PeerModel * owner);
+  protected:
+    impl(PeerModel *owner);
 
     void processUpdate();
 
-protected:
-    PeerModel            * m_o;
+  protected:
+    PeerModel *m_o;
 
     QHash<int, QByteArray> m_names;
 
-    dc::PeerType           m_type;
-    std::vector<dc::Peer>  m_peers;
+    dc::PeerType m_type;
+    std::vector<dc::Peer> m_peers;
 
-    QTimer                 m_updatePeersTimer;
+    QTimer m_updatePeersTimer;
 };
 
 //******************************************************************************
 //******************************************************************************
-PeerModel::impl::impl(PeerModel * owner)
-    : m_o(owner)
-    , m_type(dc::PeerType::UNKNOWN)
+PeerModel::impl::impl(PeerModel *owner) : m_o(owner), m_type(dc::PeerType::UNKNOWN)
 {
     connect(&m_updatePeersTimer, &QTimer::timeout, this, &impl::processUpdate);
 }
@@ -44,11 +42,11 @@ PeerModel::impl::impl(PeerModel * owner)
 //******************************************************************************
 void PeerModel::impl::processUpdate()
 {
-    AppController * ac = AppController::instance();
+    AppController *ac           = AppController::instance();
     std::vector<dc::Peer> peers = ac->getPeers();
     m_o->beginResetModel();
     m_peers.clear();
-    for (const dc::Peer & p : peers)
+    for (const dc::Peer &p : peers)
     {
         if (p.type() & m_type)
         {
@@ -60,13 +58,11 @@ void PeerModel::impl::processUpdate()
 
 //******************************************************************************
 //******************************************************************************
-PeerModel::PeerModel(QObject * parent)
-    : QAbstractListModel(parent)
-    , m_p(new impl(this))
+PeerModel::PeerModel(QObject *parent) : QAbstractListModel(parent), m_p(new impl(this))
 {
-    m_p->m_names[RoleId]     = "id";
-    m_p->m_names[RoleGroup]  = "group";
-    m_p->m_names[RoleType]   = "type";
+    m_p->m_names[RoleId]    = "id";
+    m_p->m_names[RoleGroup] = "group";
+    m_p->m_names[RoleType]  = "type";
 
     m_p->processUpdate();
     m_p->m_updatePeersTimer.start(5000);
@@ -74,7 +70,7 @@ PeerModel::PeerModel(QObject * parent)
 
 //******************************************************************************
 //******************************************************************************
-void PeerModel::setType(const QString & type)
+void PeerModel::setType(const QString &type)
 {
     if (type == "receiver")
     {
@@ -92,7 +88,7 @@ void PeerModel::setType(const QString & type)
 
 //******************************************************************************
 //******************************************************************************
-int PeerModel::rowCount(const QModelIndex&) const
+int PeerModel::rowCount(const QModelIndex &) const
 {
     return m_p->m_peers.size();
 }
@@ -109,12 +105,12 @@ QVariant PeerModel::data(const QModelIndex &index, int role) const
 
     switch (role)
     {
-        case RoleId:
-            return QString::fromStdString(m_p->m_peers[row].id());
-        case RoleGroup:
-            return QString::fromStdString(m_p->m_peers[row].group());
-        case RoleType:
-            return m_p->m_peers[row].type();
+    case RoleId:
+        return QString::fromStdString(m_p->m_peers[row].id());
+    case RoleGroup:
+        return QString::fromStdString(m_p->m_peers[row].group());
+    case RoleType:
+        return m_p->m_peers[row].type();
     }
 
     return QVariant();

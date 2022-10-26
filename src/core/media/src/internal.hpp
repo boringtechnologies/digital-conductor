@@ -1,54 +1,55 @@
 #ifndef MEDIA_INTERNAL_H
 #define MEDIA_INTERNAL_H
 
-#include <iostream>
 #include <gst/gst.h>
 
-#define MAKE_ELEMENT(var, factory, name)                                    \
-    do {                                                                    \
-        var = gst_element_factory_make(factory, name);                      \
-        if (!var) {                                                         \
-            std::cerr << "Failed to find element: " << factory << std::endl;\
-        }                                                                   \
+#include <iostream>
+
+#define MAKE_ELEMENT(var, factory, name)                                     \
+    do {                                                                     \
+        var = gst_element_factory_make(factory, name);                       \
+        if (!var) {                                                          \
+            std::cerr << "Failed to find element: " << factory << std::endl; \
+        }                                                                    \
     } while (0)
 
 #if GST_USE_STATIC_PLUGINS
 
 extern "C" {
-    // base
-    GST_PLUGIN_STATIC_DECLARE(app);
-    GST_PLUGIN_STATIC_DECLARE(audioconvert);
-    GST_PLUGIN_STATIC_DECLARE(audioresample);
-    GST_PLUGIN_STATIC_DECLARE(coreelements);
-    GST_PLUGIN_STATIC_DECLARE(vorbis);
-    // good
-    GST_PLUGIN_STATIC_DECLARE(autodetect);
+// base
+GST_PLUGIN_STATIC_DECLARE(app);
+GST_PLUGIN_STATIC_DECLARE(audioconvert);
+GST_PLUGIN_STATIC_DECLARE(audioresample);
+GST_PLUGIN_STATIC_DECLARE(coreelements);
+GST_PLUGIN_STATIC_DECLARE(vorbis);
+// good
+GST_PLUGIN_STATIC_DECLARE(autodetect);
 #if GST_CHECK_VERSION(1, 21, 0)
-    GST_PLUGIN_STATIC_DECLARE(videoconvertscale);
+GST_PLUGIN_STATIC_DECLARE(videoconvertscale);
 #else
-    GST_PLUGIN_STATIC_DECLARE(videoconvert);
-    GST_PLUGIN_STATIC_DECLARE(videoscale);
+GST_PLUGIN_STATIC_DECLARE(videoconvert);
+GST_PLUGIN_STATIC_DECLARE(videoscale);
 #endif
-    GST_PLUGIN_STATIC_DECLARE(videorate);
-    GST_PLUGIN_STATIC_DECLARE(vpx);
-    GST_PLUGIN_STATIC_DECLARE(rtp);
-    GST_PLUGIN_STATIC_DECLARE(rtpmanager);
+GST_PLUGIN_STATIC_DECLARE(videorate);
+GST_PLUGIN_STATIC_DECLARE(vpx);
+GST_PLUGIN_STATIC_DECLARE(rtp);
+GST_PLUGIN_STATIC_DECLARE(rtpmanager);
 #if defined(__APPLE__)
-    GST_PLUGIN_STATIC_DECLARE(osxaudio);
-    GST_PLUGIN_STATIC_DECLARE(osxvideo);
-    // bad
-    GST_PLUGIN_STATIC_DECLARE(applemedia);
+GST_PLUGIN_STATIC_DECLARE(osxaudio);
+GST_PLUGIN_STATIC_DECLARE(osxvideo);
+// bad
+GST_PLUGIN_STATIC_DECLARE(applemedia);
 #elif defined(__linux__)
-    GST_PLUGIN_STATIC_DECLARE(alsa);
-    GST_PLUGIN_STATIC_DECLARE(pulseaudio);
-    GST_PLUGIN_STATIC_DECLARE(ximagesink);
-    GST_PLUGIN_STATIC_DECLARE(xvimagesink);
-    GST_PLUGIN_STATIC_DECLARE(video4linux2);
+GST_PLUGIN_STATIC_DECLARE(alsa);
+GST_PLUGIN_STATIC_DECLARE(pulseaudio);
+GST_PLUGIN_STATIC_DECLARE(ximagesink);
+GST_PLUGIN_STATIC_DECLARE(xvimagesink);
+GST_PLUGIN_STATIC_DECLARE(video4linux2);
 #endif
-    GST_PLUGIN_STATIC_DECLARE(libav);
+GST_PLUGIN_STATIC_DECLARE(libav);
 #ifndef NDEBUG
-    GST_PLUGIN_STATIC_DECLARE(debug);
-    GST_PLUGIN_STATIC_DECLARE(debugutilsbad);
+GST_PLUGIN_STATIC_DECLARE(debug);
+GST_PLUGIN_STATIC_DECLARE(debugutilsbad);
 #endif
 }
 

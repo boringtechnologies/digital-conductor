@@ -1,7 +1,7 @@
 // gadgets
-#include "PeerInfo/PeerInfo.hpp"
-#include "DeviceInfo/DeviceInfo.hpp"
 #include "DeviceDirection/DeviceDirection.hpp"
+#include "DeviceInfo/DeviceInfo.hpp"
+#include "PeerInfo/PeerInfo.hpp"
 
 // controllers
 #include "PeerController/PeerController.hpp"
@@ -9,7 +9,8 @@
 // qml
 #include "QmlEngine/QmlEngine.hpp"
 
-namespace {
+namespace
+{
 
 QString decapitalize(QString s)
 {
@@ -19,11 +20,12 @@ QString decapitalize(QString s)
 
 } // namespace
 
-QmlEngine* QmlEngine::instance_ = nullptr;
+QmlEngine *QmlEngine::instance_ = nullptr;
 
 void QmlEngine::initialize()
 {
-    if (!instance_) {
+    if (!instance_)
+    {
         instance_ = new QmlEngine;
         instance_->register_();
     }
@@ -35,11 +37,14 @@ void QmlEngine::deinitialize()
     instance_ = nullptr;
 }
 
-QQmlEngine* QmlEngine::instance()
+QQmlEngine *QmlEngine::instance()
 {
-    if (instance_) {
+    if (instance_)
+    {
         return instance_->engine_;
-    } else {
+    }
+    else
+    {
         return nullptr;
     }
 }
@@ -48,7 +53,7 @@ QmlEngine::QmlEngine()
 {
     engine_ = new QQmlEngine;
 
-    moduleName_ = "DC";
+    moduleName_       = "DC";
     moduleVersion_[0] = 0;
     moduleVersion_[1] = 1;
 }
@@ -66,9 +71,8 @@ void QmlEngine::register_()
 
 void QmlEngine::registerGadgets_()
 {
-#define DC_REGISTER_GADGET(T)                                           \
-    qmlRegisterType<T>(moduleName_, moduleVersion_[0], moduleVersion_[1], \
-        decapitalize(#T).toStdString().c_str())
+#define DC_REGISTER_GADGET(T)                                                                                          \
+    qmlRegisterType<T>(moduleName_, moduleVersion_[0], moduleVersion_[1], decapitalize(#T).toStdString().c_str())
 
     DC_REGISTER_GADGET(PeerInfo);
     DC_REGISTER_GADGET(DeviceDirection);
@@ -79,9 +83,8 @@ void QmlEngine::registerGadgets_()
 
 void QmlEngine::registerControllers_()
 {
-#define DC_REGISTER_CONTROLLER(T) \
-    qmlRegisterSingletonInstance(   \
-        moduleName_, moduleVersion_[0], moduleVersion_[1], #T, &T::instance());
+#define DC_REGISTER_CONTROLLER(T)                                                                                      \
+    qmlRegisterSingletonInstance(moduleName_, moduleVersion_[0], moduleVersion_[1], #T, &T::instance());
 
     DC_REGISTER_CONTROLLER(PeerController);
 

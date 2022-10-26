@@ -18,14 +18,14 @@ typedef std::shared_ptr<PermissionManager> PermissionMgrPtr;
 //******************************************************************************
 class PermissionManager final
 {
-public:
+  public:
     PermissionManager();
     ~PermissionManager();
 
     bool isAllPermissinsGranted();
     void requestMissingPermissions();
 
-private:
+  private:
     class impl;
     std::shared_ptr<impl> m_p;
 };
