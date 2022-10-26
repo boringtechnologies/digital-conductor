@@ -9,6 +9,10 @@ on:
     paths-ignore:
       - '**.md'
   workflow_dispatch:
+    inputs:
+      conan-extra-args:
+        type: string
+        description: Extra args to pass for 'conan install ...' i.e. --build=cascade
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.head_ref || github.ref_name }}'
@@ -184,9 +188,9 @@ jobs:
 
           conan install $(pwd)/conanfile.py     \
             --install-folder $(pwd)/build/conan \
-            --build=outdated --build=cascade    \
-            --build="*/system"                  \
+            --build=outdated --build="*/system" \
             --settings build_type=Release       \
+            ${{ github.event_name != 'workflow_dispatch' && '' || github.event.inputs.conan-extra-args }} \
             --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
           conan remove --build --src --force '*'
 
