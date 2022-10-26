@@ -182,10 +182,11 @@ jobs:
             rm -rf ~/.conan/data/*/system
           fi
 
-          conan install $(pwd)/conanfile.py       \
-            --install-folder $(pwd)/build/conan   \
-            --build=outdated --build="*/system"   \
-            --settings build_type=Release         \
+          conan install $(pwd)/conanfile.py     \
+            --install-folder $(pwd)/build/conan \
+            --build=outdated --build=cascade    \
+            --build="*/system"                  \
+            --settings build_type=Release       \
             --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
           conan remove --build --src --force '*'
 

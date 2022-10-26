@@ -38,9 +38,9 @@ cmake --build build
 - libjuice
   https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L119-L125
 - gRPC
-  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L132-L137
+  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L132-L138
 - cxxopts
-  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L145-L149
+  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L146-L149
 
 ### Install gstreamer
 
