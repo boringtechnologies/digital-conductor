@@ -24,6 +24,7 @@ jobs:
 
       - uses: jidicula/clang-format-action@v4.9.0
         with:
+          clang-format-version: '14'
           check-path: 'src'
 
   build:
