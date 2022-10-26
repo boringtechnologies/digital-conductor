@@ -5,10 +5,10 @@
 #define UTIL_H
 
 #include <algorithm>
-#include <string>
-#include <sstream>
-#include <vector>
 #include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 //******************************************************************************
 //******************************************************************************
@@ -26,7 +26,7 @@ struct DeviceDescr
     // std::string deviceDescr;
 
     std::string internalName;
-    std::vector<std::pair<std::string, std::string> > internalParams;
+    std::vector<std::pair<std::string, std::string>> internalParams;
 
     std::string toStdString() const
     {
@@ -46,24 +46,24 @@ struct DeviceDescr
 //******************************************************************************
 class Util
 {
-protected:
+  protected:
     Util();
 
-public:
-    static Util & instance();
+  public:
+    static Util &instance();
     ~Util();
 
-public:
+  public:
     // TODO use argc/argv if needed
     // bool initializeMediaModule(int argc, char *argv[]);
     // TODO plugins path?
-    bool initializeMediaModule(const std::string & pluginsPath);
+    bool initializeMediaModule(const std::string &pluginsPath);
 
     void startWatchDevices();
-    std::vector<DeviceDescr> getDeviceList(const std::string & deviceClass);
-    std::vector<DeviceDescr> getDeviceListDirect(const std::string & deviceClass);
+    std::vector<DeviceDescr> getDeviceList(const std::string &deviceClass);
+    std::vector<DeviceDescr> getDeviceListDirect(const std::string &deviceClass);
 
-private:
+  private:
     class impl;
     std::shared_ptr<impl> m_p;
 };

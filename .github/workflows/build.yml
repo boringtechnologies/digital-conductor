@@ -3,7 +3,11 @@ name: build
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 concurrency:
@@ -11,7 +15,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  rake:
+  lint:
+    name: Code quality checks
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: jidicula/clang-format-action@v4.9.0
+        with:
+          clang-format-version: '14'
+          check-path: 'src'
+
+  build:
     name: Build on ${{ matrix.os }} with packages from ${{ matrix.package-manager }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}

@@ -2,7 +2,20 @@
 
 [![build](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml/badge.svg)](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml)
 
-simple build flow
+- [Install Qt 6](#install-qt-6)
+- [Install dependencies with Conan package manager](#install-dependencies-with-conan-package-manager)
+- [Manual dependencies install](#manual-dependencies-install)
+  * [Install gstreamer](#install-gstreamer)
+  * [Debian/Ubuntu Linux](#debian-ubuntu-linux)
+  * [macOS](#macos)
+- [Build the Project](#build-the-project)
+
+## Install Qt 6
+
+Official or unofficial:
+
+- Official: https://www.qt.io/download-open-source
+- Unofficial: https://github.com/miurahr/aqtinstall
 
 ## Install dependencies with Conan package manager
 
@@ -22,46 +35,19 @@ cmake --build build
 
 ## Manual dependencies install
 
-### install libjuice
-
-```
-git clone https://github.com/paullouisageneau/libjuice.git
-cd libjuice/
-mkdir build
-cd build/
-cmake ..
-make juice-static
-sudo make install
-sudo cp libjuice-static.a /usr/local/lib/
-```
-
-### install gRPC as described https://github.com/grpc/grpc/blob/master/BUILDING.md
-
-```
-$ [sudo] apt-get install build-essential autoconf libtool pkg-config
-$ [sudo] apt-get install cmake
-$ [sudo] apt-get install clang libc++-dev
-```
-
-```
-$ git clone -b RELEASE_TAG_HERE https://github.com/grpc/grpc
-$ cd grpc
-$ git submodule update --init
-```
-
-```
-$ mkdir build && cd build
-$ cmake ..
-$ make
-$ [sudo] make install
-```
+- libjuice
+  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L119-L125
+- gRPC
+  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L132-L137
+- cxxopts
+  https://github.com/Boring-App/digital-conductor/blob/21b7c0e32871e37fe2bf5874baf1a7ec6ae1cd38/.github/workflows/build.yml#L145-L149
 
 ### Install gstreamer
 
 ### Debian/Ubuntu Linux
 
 ```sh
-$ sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio gstreamer1.0-pulseaudio
+$ sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
 ```
 
 ### macOS
@@ -70,18 +56,13 @@ $ sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstre
 $ brew install gstreamer gst-plugins-{base,good,bad,ugly} gst-libav
 ```
 
-### Install Qt 6 to home directory
-
-Online installer, etc...
-
-### build sources
+## Build the Project
 
 ```
-$ git clone https://github.com/Boring-App/digital-conductor/.git
+$ git clone https://github.com/Boring-App/digital-conductor.git
 $ cd digital-conductor/
-$ mkdir build && cd build
-$ cmake ..
-$ make
+$ cmake -S . -B build
+$ cmake --build build
 ```
 
 Done!

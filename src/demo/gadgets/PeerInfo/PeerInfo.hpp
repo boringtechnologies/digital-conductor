@@ -9,15 +9,13 @@ class PeerInfo
 
     struct PeerInfoStruct
     {
-        QString id {};
+        QString id{};
 
-        bool isSender {};
-        bool isReceiver {};
+        bool isSender{};
+        bool isReceiver{};
 
         PeerInfoStruct(QString idVal, bool isSenderVal, bool isReceiverVal)
-            : id(idVal)
-            , isSender(isSenderVal)
-            , isReceiver(isReceiverVal)
+            : id(idVal), isSender(isSenderVal), isReceiver(isReceiverVal)
         {
         }
         PeerInfoStruct() = default;
@@ -27,7 +25,7 @@ class PeerInfo
     Q_PROPERTY(bool isSender READ getIsSender WRITE setIsSender USER true)
     Q_PROPERTY(bool isReceiver READ getIsReceiver WRITE setIsReceiver USER true)
 
-public:
+  public:
     static PeerInfo toQt(PeerInfo::PeerInfoStruct);
     static PeerInfo::PeerInfoStruct fromQt(PeerInfo);
 
@@ -36,14 +34,14 @@ public:
 
     QString getID() const;
     void setID(QString);
-    
+
     bool getIsSender() const;
     void setIsSender(bool);
 
     bool getIsReceiver() const;
     void setIsReceiver(bool);
 
-private:
+  private:
     PeerInfo::PeerInfoStruct info_;
 };
 

@@ -6,14 +6,13 @@ class DeviceDirection
 {
     Q_GADGET
 
-public:
+  public:
     enum DeviceDirectionValue
     {
         Output,
         Input,
     };
     Q_ENUM(DeviceDirectionValue)
-
 };
 
 using DeviceDirectionValue = DeviceDirection::DeviceDirectionValue;

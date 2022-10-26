@@ -5,16 +5,16 @@
 
 class QmlEngine
 {
-public:
-    QmlEngine(const QmlEngine&) = delete;
-    QmlEngine& operator=(const QmlEngine&) = delete;
+  public:
+    QmlEngine(const QmlEngine &)            = delete;
+    QmlEngine &operator=(const QmlEngine &) = delete;
 
     static void initialize();
     static void deinitialize();
 
-    static QQmlEngine* instance();
+    static QQmlEngine *instance();
 
-private:
+  private:
     QmlEngine();
     ~QmlEngine();
 
@@ -23,10 +23,10 @@ private:
     void registerInfos_();
     void registerControllers_();
 
-    static QmlEngine* instance_;
+    static QmlEngine *instance_;
 
-    QQmlEngine* engine_ {};
+    QQmlEngine *engine_{};
 
-    const char* moduleName_ {};
-    int moduleVersion_[2] {};
+    const char *moduleName_{};
+    int moduleVersion_[2]{};
 };

@@ -1,8 +1,8 @@
 #include "LicenseController/LicenseController.hpp"
 
 #include <QClipboard>
-#include <QGuiApplication>
 #include <QDebug>
+#include <QGuiApplication>
 
 LicenseController::LicenseController()
 {
@@ -29,13 +29,14 @@ bool LicenseController::registerLicense(QString license)
 {
     qDebug() << "<---- Register License: " << license;
 
-    if (_licenseManager.RegisterLicense(license.toStdString())) {
+    if (_licenseManager.RegisterLicense(license.toStdString()))
+    {
         return true;
     }
-    else {
+    else
+    {
         return true;
     }
-    
 }
 
 void LicenseController::copyToClipboard(QString data)

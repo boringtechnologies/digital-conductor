@@ -3,12 +3,12 @@
 
 #include "core/juiceclient.h"
 
+#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <iostream>
-#include <thread>
 #include <mutex>
-#include <atomic>
+#include <thread>
 
 #include <juice/juice.h>
 
@@ -17,11 +17,11 @@
 namespace dc
 {
 
-constexpr const char * const JP2P_PING  = "JP2PING ";
-constexpr const char * const JP2P_PONG  = "JP2PONG ";
-constexpr const char * const JP2P_MSG   = "JP2PMSG ";
-constexpr const char * const JP2P_VIDEO = "JP2PVID ";
-constexpr const char * const JP2P_AUDIO = "JP2PAUD ";
+constexpr const char *const JP2P_PING   = "JP2PING ";
+constexpr const char *const JP2P_PONG   = "JP2PONG ";
+constexpr const char *const JP2P_MSG    = "JP2PMSG ";
+constexpr const char *const JP2P_VIDEO  = "JP2PVID ";
+constexpr const char *const JP2P_AUDIO  = "JP2PAUD ";
 constexpr const size_t JP2P_HEADER_SIZE = 8;
 
 //******************************************************************************
@@ -30,57 +30,49 @@ class JuiceClient::impl
 {
     friend class JuiceClient;
 
-    impl(JuiceClient * owner, const std::string & id,
-         on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-         on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
+    impl(JuiceClient *owner, const std::string &id, on_state_changed_t onStateChangedHandler,
+         on_candidate_t onCandidateHandler, on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
          on_recv_t onAudioReceiveHandler)
-        : m_o(owner)
-        , m_id(id)
-        , m_onStateChangedHandler(onStateChangedHandler)
-        , m_onCandidateHandler(onCandidateHandler)
-        , m_onGatheringDoneHandler(onGatheringDoneHandler)
-        , m_onVideoReceiveHandler(onVideoReceiveHandler)
-        , m_onAudioReceiveHandler(onAudioReceiveHandler)
-        , m_destroymarker(false)
+        : m_o(owner), m_id(id), m_onStateChangedHandler(onStateChangedHandler),
+          m_onCandidateHandler(onCandidateHandler), m_onGatheringDoneHandler(onGatheringDoneHandler),
+          m_onVideoReceiveHandler(onVideoReceiveHandler), m_onAudioReceiveHandler(onAudioReceiveHandler),
+          m_destroymarker(false)
     {
     }
 
-    JuiceClient       * m_o     = nullptr;
-    std::string         m_id;
-    juice_agent_t     * m_agent = nullptr;
-    juice_config_t      m_config;
+    JuiceClient *m_o = nullptr;
+    std::string m_id;
+    juice_agent_t *m_agent = nullptr;
+    juice_config_t m_config;
     juice_turn_server_t m_turnServer;
 
-    on_state_changed_t  m_onStateChangedHandler;
-    on_candidate_t      m_onCandidateHandler;
+    on_state_changed_t m_onStateChangedHandler;
+    on_candidate_t m_onCandidateHandler;
     on_gathering_done_t m_onGatheringDoneHandler;
-    on_recv_t           m_onVideoReceiveHandler;
-    on_recv_t           m_onAudioReceiveHandler;
+    on_recv_t m_onVideoReceiveHandler;
+    on_recv_t m_onAudioReceiveHandler;
 
-    std::atomic<bool>   m_destroymarker;
-    std::mutex          m_sendLocker;
-    std::thread         m_pinger;
+    std::atomic<bool> m_destroymarker;
+    std::mutex m_sendLocker;
+    std::thread m_pinger;
 
     std::chrono::system_clock::time_point m_lastReceived;
 
-    static void onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr);
-    static void onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr);
-    static void onGatheringDone(juice_agent_t * agent, void * user_ptr);
-    static void onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr);
+    static void onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr);
+    static void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr);
+    static void onGatheringDone(juice_agent_t *agent, void *user_ptr);
+    static void onRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr);
 };
 
 //******************************************************************************
 //******************************************************************************
-JuiceClient::JuiceClient(const std::string & id,
-                         on_state_changed_t onStateChangedHandler, on_candidate_t onCandidateHandler,
-                         on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
-                         on_recv_t onAudioReceiveHandler)
-    : m_p(new impl(this, id,
-                   onStateChangedHandler, onCandidateHandler,
-                   onGatheringDoneHandler, onVideoReceiveHandler, onAudioReceiveHandler))
+JuiceClient::JuiceClient(const std::string &id, on_state_changed_t onStateChangedHandler,
+                         on_candidate_t onCandidateHandler, on_gathering_done_t onGatheringDoneHandler,
+                         on_recv_t onVideoReceiveHandler, on_recv_t onAudioReceiveHandler)
+    : m_p(new impl(this, id, onStateChangedHandler, onCandidateHandler, onGatheringDoneHandler, onVideoReceiveHandler,
+                   onAudioReceiveHandler))
 {
-    m_p->m_pinger = std::thread([this]()
-    {
+    m_p->m_pinger = std::thread([this]() {
         const std::string pingmsg = JP2P_PING + this->id();
 
         while (!m_p->m_destroymarker)
@@ -115,13 +107,13 @@ JuiceClient::~JuiceClient()
 //******************************************************************************
 //******************************************************************************
 // static
-void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t state, void * user_ptr)
+void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr)
 {
     std::cout << "[juice] onStateChanged\n";
 
     // TODO ugly, use bind etc.
-    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl *cimpl = caller->m_p.get();
 
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
@@ -132,13 +124,13 @@ void JuiceClient::impl::onStateChanged(juice_agent_t * agent, juice_state_t stat
 //******************************************************************************
 //******************************************************************************
 // static
-void JuiceClient::impl::onCandidate(juice_agent_t * agent, const char * sdp, void * user_ptr)
+void JuiceClient::impl::onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr)
 {
     std::cout << "[juice] onCandidate\n";
 
     // TODO ugly, use bind etc.
-    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl *cimpl = caller->m_p.get();
 
     // default, call handler
     cimpl->m_onCandidateHandler(agent, sdp, user_ptr);
@@ -147,13 +139,13 @@ void JuiceClient::impl::onCandidate(juice_agent_t * agent, const char * sdp, voi
 //******************************************************************************
 //******************************************************************************
 // static
-void JuiceClient::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr)
+void JuiceClient::impl::onGatheringDone(juice_agent_t *agent, void *user_ptr)
 {
     std::cout << "[juice] onCandidate\n";
 
     // TODO ugly, use bind etc.
-    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl *cimpl = caller->m_p.get();
 
     // default, call handler
     cimpl->m_onGatheringDoneHandler(agent, user_ptr);
@@ -162,11 +154,11 @@ void JuiceClient::impl::onGatheringDone(juice_agent_t * agent, void * user_ptr)
 //******************************************************************************
 //******************************************************************************
 // static
-void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t size, void * user_ptr)
+void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr)
 {
     // TODO ugly, use bind etc.
-    dc::JuiceClient       * caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl * cimpl  = caller->m_p.get();
+    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    dc::JuiceClient::impl *cimpl = caller->m_p.get();
 
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
@@ -178,13 +170,13 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     {
         // p2p text message, need forward to handler?
         std::cout << size << " bytes from " << caller->id() << std::endl;
-        std::cout << "    " << std::string(data+8, size-8) << std::endl;
+        std::cout << "    " << std::string(data + 8, size - 8) << std::endl;
     }
     else if (memcmp(data, JP2P_PING, JP2P_HEADER_SIZE) == 0)
     {
         // ping
-//        std::cout << size << " bytes ping from " << caller->id() << std::endl;
-//        std::cout << "    " << std::string(data, size) << std::endl;
+        //        std::cout << size << " bytes ping from " << caller->id() << std::endl;
+        //        std::cout << "    " << std::string(data, size) << std::endl;
 
         std::string pongmsg = JP2P_PONG + caller->id();
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());
@@ -192,8 +184,8 @@ void JuiceClient::impl::onRecv(juice_agent_t * agent, const char * data, size_t 
     else if (memcmp(data, JP2P_PONG, JP2P_HEADER_SIZE) == 0)
     {
         // pong
-//        std::cout << size << " bytes pong from " << caller->id() << std::endl;
-//        std::cout << "    " << std::string(data, size) << std::endl;
+        //        std::cout << size << " bytes pong from " << caller->id() << std::endl;
+        //        std::cout << "    " << std::string(data, size) << std::endl;
     }
     else if (memcmp(data, JP2P_AUDIO, JP2P_HEADER_SIZE) == 0)
     {
@@ -229,8 +221,8 @@ bool JuiceClient::init()
     m_p->m_config.turn_servers       = &m_p->m_turnServer;
     m_p->m_config.turn_servers_count = 1;
 
-//    m_p->m_config.local_port_range_begin = 50050;
-//    m_p->m_config.local_port_range_end   = 50050;
+    //    m_p->m_config.local_port_range_begin = 50050;
+    //    m_p->m_config.local_port_range_end   = 50050;
 
     m_p->m_config.cb_state_changed  = &impl::onStateChanged;
     m_p->m_config.cb_candidate      = &impl::onCandidate;
@@ -244,16 +236,15 @@ bool JuiceClient::init()
 
 //******************************************************************************
 //******************************************************************************
-bool JuiceClient::init(const std::string & sdp)
+bool JuiceClient::init(const std::string &sdp)
 {
-    return (init() &&
-            juice_set_remote_description(m_p->m_agent, sdp.c_str()) == JUICE_ERR_SUCCESS &&
+    return (init() && juice_set_remote_description(m_p->m_agent, sdp.c_str()) == JUICE_ERR_SUCCESS &&
             juice_gather_candidates(m_p->m_agent) == JUICE_ERR_SUCCESS);
 }
 
 //******************************************************************************
 //******************************************************************************
-bool JuiceClient::connect(const std::string & sdpRemote)
+bool JuiceClient::connect(const std::string &sdpRemote)
 {
     if (!m_p->m_agent)
     {
@@ -278,20 +269,20 @@ void JuiceClient::disconnect()
 
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::addRemote(const std::string & sdpRemote)
+void JuiceClient::addRemote(const std::string &sdpRemote)
 {
     juice_add_remote_candidate(m_p->m_agent, sdpRemote.c_str());
 }
 
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::sendMessage(const std::string & message)
+void JuiceClient::sendMessage(const std::string &message)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
     // text message with prefix
 
-    const static size_t datasize   = 1096;
+    const static size_t datasize = 1096;
     char buffer[datasize];
     memcpy(buffer, JP2P_MSG, JP2P_HEADER_SIZE);
     const uint32_t size = std::min(message.size(), datasize);
@@ -301,7 +292,7 @@ void JuiceClient::sendMessage(const std::string & message)
 
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::sendMessage(const uint8_t * data, const uint32_t size)
+void JuiceClient::sendMessage(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
@@ -310,10 +301,9 @@ void JuiceClient::sendMessage(const uint8_t * data, const uint32_t size)
     juice_send(m_p->m_agent, reinterpret_cast<const char *>(data), size);
 }
 
-
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::sendVideo(const uint8_t * data, const uint32_t size)
+void JuiceClient::sendVideo(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
@@ -327,7 +317,7 @@ void JuiceClient::sendVideo(const uint8_t * data, const uint32_t size)
 
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::sendAudio(const uint8_t * data, const uint32_t size)
+void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
