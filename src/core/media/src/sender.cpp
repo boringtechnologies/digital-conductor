@@ -43,22 +43,27 @@ static GstElement *get_device(const media::CaptureDevice &device,
     GstElement *source;
     std::string mt = media_type == media::MediaType::Video ? "video" : "audio";
 
-    std::cout << "use " << device.name << std::endl;
+    std::cout << "[gst-sender-" << media_type << "] use " << device.name << std::endl;
     MAKE_ELEMENT(source, device.name.c_str(),
                  (id + "-publisher" + mt + "-src").c_str());
     if (!device.params.empty()) {
-        std::cout << "with params:" << std::endl;
+        std::cout << "[gst-sender-" << media_type << "] with params:" << std::endl;
         for (const std::pair<std::string, std::string> &param : device.params) {
             std::cout << "        " << param.first << "=" << param.second
                       << std::endl;
             if (param.first == "device-index" || param.first == "device") {
-                // TODO temporary ugly hack for mac os users
-                // TODO use G_VALUE_TYPE or gst_value_deserialize ...
-                g_object_set(G_OBJECT(source), param.first.c_str(),
-                             std::stoi(param.second, nullptr, 10), nullptr);
+                GValue newValue = G_VALUE_INIT;
+                g_value_init(&newValue, G_TYPE_STRING);
+                g_value_set_string(&newValue, param.second.c_str());
+
+                GValue targetValue = G_VALUE_INIT;
+                g_object_get_property(G_OBJECT(source), param.first.c_str(), &targetValue);
+
+                g_value_transform(&newValue, &targetValue);
+
+                g_object_set_property(G_OBJECT(source), param.first.c_str(), &targetValue);
             } else {
-                g_object_set(G_OBJECT(source), param.first.c_str(),
-                             param.second.c_str(), nullptr);
+                std::cout << "[gst-sender-" << media_type << "] unknown property: " << param.first << '\n';
             }
         }
     }
