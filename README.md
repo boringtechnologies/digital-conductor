@@ -66,3 +66,8 @@ $ cmake --build build
 ```
 
 Done!
+
+## Code quality
+
+ - `find src -iname \*.h -o -iname \*.cpp -o -iname \*.hpp -o -iname \*.proto | xargs clang-format -i`
+ - `find src -iname \*.cpp -not -iname test/app.cpp | xargs clang-tidy -p compile_commands.json`

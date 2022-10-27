@@ -198,6 +198,12 @@ jobs:
 
       - run: cmake --build build
 
+      - if: matrix.os == 'ubuntu-latest'
+        uses: ZedThree/clang-tidy-review@v0.10.0
+        with:
+          include: src/**/*.cpp
+          exclude: src/core/media/test/app.cpp
+
       - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
         working-directory: package/${{ matrix.output-package }}
 
