@@ -85,16 +85,18 @@ jobs:
             grpc/install
             libjuice/install
             cxxopts
-          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
+          key: ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}
+            ${{ runner.os }}-${{ matrix.package-manager }}-${{ hashFiles('conanfile.py') }}-
             ${{ runner.os }}-${{ matrix.package-manager }}-
 
       - name: cache compiled objects
         uses: actions/cache@v3
         with:
           path: ~/.ccache
-          key: ccache-${{ runner.os }}
+          key: ccache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
 
       - name: install tools
         run: |
