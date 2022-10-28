@@ -212,6 +212,8 @@ media::Receiver::~Receiver() {
 }
 
 void media::Receiver::start() {
+    std::lock_guard guard(start_stop_mutex);
+
     thread = std::make_unique<std::thread>([this] {
         g_print("[gst-receiver-%d] Setting the pipeline to playing\n",
                 media_type);
@@ -232,13 +234,24 @@ void media::Receiver::start() {
 }
 
 void media::Receiver::stop() {
+    std::lock_guard guard(start_stop_mutex);
+
+    // HACK: FIXME this delay need to avoid deadlock &
+    // make sure that thread already called g_main_loop_run
+    // ideally something like try_join_for
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(50ms);
+    // EOH
+
     g_main_loop_quit(loop);
 
     g_print("[gst-receiver-%d] stopping playback\n", media_type);
     gst_element_set_state(pipeline, GST_STATE_NULL);
 
-    thread->join();
-    thread.reset();
+    if (thread) {
+        thread->join();
+        thread.reset();
+    }
 }
 
 bool media::Receiver::push(const uint8_t *payload, size_t len) {

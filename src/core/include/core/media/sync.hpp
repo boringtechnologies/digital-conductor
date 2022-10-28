@@ -130,6 +130,7 @@ class Receiver
 {
   private:
     std::unique_ptr<std::thread> thread;
+    std::mutex start_stop_mutex;
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline, *appsrc;
