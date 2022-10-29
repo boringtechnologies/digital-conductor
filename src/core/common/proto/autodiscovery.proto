@@ -11,9 +11,6 @@ package dc;
 // greeting service definition.
 service DcRpc
 {
-    rpc getPeerList(GetPeerList) returns (stream Peer)
-    {
-    }
     rpc subscribe(Peer) returns (stream Message)
     {
     }
@@ -44,33 +41,45 @@ message Empty
 {
 }
 
-// request peer list
-message GetPeerList
-{
-    // params needed?
-    string id = 1;
-}
-
 enum PeerType
 {
-    UNKNOWN = 0;
+    UNKNOWN = 0x00;
     READER  = 0x01;
     WRITER  = 0x02;
 }
 
-// response peer list
 message Peer
 {
-    string id    = 1;
-    string group = 2;
-    uint32 type  = 3;
+    string id     = 1;
+    string group  = 2;
+    PeerType type = 3;
+}
+
+message PeerList
+{
+    repeated Peer peers = 1;
+}
+
+enum MessageType
+{
+    P2PGENERIC    = 0x00;
+    P2PLIST       = 0x01;
+    P2PINIT       = 0x02;
+    P2PACCEPT     = 0x03;
+    P2PCANDIDATE  = 0x04;
+    P2PDISCONNECT = 0x05;
 }
 
 message Message
 {
-    string from = 1;
-    string to   = 2;
-    string msg  = 3;
+    string from      = 1;
+    string to        = 2;
+    MessageType type = 3;
+    oneof payload
+    {
+        string data    = 4;
+        PeerList peers = 5;
+    }
 }
 
 message P2PInit

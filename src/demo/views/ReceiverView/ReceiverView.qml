@@ -33,7 +33,7 @@ Rectangle {
             header: qsTr("Start Receiving from")
             placeholder: Controller.group
             onClicked: {
-                checked ? Controller.receiveStream() : Controller.stopStream();
+                checked ? Controller.receiveStream() : Controller.stopReceive();
             }
         }
 

@@ -80,6 +80,7 @@ class AppController : public QObject
     void startStreaming();
     void receiveStream();
     void stopStream();
+    void stopReceive();
 
     void onSenderViewReady();
 

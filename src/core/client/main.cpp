@@ -88,7 +88,7 @@ void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr)
 
     if (grclient)
     {
-        grclient->sendMessage(caller->id(), std::string("JP2PC ") + sdp);
+        grclient->sendMessage(caller->id(), dc::P2PCANDIDATE, sdp);
     }
 }
 
@@ -139,8 +139,11 @@ jcclient_ptr_t getJccClient(const std::string &id)
 
 //******************************************************************************
 //******************************************************************************
-void onGrpcMessage(const std::string &from, const std::string &to, const std::string &msg)
+void onGrpcMessage(dc::Message message)
 {
+    const std::string &from = message.from();
+    const std::string &to   = message.to();
+    const std::string &msg  = message.data();
     // std::cout << "Message from " << from << " --> " << msg << std::endl;
 
     // TODO move juice messages to another instance
@@ -277,21 +280,6 @@ int main(int argc, char *argv[])
             printHelp();
             continue;
         }
-        else if (command == "getPeerInfo")
-        {
-            if (grclient)
-            {
-                grclient->getPeerList();
-            }
-            else
-            {
-                grclient.reset(new dc::GRpcClient("none", "none",
-                                                  grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
-                grclient->getPeerList();
-                grclient.reset();
-            }
-            continue;
-        }
         else if (command == "subscribe")
         {
             std::string params;
@@ -321,8 +309,8 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            grclient.reset(
-                new dc::GRpcClient(v[0], group, grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
+            grclient.reset(new dc::GRpcClient(v[0], group, (dc::PeerType)(dc::READER | dc::WRITER),
+                                              grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
             grclient->subscribe((dc::PeerType)type, onGrpcMessage);
         }
         else if (command == "unsubscribe")
@@ -458,7 +446,7 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            grclient->sendMessage(v[0], v[1]);
+            grclient->sendMessage(v[0], dc::P2PGENERIC, v[1]);
         }
         else if (command == "startstream")
         {
