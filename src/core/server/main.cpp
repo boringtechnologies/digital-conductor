@@ -1,10 +1,6 @@
 //******************************************************************************
 //******************************************************************************
 
-//#include "absl/flags/flag.h"
-//#include "absl/flags/parse.h"
-//#include "absl/strings/str_cat.h"
-
 #include "autodiscovery.grpc.pb.h"
 
 #include <iostream>
@@ -19,7 +15,6 @@
 
 //******************************************************************************
 //******************************************************************************
-// ABSL_FLAG(int32_t, port, 50051, "Server port for service.");
 
 namespace dc
 {
@@ -432,7 +427,8 @@ grpc::ServerUnaryReactor *Service::p2pDisconnect(grpc::CallbackServerContext *co
 //******************************************************************************
 int main()
 {
-    uint32_t port = 50051; // absl::GetFlag(FLAGS_port);
+    char *portFromEnv = std::getenv("DC_GRPC_SERVER_PORT");
+    std::string port = portFromEnv ? portFromEnv : "50051";
 
     dc::Service service;
 
@@ -442,7 +438,7 @@ int main()
     //    builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
     builder.RegisterService(&service);
 
-    builder.AddListeningPort("0.0.0.0:" + std::to_string(port), grpc::InsecureServerCredentials());
+    builder.AddListeningPort("0.0.0.0:" + port, grpc::InsecureServerCredentials());
 
     std::cout << "Server started on 0.0.0.0:" << port << std::endl;
 
