@@ -190,7 +190,7 @@ grpc::ServerWriteReactor<dc::Message> *Service::subscribe(grpc::CallbackServerCo
 grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
                                               dc::Empty *reply)
 {
-    std::cout << "unsubscribe called from " << request->id() << std::endl;
+    std::cout << "updatePeer called from " << request->id() << std::endl;
 
     grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
 
@@ -205,6 +205,9 @@ grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *conte
     m_peers[request->id()] = *request;
 
     reactor->Finish(grpc::Status::OK);
+
+    std::cout << "updatePeer succeed for " << request->id() << " type:" << request->type() << std::endl;
+
     return reactor;
 }
 
