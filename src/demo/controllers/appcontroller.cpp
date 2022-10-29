@@ -69,7 +69,7 @@ class AppController::impl : public QObject
 
     // TODO mutex?
     QTimer m_updatePeersTimer;
-    dc::PeerType m_peerType;
+    dc::PeerType m_peerType { dc::UNKNOWN };
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
@@ -467,7 +467,9 @@ void AppController::init(const QString &userName, const QString &group, const QS
                                      : dc::PeerType::UNKNOWN;
     }
 
-    m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1,
+    m_p->m_peerType = type;
+
+    m_p->m_rpcClient->subscribe(m_p->m_peerType, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1,
                                                 std::placeholders::_2, std::placeholders::_3));
 }
 
