@@ -463,7 +463,7 @@ void AppController::init(const QString &userName, const QString &group, const QS
     {
         type = m_p->m_type == "r"    ? dc::PeerType::READER
                : m_p->m_type == "w"  ? dc::PeerType::WRITER
-               : m_p->m_type == "rw" ? (dc::PeerType)(dc::PeerType::READER & dc::PeerType::WRITER)
+               : m_p->m_type == "rw" ? (dc::PeerType)(dc::PeerType::READER | dc::PeerType::WRITER)
                                      : dc::PeerType::UNKNOWN;
     }
 

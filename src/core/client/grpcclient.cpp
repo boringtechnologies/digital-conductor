@@ -85,7 +85,7 @@ Peer GRpcClient::getPeer(const std::string &id) const
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::subscribe(const uint32_t type, on_message_handler_t handler)
+void GRpcClient::subscribe(PeerType type, on_message_handler_t handler)
 {
     std::cout << "[grpc] "
               << "subscribe()" << std::endl;
