@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 
             grclient.reset(
                 new dc::GRpcClient(v[0], group, grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
-            grclient->subscribe((dc::PeerType) type, onGrpcMessage);
+            grclient->subscribe((dc::PeerType)type, onGrpcMessage);
         }
         else if (command == "unsubscribe")
         {

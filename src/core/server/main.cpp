@@ -188,7 +188,7 @@ grpc::ServerWriteReactor<dc::Message> *Service::subscribe(grpc::CallbackServerCo
 }
 
 grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
-                                              dc::Empty *reply)
+                                              dc::Empty * /*reply*/)
 {
     std::cout << "updatePeer called from " << request->id() << std::endl;
 
