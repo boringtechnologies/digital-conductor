@@ -59,7 +59,8 @@ class GRpcClient
     Peer getPeer(const std::string &id) const;
 
     std::vector<Peer> getPeerList();
-    void subscribe(const uint32_t type = 1, on_message_handler_t handler = nullptr);
+    void subscribe(PeerType type = READER, on_message_handler_t handler = nullptr);
+    void updatePeer(PeerType newType);
     void unsubscribe();
     void sendMessage(const std::string &to, const std::string &msg);
 

@@ -69,6 +69,7 @@ class AppController::impl : public QObject
 
     // TODO mutex?
     QTimer m_updatePeersTimer;
+    dc::PeerType m_peerType;
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
@@ -457,10 +458,13 @@ void AppController::init(const QString &userName, const QString &group, const QS
     m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group,
                                               grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
 
-    uint32_t type = 3;
+    dc::PeerType type = dc::PeerType::UNKNOWN;
     if (!m_p->m_type.empty())
     {
-        type = m_p->m_type == "r" ? 1 : m_p->m_type == "w" ? 2 : m_p->m_type == "rw" ? 3 : 0;
+        type = m_p->m_type == "r"    ? dc::PeerType::READER
+               : m_p->m_type == "w"  ? dc::PeerType::WRITER
+               : m_p->m_type == "rw" ? (dc::PeerType)(dc::PeerType::READER & dc::PeerType::WRITER)
+                                     : dc::PeerType::UNKNOWN;
     }
 
     m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1,
@@ -625,6 +629,9 @@ void AppController::startStreaming()
     m_p->m_audiosender.reset(new media::Sender(m_p->m_user, media::MediaType::Audio, audioDevice, m_p->m_mediaclock));
     m_p->m_audiosender->start();
 
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+
     // connect peers
     //    for (const dc::Peer & p : m_p->m_rpcPeers)
     //    {
@@ -680,6 +687,9 @@ void AppController::receiveStream()
         // TODO emit error
         return;
     }
+
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::READER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
 
     // TODO one writer temporary
     for (const dc::Peer &peer : m_p->m_rpcPeers)
@@ -757,6 +767,9 @@ void AppController::receiveStream()
 //******************************************************************************
 void AppController::stopStream()
 {
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType & ~dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+
     if (m_p->m_audiosender)
     {
         m_p->m_audiosender->stop();

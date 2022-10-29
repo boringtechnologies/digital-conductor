@@ -17,6 +17,9 @@ service DcRpc
     rpc subscribe(Peer) returns (stream Message)
     {
     }
+    rpc updatePeer(Peer) returns (Empty)
+    {
+    }
     rpc unsubscribe(Peer) returns (Empty)
     {
     }

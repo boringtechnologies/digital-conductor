@@ -133,15 +133,36 @@ void GRpcClient::subscribe(const uint32_t type, on_message_handler_t handler)
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::unsubscribe()
+void GRpcClient::updatePeer(PeerType newType)
 {
     std::cout << "[grpc] "
-              << "unsubscribe()" << std::endl;
+              << "updatePeer()" << std::endl;
+
+    Peer peer;
+    peer.set_id(m_id);
+    peer.set_group(m_group);
+    peer.set_type(newType);
+
+    Empty resp;
+
+    grpc::ClientContext context;
+    grpc::Status status = m_stub->updatePeer(&context, peer, &resp);
+    if (!status.ok())
+    {
+        std::cout << "[grpc] unsubscribe()" << status.error_code() << " : " << status.error_message() << std::endl;
+        return;
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
+void GRpcClient::unsubscribe()
+{
+    std::cout << "[grpc] unsubscribe()" << std::endl;
 
     if (!m_reader.joinable())
     {
-        std::cout << "[grpc] "
-                  << "already unsubscribed" << std::endl;
+        std::cout << "[grpc] already unsubscribed" << std::endl;
         return;
     }
 
@@ -156,7 +177,7 @@ void GRpcClient::unsubscribe()
     grpc::Status status = m_stub->unsubscribe(&context, peer, &resp);
     if (!status.ok())
     {
-        std::cout << status.error_code() << " : " << status.error_message() << std::endl;
+        std::cout << "[grpc] unsubscribe()" << status.error_code() << " : " << status.error_message() << std::endl;
         return;
     }
 

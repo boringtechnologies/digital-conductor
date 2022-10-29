@@ -39,6 +39,9 @@ class Service : public dc::DcRpc::CallbackService
     grpc::ServerWriteReactor<dc::Message> *subscribe(grpc::CallbackServerContext *context,
                                                      const dc::Peer *request) override;
 
+    grpc::ServerUnaryReactor *updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
+                                         dc::Empty *reply) override;
+
     grpc::ServerUnaryReactor *unsubscribe(grpc::CallbackServerContext *context, const dc::Peer *request,
                                           dc::Empty *reply) override;
 
@@ -182,6 +185,27 @@ grpc::ServerWriteReactor<dc::Message> *Service::subscribe(grpc::CallbackServerCo
     m_writers[request->id()] = w;
 
     return w;
+}
+
+grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
+                                              dc::Empty *reply)
+{
+    std::cout << "unsubscribe called from " << request->id() << std::endl;
+
+    grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
+
+    if (m_peers.find(request->id()) == m_peers.end())
+    {
+        std::cout << "    user not found" << std::endl;
+
+        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "User not found"));
+        return reactor;
+    }
+
+    m_peers[request->id()] = *request;
+
+    reactor->Finish(grpc::Status::OK);
+    return reactor;
 }
 
 //******************************************************************************
