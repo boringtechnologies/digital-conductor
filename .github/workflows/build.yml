@@ -216,3 +216,9 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.deb
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-${{ matrix.package-manager }}-server
+          path: |
+            bin/digitalconductorcore-server
