@@ -58,13 +58,7 @@ class AppController::impl : public QObject
 
     AppController::State m_state;
 
-    std::string m_target;
-    std::string m_user;
-    std::string m_group;
-    std::string m_type;
-
     dc::GRpcClientPtr m_rpcClient;
-    dc::PeerType m_peerType{dc::UNKNOWN};
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
@@ -201,7 +195,8 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
     break;
 
     case dc::P2PLIST: {
-        auto peerList = msg.peers().peers();
+        const auto thisPeer = m_rpcClient->peer();
+        const auto peerList = msg.peers().peers();
         std::vector<dc::Peer> peers;
         peers.reserve(peerList.size());
         for (size_t i = 0; i < peerList.size(); i++)
@@ -209,14 +204,14 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
             const dc::Peer &peer = peerList.Get(i);
 
             // sanoty check
-            if (m_group != peer.group())
+            if (thisPeer.group() != peer.group())
             {
                 std::cerr << "FIXME This filtration must be done on server\n";
                 continue;
             }
 
             // skip self check
-            if (m_rpcClient->id() == peer.id())
+            if (thisPeer.id() == peer.id())
             {
                 continue;
             }
@@ -466,26 +461,27 @@ AppController::~AppController()
 
 //******************************************************************************
 //******************************************************************************
-void AppController::init(const QString &userName, const QString &group, const QString &target)
+void AppController::init(const QString &userName, const QString &groupName, const QString &targetName,
+                         const QString &rwMode)
 {
-    m_p->m_user   = userName.toStdString();
-    m_p->m_group  = group.toStdString();
-    m_p->m_target = target.toStdString();
+    std::string user   = userName.toStdString();
+    std::string group  = groupName.toStdString();
+    std::string target = targetName.toStdString();
+    std::string rw     = rwMode.toStdString();
 
-    dc::PeerType type = dc::PeerType::UNKNOWN;
-    if (!m_p->m_type.empty())
+    dc::PeerType peerType = dc::PeerType::UNKNOWN;
+    if (!rw.empty())
     {
-        type = m_p->m_type == "r"    ? dc::PeerType::READER
-               : m_p->m_type == "w"  ? dc::PeerType::WRITER
-               : m_p->m_type == "rw" ? (dc::PeerType)(dc::PeerType::READER | dc::PeerType::WRITER)
-                                     : dc::PeerType::UNKNOWN;
+        peerType = rw == "r"    ? dc::PeerType::READER
+                   : rw == "w"  ? dc::PeerType::WRITER
+                   : rw == "rw" ? (dc::PeerType)(dc::PeerType::READER | dc::PeerType::WRITER)
+                                : dc::PeerType::UNKNOWN;
     }
-    m_p->m_peerType = type;
 
-    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group, m_p->m_peerType,
-                                              grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
+    m_p->m_rpcClient.reset(
+        new dc::GRpcClient(user, group, peerType, grpc::CreateChannel(target, grpc::InsecureChannelCredentials())));
 
-    m_p->m_rpcClient->subscribe(m_p->m_peerType, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1));
+    m_p->m_rpcClient->subscribe(peerType, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1));
 }
 
 //******************************************************************************
@@ -497,23 +493,16 @@ std::vector<dc::Peer> AppController::getPeers() const
 
 //******************************************************************************
 //******************************************************************************
-// std::shared_ptr<dc::GRpcClient> AppController::rpcClient()
-//{
-//    return m_p->m_rpcClient;
-//}
+QString AppController::group() const
+{
+    return QString::fromStdString(m_p->m_rpcClient->peer().group());
+}
 
 //******************************************************************************
 //******************************************************************************
 AppController::State AppController::state() const
 {
     return m_p->m_state;
-}
-
-//******************************************************************************
-//******************************************************************************
-QString AppController::group() const
-{
-    return QString::fromStdString(m_p->m_group);
 }
 
 //******************************************************************************
@@ -639,15 +628,17 @@ void AppController::startStreaming()
     const dc::media::DeviceDescr &audioDevDescr = m_p->m_currentDevices[audioDeviceClass];
     media::CaptureDevice audioDevice{audioDevDescr.internalName, audioDevDescr.internalParams};
 
+    const auto &user = m_p->m_rpcClient->peer().id();
+
     // start senders
-    m_p->m_videosender.reset(new media::Sender(m_p->m_user, media::MediaType::Video, videoDevice, m_p->m_mediaclock));
+    m_p->m_videosender.reset(new media::Sender(user, media::MediaType::Video, videoDevice, m_p->m_mediaclock));
     m_p->m_videosender->start();
 
-    m_p->m_audiosender.reset(new media::Sender(m_p->m_user, media::MediaType::Audio, audioDevice, m_p->m_mediaclock));
+    m_p->m_audiosender.reset(new media::Sender(user, media::MediaType::Audio, audioDevice, m_p->m_mediaclock));
     m_p->m_audiosender->start();
 
-    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::WRITER);
-    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+    dc::PeerType peerType = (dc::PeerType)(m_p->m_rpcClient->peer().type() | dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(peerType);
 
     // connect peers
     //    for (const dc::Peer & p : m_p->m_rpcPeers)
@@ -705,8 +696,8 @@ void AppController::receiveStream()
         return;
     }
 
-    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::READER);
-    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+    dc::PeerType peerType = (dc::PeerType)(m_p->m_rpcClient->peer().type() | dc::PeerType::READER);
+    m_p->m_rpcClient->updatePeer(peerType);
 
     // TODO one writer temporary
     for (const dc::Peer &peer : m_p->m_rpcPeers)
@@ -784,8 +775,8 @@ void AppController::receiveStream()
 //******************************************************************************
 void AppController::stopStream()
 {
-    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType & ~dc::PeerType::WRITER);
-    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+    dc::PeerType type = (dc::PeerType)(m_p->m_rpcClient->peer().type() & ~dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(type);
 
     if (m_p->m_audiosender)
     {
@@ -824,8 +815,8 @@ void AppController::stopStream()
 
 void AppController::stopReceive()
 {
-    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType & ~dc::PeerType::READER);
-    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+    dc::PeerType type = (dc::PeerType)(m_p->m_rpcClient->peer().type() & ~dc::PeerType::READER);
+    m_p->m_rpcClient->updatePeer(type);
 
     for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_videoreceivers)
     {

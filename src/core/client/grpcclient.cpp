@@ -10,20 +10,6 @@ namespace dc
 
 //******************************************************************************
 //******************************************************************************
-Peer GRpcClient::getPeer(const std::string &id)
-{
-    std::lock_guard lock(m_peerMutex);
-
-    if (m_peers.find(id) == m_peers.end())
-    {
-        return Peer();
-    }
-
-    return m_peers.at(id);
-}
-
-//******************************************************************************
-//******************************************************************************
 void GRpcClient::subscribe(PeerType type, on_message_handler_t handler)
 {
     std::cout << "[grpc] "

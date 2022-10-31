@@ -17,7 +17,7 @@ Official or unofficial:
 - Official: https://www.qt.io/download-open-source
 - Unofficial: https://github.com/miurahr/aqtinstall
 
-## Install dependencies with Conan package manager
+## Install dependencies with Conan package manager (Recomended)
 
 All deps except Qt can be installed with `conan`, for this just pass `-DWITH_CONAN=ON` and appropriate `-DWITH_CONAN_PROFILE=$(pwd)/conan/profiles/{intel,linux,mx}`
 

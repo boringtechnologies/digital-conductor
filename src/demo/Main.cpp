@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
               << userGroup.toStdString() << std::endl;
 
     AppController *ac = AppController::instance();
-    ac->init(userName, userGroup, signallingServer);
+    ac->init(userName, userGroup, signallingServer, "");
 
     const QUrl url("qrc:dc/Main.qml");
     QObject::connect(

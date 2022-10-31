@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            mediasender.reset(new media::Sender(grclient->id(), mediatype, captureDevice, mediaclock));
+            mediasender.reset(new media::Sender(grclient->peer().id(), mediatype, captureDevice, mediaclock));
             mediasender->start();
         }
         else if (command == "transmitto")

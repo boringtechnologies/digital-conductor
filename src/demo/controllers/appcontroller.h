@@ -66,7 +66,7 @@ class AppController : public QObject
     void syncModeChanged();
 
   public slots:
-    void init(const QString &userName, const QString &group, const QString &target);
+    void init(const QString &userName, const QString &group, const QString &target, const QString &rwMode);
 
     void registerLicense(const QString license);
     void checkLicense();

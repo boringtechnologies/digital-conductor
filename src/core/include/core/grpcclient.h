@@ -51,16 +51,10 @@ class GRpcClient
     }
 
   public:
-    std::string id() const
+    const Peer &peer() const
     {
-        return m_peer.id();
+        return m_peer;
     }
-    std::string group() const
-    {
-        return m_peer.group();
-    }
-
-    Peer getPeer(const std::string &id);
 
     void subscribe(PeerType type = READER, on_message_handler_t handler = nullptr);
     void updatePeer(PeerType newType);
