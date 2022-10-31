@@ -69,6 +69,12 @@ add_custom_command(
         "${DigitalConductorCore_proto}"
       DEPENDS "${DigitalConductorCore_proto}")
 
+add_custom_target(
+      run_protoc
+      ALL
+      DEPENDS ${DigitalConductorCore_proto}
+  )
+
 add_library(DigitalConductorCore_proto
           ${DigitalConductorCore_grpc_srcs}
           ${DigitalConductorCore_grpc_hdrs}

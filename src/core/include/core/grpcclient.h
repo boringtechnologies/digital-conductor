@@ -13,6 +13,7 @@
 #include <list>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 #include <grpcpp/grpcpp.h>
 
@@ -21,8 +22,8 @@
 namespace dc
 {
 
-typedef std::function<void(const std::string &from, const std::string &to, const std::string &msg)>
-    on_message_handler_t;
+typedef std::function<void(const dc::Message &msg)> on_message_handler_t;
+typedef std::function<void(const std::vector<dc::Peer> &list)> on_peers_handler_t;
 
 class GRpcClient;
 typedef std::shared_ptr<GRpcClient> GRpcClientPtr;
@@ -32,10 +33,13 @@ typedef std::shared_ptr<GRpcClient> GRpcClientPtr;
 class GRpcClient
 {
   public:
-    GRpcClient(const std::string &id, const std::string &group, std::shared_ptr<grpc::Channel> channel)
-        : m_id(id), m_group(group), m_stub(dc::DcRpc::NewStub(channel)), m_messageHandler(nullptr),
-          m_lastPeersRequested(std::chrono::system_clock::now() - std::chrono::seconds(60))
+    GRpcClient(const std::string &id, const std::string &group, const dc::PeerType peerType,
+               std::shared_ptr<grpc::Channel> channel)
+        : m_stub(dc::DcRpc::NewStub(channel)), m_peerMutex(), m_messageHandler(nullptr)
     {
+        m_peer.set_id(id);
+        m_peer.set_group(group);
+        m_peer.set_type(peerType);
     }
 
     ~GRpcClient()
@@ -49,19 +53,19 @@ class GRpcClient
   public:
     std::string id() const
     {
-        return m_id;
+        return m_peer.id();
     }
     std::string group() const
     {
-        return m_group;
+        return m_peer.group();
     }
 
-    Peer getPeer(const std::string &id) const;
+    Peer getPeer(const std::string &id);
 
-    std::vector<Peer> getPeerList();
-    void subscribe(const uint32_t type = 1, on_message_handler_t handler = nullptr);
+    void subscribe(PeerType type = READER, on_message_handler_t handler = nullptr);
+    void updatePeer(PeerType newType);
     void unsubscribe();
-    void sendMessage(const std::string &to, const std::string &msg);
+    void sendMessage(const std::string &to, const dc::MessageType type, const std::string &data);
 
     bool p2pInit(const std::string &to, const std::string &sdp);
     bool p2pAccept(const std::string &to, const std::string &sdp);
@@ -71,15 +75,16 @@ class GRpcClient
   private:
     std::unique_ptr<dc::DcRpc::Stub> m_stub;
 
-    std::string m_id;
-    std::string m_group;
+    std::mutex m_peerMutex;
+    dc::Peer m_peer;
 
     std::thread m_reader;
+    std::thread m_peersReader;
 
-    std::chrono::system_clock::time_point m_lastPeersRequested;
     std::map<std::string, Peer> m_peers;
 
     on_message_handler_t m_messageHandler;
+    on_peers_handler_t m_peersHandler;
 };
 
 } // namespace dc

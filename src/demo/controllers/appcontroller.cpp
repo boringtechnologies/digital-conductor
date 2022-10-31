@@ -41,9 +41,7 @@ class AppController::impl : public QObject
   protected:
     impl(AppController *owner);
 
-    void updatePeerList();
-
-    void onGrpcMessage(const std::string &from, const std::string &to, const std::string &msg);
+    void onGrpcMessage(const dc::Message &message);
 
     void onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr);
     void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr);
@@ -66,9 +64,7 @@ class AppController::impl : public QObject
     std::string m_type;
 
     dc::GRpcClientPtr m_rpcClient;
-
-    // TODO mutex?
-    QTimer m_updatePeersTimer;
+    dc::PeerType m_peerType{dc::UNKNOWN};
     std::vector<dc::Peer> m_rpcPeers;
 
     std::map<std::string, dc::JuiceClientPtr> m_p2pConnections;
@@ -93,32 +89,22 @@ class AppController::impl : public QObject
 //******************************************************************************
 AppController::impl::impl(AppController *owner) : m_o(owner), m_state(AppController::StateWelcome)
 {
-    connect(&m_updatePeersTimer, &QTimer::timeout, this, &impl::updatePeerList);
-    m_updatePeersTimer.start(5000);
 }
 
 //*****************************************************************************
 //*****************************************************************************
-void AppController::impl::updatePeerList()
+void AppController::impl::onGrpcMessage(const dc::Message &msg)
 {
-    if (m_rpcClient)
-    {
-        m_rpcPeers = m_rpcClient->getPeerList();
+    const std::string &from    = msg.from();
+    const std::string &to      = msg.to();
+    const dc::MessageType type = msg.type();
 
-        // TODO check connections and connect to new peers if streaming
-    }
-}
-
-//*****************************************************************************
-//*****************************************************************************
-void AppController::impl::onGrpcMessage(const std::string &from, const std::string &to, const std::string &msg)
-{
     std::cout << "[appctrl] onGrpcMessage"
-              << "Message from " << from << " --> " << msg << std::endl;
+              << "Message[" << type << "] from " << from << " --> " << to << std::endl;
 
-    // TODO move juice messages to another instance
-    if (msg.rfind("JP2PI", 0) == 0)
+    switch (type)
     {
+    case dc::P2PINIT: {
         // juice init connection, sdp
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (ptr)
@@ -136,7 +122,7 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
                       std::placeholders::_4),
             std::bind(&impl::onAudioRecv, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                       std::placeholders::_4)));
-        ptr->init(msg.substr(6));
+        ptr->init(msg.data());
 
         if (!m_rpcClient->p2pAccept(from, ptr->sdp()))
         {
@@ -147,8 +133,8 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
 
         m_p2pConnections[from] = ptr;
     }
-    else if (msg.rfind("JP2PA", 0) == 0)
-    {
+    break;
+    case dc::P2PACCEPT: {
         // juice connection accepted, sdp
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
@@ -158,11 +144,10 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
             return;
         }
 
-        ptr->connect(msg.substr(6));
+        ptr->connect(msg.data());
     }
-    else if (msg.rfind("JP2PC", 0) == 0)
-    {
-        // juice candidate
+    break;
+    case dc::P2PCANDIDATE: {
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (!ptr)
         {
@@ -170,10 +155,10 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
                       << "juice not initialized " << from << std::endl;
             return;
         }
-        ptr->addRemote(msg.substr(6));
+        ptr->addRemote(msg.data());
     }
-    else if (msg.rfind("JP2PD", 0) == 0)
-    {
+    break;
+    case dc::P2PDISCONNECT: {
         // juice disconnect
         if (m_videosender)
         {
@@ -196,7 +181,7 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
             res.reset();
         }
         std::cout << "[appctrl] onGrpcMessage "
-                  << "juice disconnect from " << from << " reason: " << msg.substr(6) << std::endl;
+                  << "juice disconnect from " << from << " reason: " << msg.data() << std::endl;
 
         dc::JuiceClientPtr ptr = getP2PClient(from);
         if (ptr)
@@ -207,11 +192,44 @@ void AppController::impl::onGrpcMessage(const std::string &from, const std::stri
 
         m_p2pConnections.erase(from);
     }
-    else
-    {
+    break;
+    case dc::P2PGENERIC: {
         // TODO simple message
         std::cout << "[appctrl] onGrpcMessage "
-                  << "msg from <" << from << "> " << msg << std::endl;
+                  << "msg from <" << from << "> " << msg.data() << std::endl;
+    }
+    break;
+
+    case dc::P2PLIST: {
+        auto peerList = msg.peers().peers();
+        std::vector<dc::Peer> peers;
+        peers.reserve(peerList.size());
+        for (size_t i = 0; i < peerList.size(); i++)
+        {
+            const dc::Peer &peer = peerList.Get(i);
+
+            // sanoty check
+            if (m_group != peer.group())
+            {
+                std::cerr << "FIXME This filtration must be done on server\n";
+                continue;
+            }
+
+            // skip self check
+            if (m_rpcClient->id() == peer.id())
+            {
+                continue;
+            }
+
+            peers.push_back(peer);
+        }
+        m_rpcPeers = peers;
+    }
+    break;
+
+    default: {
+        std::cerr << "[appctrl] onGrpcMessage unknown message with type:" << msg.type() << "\n";
+    }
     }
 }
 
@@ -304,7 +322,7 @@ void AppController::impl::onCandidate(juice_agent_t *agent, const char *sdp, voi
 
     if (m_rpcClient)
     {
-        m_rpcClient->sendMessage(caller->id(), std::string("JP2PC ") + sdp);
+        m_rpcClient->sendMessage(caller->id(), dc::P2PCANDIDATE, sdp);
     }
 }
 
@@ -454,17 +472,20 @@ void AppController::init(const QString &userName, const QString &group, const QS
     m_p->m_group  = group.toStdString();
     m_p->m_target = target.toStdString();
 
-    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group,
-                                              grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
-
-    uint32_t type = 3;
+    dc::PeerType type = dc::PeerType::UNKNOWN;
     if (!m_p->m_type.empty())
     {
-        type = m_p->m_type == "r" ? 1 : m_p->m_type == "w" ? 2 : m_p->m_type == "rw" ? 3 : 0;
+        type = m_p->m_type == "r"    ? dc::PeerType::READER
+               : m_p->m_type == "w"  ? dc::PeerType::WRITER
+               : m_p->m_type == "rw" ? (dc::PeerType)(dc::PeerType::READER | dc::PeerType::WRITER)
+                                     : dc::PeerType::UNKNOWN;
     }
+    m_p->m_peerType = type;
 
-    m_p->m_rpcClient->subscribe(type, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1,
-                                                std::placeholders::_2, std::placeholders::_3));
+    m_p->m_rpcClient.reset(new dc::GRpcClient(m_p->m_user, m_p->m_group, m_p->m_peerType,
+                                              grpc::CreateChannel(m_p->m_target, grpc::InsecureChannelCredentials())));
+
+    m_p->m_rpcClient->subscribe(m_p->m_peerType, std::bind(&impl::onGrpcMessage, m_p.get(), std::placeholders::_1));
 }
 
 //******************************************************************************
@@ -625,6 +646,9 @@ void AppController::startStreaming()
     m_p->m_audiosender.reset(new media::Sender(m_p->m_user, media::MediaType::Audio, audioDevice, m_p->m_mediaclock));
     m_p->m_audiosender->start();
 
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+
     // connect peers
     //    for (const dc::Peer & p : m_p->m_rpcPeers)
     //    {
@@ -680,6 +704,9 @@ void AppController::receiveStream()
         // TODO emit error
         return;
     }
+
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType | dc::PeerType::READER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
 
     // TODO one writer temporary
     for (const dc::Peer &peer : m_p->m_rpcPeers)
@@ -757,6 +784,9 @@ void AppController::receiveStream()
 //******************************************************************************
 void AppController::stopStream()
 {
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType & ~dc::PeerType::WRITER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
+
     if (m_p->m_audiosender)
     {
         m_p->m_audiosender->stop();
@@ -790,6 +820,12 @@ void AppController::stopStream()
 
         m_p->m_p2pConnections.clear();
     }
+}
+
+void AppController::stopReceive()
+{
+    m_p->m_peerType = (dc::PeerType)(m_p->m_peerType & ~dc::PeerType::READER);
+    m_p->m_rpcClient->updatePeer(m_p->m_peerType);
 
     for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_videoreceivers)
     {

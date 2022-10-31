@@ -35,6 +35,8 @@ QString autogenerateName(const uint32_t length = 4)
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
+    std::cout << "Qt DigitalConductor (rev: " << DC_GIT_REV << ")" << std::endl;
+
     QCoreApplication::setOrganizationName("DC");
     QCoreApplication::setApplicationName("DigitalConductor");
     QCoreApplication::setApplicationVersion("0.1");

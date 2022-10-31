@@ -77,6 +77,9 @@ if(NOT WIN32)
   link_libraries(pthread)
 endif()
 
+execute_process(COMMAND git describe --always --dirty OUTPUT_VARIABLE DC_GIT_REV OUTPUT_STRIP_TRAILING_WHITESPACE)
+add_definitions(-DDC_GIT_REV="${DC_GIT_REV}")
+
 add_subdirectory(src/core core)
 add_subdirectory(src/lib  lib)
 add_subdirectory(src/cli  cli)

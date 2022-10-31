@@ -1,10 +1,6 @@
 //******************************************************************************
 //******************************************************************************
 
-//#include "absl/flags/flag.h"
-//#include "absl/flags/parse.h"
-//#include "absl/strings/str_cat.h"
-
 #include "autodiscovery.grpc.pb.h"
 
 #include <iostream>
@@ -19,25 +15,23 @@
 
 //******************************************************************************
 //******************************************************************************
-// ABSL_FLAG(int32_t, port, 50051, "Server port for service.");
 
 namespace dc
 {
 
 typedef std::map<std::string, dc::Peer> peers_map_t;
 
-class PeersWriter;
 class MessageWriter;
 
 //******************************************************************************
 //******************************************************************************
 class Service : public dc::DcRpc::CallbackService
 {
-    grpc::ServerWriteReactor<dc::Peer> *getPeerList(grpc::CallbackServerContext *context,
-                                                    const dc::GetPeerList *request) override;
-
     grpc::ServerWriteReactor<dc::Message> *subscribe(grpc::CallbackServerContext *context,
                                                      const dc::Peer *request) override;
+
+    grpc::ServerUnaryReactor *updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
+                                         dc::Empty *reply) override;
 
     grpc::ServerUnaryReactor *unsubscribe(grpc::CallbackServerContext *context, const dc::Peer *request,
                                           dc::Empty *reply) override;
@@ -62,61 +56,17 @@ class Service : public dc::DcRpc::CallbackService
     void clientDisconnected(const std::string &id);
 
   private:
+    void broadcastPeerList(const std::string &origin, const std::string &group, const std::string &skipId = "");
+
+    grpc::ServerUnaryReactor *p2pAction(grpc::CallbackServerContext *context, const std::string &action,
+                                        const std::string &fromId, const std::string &toId, MessageType messageType,
+                                        const std::string &data);
+
     peers_map_t m_peers;
 
     typedef std::map<std::string, MessageWriter *> writers_t;
     writers_t m_writers;
 };
-
-//******************************************************************************
-//******************************************************************************
-class PeersWriter : public grpc::ServerWriteReactor<dc::Peer>
-{
-  public:
-    PeersWriter(const peers_map_t &pmap) : m_pmap(pmap), m_pmapIt(m_pmap.begin())
-    {
-        nextWrite();
-    }
-
-  public:
-    void OnDone() override
-    {
-        delete this;
-    }
-
-    void OnWriteDone(bool /*ok*/) override
-    {
-        nextWrite();
-    }
-
-  private:
-    void nextWrite()
-    {
-        if (m_pmapIt == m_pmap.end())
-        {
-            Finish(grpc::Status::OK);
-            return;
-        }
-
-        StartWrite(&(m_pmapIt++)->second);
-    }
-
-  private:
-    const peers_map_t m_pmap;
-    peers_map_t::const_iterator m_pmapIt;
-};
-
-//******************************************************************************
-//******************************************************************************
-grpc::ServerWriteReactor<dc::Peer> *Service::getPeerList(grpc::CallbackServerContext *context,
-                                                         const dc::GetPeerList *request)
-{
-    std::cout << "getPeerList called from " << request->id() << std::endl;
-    std::cout << "    " << m_peers.size() << " peers" << std::endl;
-
-    // take a copy of peers map and send to client
-    return new PeersWriter(m_peers);
-}
 
 //******************************************************************************
 //******************************************************************************
@@ -162,9 +112,67 @@ void Service::clientDisconnected(const std::string &id)
 
 //******************************************************************************
 //******************************************************************************
+void Service::broadcastPeerList(const std::string &origin, const std::string &group, const std::string &skipId)
+{
+    // TODO synchronization?
+    std::vector<dc::Peer> peers;
+    for (const std::pair<std::string, dc::Peer> &pair : m_peers)
+    {
+        const dc::Peer &peer = pair.second;
+        // filter by group
+        if (!peer.group().empty() && peer.group() != group)
+        {
+            continue;
+        }
+
+        peers.push_back(peer);
+    }
+
+    PeerList peerList;
+    *peerList.mutable_peers() = {peers.begin(), peers.end()};
+
+    for (const auto &pair : m_peers)
+    {
+        const std::string &id = pair.first;
+        const dc::Peer &peer  = pair.second;
+
+        if (id == skipId)
+        {
+            std::cerr << "[broadcastPeerList] skipping for user[" << id << "]" << std::endl;
+            continue;
+        }
+
+        if (peer.group() != group)
+        {
+            continue;
+        }
+
+        writers_t::iterator it = m_writers.find(id);
+        if (it == m_writers.end())
+        {
+            std::cerr << "[broadcastPeerList] [bug] cannot find writer for user[" << id << "]" << std::endl;
+            continue;
+        }
+
+        std::cout << "[broadcastPeerList] trigger[" << origin << "] for user[" << id << "]" << std::endl;
+
+        // FIXME memory leak
+        dc::Message *m = new dc::Message;
+        m->set_from(origin);
+        m->set_to(id);
+        m->set_type(P2PLIST);
+        m->mutable_peers()->CopyFrom(peerList);
+        // END
+
+        it->second->StartWrite(m);
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
 grpc::ServerWriteReactor<dc::Message> *Service::subscribe(grpc::CallbackServerContext *context, const dc::Peer *request)
 {
-    std::cout << "subscribe called from " << request->id() << " " << context->peer() << std::endl;
+    std::cout << "[subscribe] called from " << request->id() << " " << context->peer() << std::endl;
 
     peers_map_t::iterator it = m_peers.find(request->id());
     if (it != m_peers.end())
@@ -181,23 +189,51 @@ grpc::ServerWriteReactor<dc::Message> *Service::subscribe(grpc::CallbackServerCo
     m_peers[request->id()]   = *request;
     m_writers[request->id()] = w;
 
+    broadcastPeerList(request->id(), request->group());
+
     return w;
 }
 
-//******************************************************************************
-//******************************************************************************
-grpc::ServerUnaryReactor *Service::unsubscribe(grpc::CallbackServerContext *context, const dc::Peer *request,
-                                               dc::Empty *reply)
+grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *context, const dc::Peer *request,
+                                              dc::Empty * /*reply*/)
 {
-    std::cout << "unsubscribe called from " << request->id() << std::endl;
+    std::cout << "[updatePeer] called by " << request->id() << std::endl;
 
     grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
 
     if (m_peers.find(request->id()) == m_peers.end())
     {
-        std::cout << "    user not found" << std::endl;
+        std::cout << "[updatePeer] user not found" << std::endl;
 
-        reactor->Finish(grpc::Status(grpc::StatusCode::ALREADY_EXISTS, "User exists"));
+        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "User not found"));
+        return reactor;
+    }
+
+    m_peers[request->id()] = *request;
+
+    broadcastPeerList(request->id(), request->group(), request->id());
+
+    reactor->Finish(grpc::Status::OK);
+
+    std::cout << "[updatePeer] succeed for " << request->id() << " new type is " << request->type() << std::endl;
+
+    return reactor;
+}
+
+//******************************************************************************
+//******************************************************************************
+grpc::ServerUnaryReactor *Service::unsubscribe(grpc::CallbackServerContext *context, const dc::Peer *request,
+                                               dc::Empty * /*reply*/)
+{
+    std::cout << "[unsubscribe] called by " << request->id() << std::endl;
+
+    grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
+
+    if (m_peers.find(request->id()) == m_peers.end())
+    {
+        std::cout << "[unsubscribe] user not found" << std::endl;
+
+        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "User not found"));
         return reactor;
     }
 
@@ -207,6 +243,8 @@ grpc::ServerUnaryReactor *Service::unsubscribe(grpc::CallbackServerContext *cont
     m_peers.erase(request->id());
     m_writers.erase(request->id());
 
+    broadcastPeerList(request->id(), request->group());
+
     reactor->Finish(grpc::Status::OK);
     return reactor;
 }
@@ -214,46 +252,28 @@ grpc::ServerUnaryReactor *Service::unsubscribe(grpc::CallbackServerContext *cont
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor *Service::sendMessage(grpc::CallbackServerContext *context, const dc::Message *request,
-                                               dc::Empty *reply)
+                                               dc::Empty * /*reply*/)
 {
-    std::cout << "message from " << request->from() << " to " << request->to() << std::endl;
+    const auto &fromId = request->from();
+    const auto &toId   = request->to();
+
+    std::cout << "[sendMessage] from " << fromId << " to " << toId << std::endl;
 
     grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
 
-    peers_map_t::iterator from = m_peers.find(request->from());
+    peers_map_t::iterator from = m_peers.find(fromId);
     if (from == m_peers.end())
     {
-        std::cout << "    no sender" << std::endl;
+        std::cerr << "[sendMessage] no sender found for " << fromId << std::endl;
         reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Sender not found"));
         return reactor;
     }
-    //    if ((from->second.type() & WRITER) == 0)
-    //    {
-    //        std::cout << "    sender not writer" << std::endl;
-    //        reactor->Finish(grpc::Status(grpc::StatusCode::PERMISSION_DENIED, "Sender not writer"));
-    //        return reactor;
-    //    }
 
     peers_map_t::iterator to = m_peers.find(request->to());
     if (to == m_peers.end())
     {
         // TODO find and broadcast to group?
-        std::cout << "    no receiver" << std::endl;
-        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Receiver not found"));
-        return reactor;
-    }
-    //    if ((to->second.type() & READER) == 0)
-    //    {
-    //        std::cout << "    receiver not reader" << std::endl;
-    //        reactor->Finish(grpc::Status(grpc::StatusCode::PERMISSION_DENIED, "Receiver not reader"));
-    //        return reactor;
-    //    }
-
-    peers_map_t::iterator ito = m_peers.find(request->to());
-    if (ito == m_peers.end())
-    {
-        // TODO find and broadcast to group?
-        std::cout << "    no receiver" << std::endl;
+        std::cerr << "[sendMessage] no receiver found for" << toId << std::endl;
         reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Receiver not found"));
         return reactor;
     }
@@ -261,6 +281,7 @@ grpc::ServerUnaryReactor *Service::sendMessage(grpc::CallbackServerContext *cont
     writers_t::iterator it = m_writers.find(request->to());
     if (it == m_writers.end())
     {
+        std::cerr << "[sendMessage] [bug] no receiver writer found for " << toId << std::endl;
         reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "No writer"));
         return reactor;
     }
@@ -274,115 +295,50 @@ grpc::ServerUnaryReactor *Service::sendMessage(grpc::CallbackServerContext *cont
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor *Service::p2pInit(grpc::CallbackServerContext *context, const dc::P2PInit *request,
-                                           dc::Empty *reply)
+                                           dc::Empty * /*reply*/)
 {
-    std::cout << "p2pInit from " << request->from() << " to " << request->to() << std::endl;
-
-    grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
-
-    if (request->from() == request->to())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::CANCELLED, "Sender eq receiver"));
-        return reactor;
-    }
-
-    writers_t::iterator it = m_writers.find(request->to());
-    if (it == m_writers.end())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Peer not found"));
-        return reactor;
-    }
-
-    dc::Message m;
-    m.set_from(request->from());
-    m.set_to(request->to());
-    m.set_msg("JP2PI " + request->sdp());
-    it->second->StartWrite(&m);
-
-    reactor->Finish(grpc::Status::OK);
-    return reactor;
+    return p2pAction(context, __func__, request->from(), request->to(), P2PINIT, request->sdp());
 }
 
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor *Service::p2pAccept(grpc::CallbackServerContext *context, const dc::P2PAccept *request,
-                                             dc::Empty *reply)
+                                             dc::Empty * /*reply*/)
 {
-    std::cout << "p2pAccept from " << request->from() << " to " << request->to() << std::endl;
-
-    grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
-
-    if (request->from() == request->to())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::CANCELLED, "Sender eq receiver"));
-        return reactor;
-    }
-
-    writers_t::iterator it = m_writers.find(request->to());
-    if (it == m_writers.end())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Peer not found"));
-        return reactor;
-    }
-
-    dc::Message m;
-    m.set_from(request->from());
-    m.set_to(request->to());
-    m.set_msg("JP2PA " + request->sdp());
-    it->second->StartWrite(&m);
-
-    reactor->Finish(grpc::Status::OK);
-    return reactor;
+    return p2pAction(context, __func__, request->from(), request->to(), P2PACCEPT, request->sdp());
 }
 
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor *Service::p2pCandidate(grpc::CallbackServerContext *context, const dc::P2PCandidate *request,
-                                                dc::Empty *reply)
+                                                dc::Empty * /*reply*/)
 {
-    std::cout << "p2pCandidate from " << request->from() << " to " << request->to() << std::endl;
-
-    grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
-
-    if (request->from() == request->to())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::CANCELLED, "Sender eq receiver"));
-        return reactor;
-    }
-
-    writers_t::iterator it = m_writers.find(request->to());
-    if (it == m_writers.end())
-    {
-        reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Peer not found"));
-        return reactor;
-    }
-
-    dc::Message m;
-    m.set_from(request->from());
-    m.set_to(request->to());
-    m.set_msg("JP2PC " + request->candidate());
-    it->second->StartWrite(&m);
-
-    reactor->Finish(grpc::Status::OK);
-    return reactor;
+    return p2pAction(context, __func__, request->from(), request->to(), P2PCANDIDATE, request->candidate());
 }
 
 //******************************************************************************
 //******************************************************************************
 grpc::ServerUnaryReactor *Service::p2pDisconnect(grpc::CallbackServerContext *context, const dc::P2PDisconnect *request,
-                                                 dc::Empty *reply)
+                                                 dc::Empty * /*reply*/)
 {
-    std::cout << "p2pDisconnect from " << request->from() << " to " << request->to() << std::endl;
+    return p2pAction(context, __func__, request->from(), request->to(), P2PDISCONNECT, request->reason());
+}
+
+grpc::ServerUnaryReactor *Service::p2pAction(grpc::CallbackServerContext *context, const std::string &action,
+                                             const std::string &fromId, const std::string &toId,
+                                             MessageType messageType, const std::string &data)
+{
+    std::cout << "[p2p" << action << "] from " << fromId << " to " << toId << std::endl;
 
     grpc::ServerUnaryReactor *reactor = context->DefaultReactor();
 
-    if (request->from() == request->to())
+    if (fromId == toId)
     {
         reactor->Finish(grpc::Status(grpc::StatusCode::CANCELLED, "Sender eq receiver"));
         return reactor;
     }
 
-    writers_t::iterator it = m_writers.find(request->to());
+    writers_t::iterator it = m_writers.find(toId);
     if (it == m_writers.end())
     {
         reactor->Finish(grpc::Status(grpc::StatusCode::NOT_FOUND, "Peer not found"));
@@ -390,9 +346,10 @@ grpc::ServerUnaryReactor *Service::p2pDisconnect(grpc::CallbackServerContext *co
     }
 
     dc::Message m;
-    m.set_from(request->from());
-    m.set_to(request->to());
-    m.set_msg("JP2PD " + request->reason());
+    m.set_from(fromId);
+    m.set_to(toId);
+    m.set_type(messageType);
+    m.set_data(data);
     it->second->StartWrite(&m);
 
     reactor->Finish(grpc::Status::OK);
@@ -405,7 +362,8 @@ grpc::ServerUnaryReactor *Service::p2pDisconnect(grpc::CallbackServerContext *co
 //******************************************************************************
 int main()
 {
-    uint32_t port = 50051; // absl::GetFlag(FLAGS_port);
+    char *portFromEnv = std::getenv("DC_GRPC_SERVER_PORT");
+    std::string port  = portFromEnv ? portFromEnv : "50051";
 
     dc::Service service;
 
@@ -415,9 +373,9 @@ int main()
     //    builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
     builder.RegisterService(&service);
 
-    builder.AddListeningPort("0.0.0.0:" + std::to_string(port), grpc::InsecureServerCredentials());
+    builder.AddListeningPort("0.0.0.0:" + port, grpc::InsecureServerCredentials());
 
-    std::cout << "Server started on 0.0.0.0:" << port << std::endl;
+    std::cout << "Server started on 0.0.0.0:" << port << " (rev: " << DC_GIT_REV << ")" << std::endl;
 
     std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
     server->Wait();

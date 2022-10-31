@@ -65,7 +65,7 @@ PeerModel::PeerModel(QObject *parent) : QAbstractListModel(parent), m_p(new impl
     m_p->m_names[RoleType]  = "type";
 
     m_p->processUpdate();
-    m_p->m_updatePeersTimer.start(5000);
+    m_p->m_updatePeersTimer.start(1000);
 }
 
 //******************************************************************************
