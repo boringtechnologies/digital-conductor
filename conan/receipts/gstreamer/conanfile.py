@@ -1,5 +1,6 @@
 from conans import ConanFile, tools, Meson, VisualStudioBuildEnvironment
 from conans.errors import ConanInvalidConfiguration
+from conan.tools.files import apply_conandata_patches
 import glob
 import os
 import shutil
@@ -26,6 +27,8 @@ class GStreamerConan(ConanFile):
     }
     generators = "pkg_config"
     _meson = None
+
+    exports_sources = ["patches/*.patch"]
 
     @property
     def _source_subfolder(self):
@@ -94,6 +97,8 @@ class GStreamerConan(ConanFile):
         return self._meson
 
     def build(self):
+        apply_conandata_patches(self)
+
         with tools.environment_append(VisualStudioBuildEnvironment(self).vars) if self._is_msvc else tools.no_op():
             meson = self._configure_meson()
             meson.build()

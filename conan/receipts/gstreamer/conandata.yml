@@ -5,3 +5,8 @@ sources:
   1.21.1:
     sha256: 9a41769bcbbb2d5ed015660c3b80902af758a884c4e30592752a3ae27b22307a
     url: https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.21.1.tar.xz
+patches:
+  1.21.1:
+    # https://gitlab.freedesktop.org/gstreamer/gstreamer/-/merge_requests/37
+    - patch_file: "patches/00001-make-tracers-work-on-static-libs.patch"
+      base_path: "source_subfolder"
