@@ -71,3 +71,74 @@ Done!
 
  - `find src -iname \*.h -o -iname \*.cpp -o -iname \*.hpp -o -iname \*.proto | xargs clang-format -i`
  - `find src -iname \*.cpp -not -iname test/app.cpp | xargs clang-tidy -p compile_commands.json`
+
+
+## Main workflow of the app
+
+<details>
+  <summary>Sequence diagram</summary>
+
+  ```plantuml
+  @startuml
+
+  alt All clients subscribes to RPC messages first
+
+      Client1 ->> RPC: subscribe
+      RPC <<- Client2 : subscribe
+
+  ...
+
+  alt On client type update (sender/recieved) all clients get notified
+
+      Client1 ->> RPC: updatePeer
+      RPC ->> Client2: updatedPeers
+
+      ...
+
+      RPC <<- Client2 : updatePeer
+      Client1 <<- RPC: updatedPeers
+
+  ...
+
+  alt Start stream
+
+      Client1 ->> RPC: updatePeer
+
+  ...
+
+  alt Recieving stream
+
+      RPC <<- Client2: p2pInit
+      Client1 <<- RPC: Message[P2PINIT]
+      Client1 ->> RPC: p2pAccept
+      RPC ->> Client2: Message[P2PACCEPT]
+      Client2 <<- Client2: juice_gather_candidates
+      RPC <<- Client2: Message[P2PCANDIDATE]
+      Client1 <<- RPC: Message[P2PCANDIDATE]
+      Client1 ->> Client1: juice_add_remote_candidate
+      Client1 ->> Client2: cb_recv[juice]
+
+  ...
+
+  alt Stop receiving
+
+      Client2 ->> RPC: updatePeer
+      Client2 ->> RPC: p2pDisconnect [for each stream]
+      Client2 -> Client2: juice_destroy [for each stream]
+
+  alt Stop streaming
+
+      Client1 ->> RPC: updatePeer
+      Client1 ->> RPC: p2pDisconnect [for each pear]
+      Client1 -> Client1: juice_destroy [for each pear]
+
+  ...
+
+
+  Client1 ->> RPC: unsubscribe
+  RPC <<- Client2 : unsubscribe
+
+  @enduml
+
+  ```
+</details>
