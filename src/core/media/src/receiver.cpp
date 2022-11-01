@@ -1,35 +1,8 @@
 #include <gst/app/app.h>
+#include <gst/net/net.h>
 
 #include "core/media/sync.hpp"
 #include "internal.hpp"
-
-static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
-    GMainLoop *loop = (GMainLoop *)data;
-
-    switch (GST_MESSAGE_TYPE(msg)) {
-        case GST_MESSAGE_EOS:
-            g_print("[gst-receiver] end of stream\n");
-            g_main_loop_quit(loop);
-            break;
-
-        case GST_MESSAGE_ERROR: {
-            gchar *debug;
-            GError *error;
-
-            gst_message_parse_error(msg, &error, &debug);
-            g_free(debug);
-
-            g_printerr("[gst-receiver] error: %s\n", error->message);
-            g_error_free(error);
-            g_main_loop_quit(loop);
-            break;
-        }
-        default:
-            break;
-    }
-
-    return TRUE;
-}
 
 static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
     GstSample *sample;
@@ -97,22 +70,29 @@ static GstElement *get_audio_device(const media::PlaybackDevice &device,
     return sink;
 }
 
+struct media::Receiver::impl : BasePipeline {
+    friend class media::Receiver;
+
+    GstElement *appsrc;
+    const char *media_name;
+
+    impl(const std::string &name, media::MediaType type)
+        : BasePipeline(name + "-rcv-" + (type ? "video" : "audio")),
+          appsrc(NULL) {}
+
+    ~impl() {}
+};
+
 media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device, const ClockInfo &clock,
                           std::chrono::duration<int, std::milli> delay,
                           bool synchronize, media::WriteCallback write_cb)
-    : media_type(type), thread(nullptr), write_cb(write_cb) {
-    GstBus *bus;
+    : m_p(new impl(id.c_str(), type)), media_type(type), write_cb(write_cb) {
     GstElement *rtpbin, *depayloader, *decoder, *convert, *sink, *appsink;
 
-    loop = g_main_loop_new(nullptr, FALSE);
-
-    pipeline = gst_pipeline_new(
-        ("rx-" + id + (media_type ? "-video" : "-audio")).c_str());
-    MAKE_ELEMENT(appsrc, "appsrc", ("rx-" + id + "-appsrc").c_str());
-    g_object_set(appsrc, "format", GST_FORMAT_TIME, nullptr);
-    g_object_set(appsrc, "do-timestamp", true, nullptr);
-    g_object_set(appsrc, "is-live", true, nullptr);
+    MAKE_ELEMENT(m_p->appsrc, "appsrc", ("rx-" + id + "-appsrc").c_str());
+    g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
+                 "is-live", true, nullptr);
     MAKE_ELEMENT(rtpbin, "rtpbin", ("rx-" + id + "-rtpbin").c_str());
     if (type == media::MediaType::Audio) {
         MAKE_ELEMENT(depayloader, "rtpvorbisdepay",
@@ -120,7 +100,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         MAKE_ELEMENT(decoder, "vorbisdec", ("rx-" + id + "-dec").c_str());
         MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
         sink = get_audio_device(device, id);
-        g_object_set(appsrc, "caps",
+        g_object_set(m_p->appsrc, "caps",
                      gst_caps_from_string(
                          "application/"
                          "x-rtp,media=(string)audio,clock-rate=(int)"
@@ -138,7 +118,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         g_signal_connect(sink, "child-added",
                          G_CALLBACK(actual_sink_added_callback), NULL);
         g_object_set(
-            appsrc, "caps",
+            m_p->appsrc, "caps",
             gst_caps_from_string("application/"
                                  "x-rtp,media=(string)video,clock-rate=(int)"
                                  "90000,encoding-name=(string)VP8,payload=101"),
@@ -160,16 +140,12 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         g_object_set(rtpbin, "buffer-mode", 0, nullptr);
     }
 
-    GstPad *src_pad = gst_element_get_static_pad(appsrc, "src");
+    GstPad *src_pad = gst_element_get_static_pad(m_p->appsrc, "src");
     GstPad *recv_rtp_sink_pad =
-        gst_element_get_request_pad(rtpbin, "recv_rtp_sink_%u");
+        gst_element_request_pad_simple(rtpbin, "recv_rtp_sink_%u");
 
-    bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    bus_watch_id = gst_bus_add_watch(bus, bus_callback, loop);
-    gst_object_unref(bus);
-
-    gst_bin_add_many(GST_BIN(pipeline), appsrc, rtpbin, depayloader, decoder,
-                     convert, sink, appsink, nullptr);
+    gst_bin_add_many(GST_BIN(m_p->pipeline), m_p->appsrc, rtpbin, depayloader,
+                     decoder, convert, sink, appsink, nullptr);
 
     gst_pad_link(src_pad, recv_rtp_sink_pad);
     gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
@@ -180,17 +156,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     }
 
     if (synchronize) {
-        GstClock *net_clock = gst_net_client_clock_new(
-            nullptr, clock.address.c_str(), clock.port, 0);
-        if (net_clock == NULL) {
-            g_print("[gst-receiver-%d] failed to create net clock client\n",
-                    media_type);
-            return;
-        }
-
-        /* Wait for the clock to stabilise */
-        gst_clock_wait_for_sync(net_clock, GST_CLOCK_TIME_NONE);
-        gst_pipeline_use_clock(GST_PIPELINE(pipeline), net_clock);
+        m_p->setupClock(clock.address, clock.port);
         /* Set this high enough so that it's higher than the minimum latency
          * on all receivers */
 
@@ -199,60 +165,15 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         g_print("[gst-receiver-%d] reciever latency %ld ns\n", media_type,
                 latency);
 
-        gst_pipeline_set_latency(GST_PIPELINE(pipeline), latency);
+        gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
     }
 }
 
-media::Receiver::~Receiver() {
-    gst_object_unref(GST_OBJECT(pipeline));
-    g_source_remove(bus_watch_id);
-    g_main_loop_unref(loop);
+media::Receiver::~Receiver() {}
 
-    g_print("[gst-reciever-%d] ~deconstructed\n", media_type);
-}
+void media::Receiver::start() { m_p->start(); }
 
-void media::Receiver::start() {
-    std::lock_guard guard(start_stop_mutex);
-
-    thread = std::make_unique<std::thread>([this] {
-        g_print("[gst-receiver-%d] Setting the pipeline to playing\n",
-                media_type);
-        gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-        g_print("[gst-receiver-%d] Running mainloop\n", media_type);
-
-        GST_DEBUG_BIN_TO_DOT_FILE(
-            GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
-            (std::string("rx-pipeline-") + (media_type ? "video" : "audio"))
-                .c_str());
-        g_main_loop_run(loop);
-        GST_DEBUG_BIN_TO_DOT_FILE(
-            GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
-            (std::string("stopped-") + (media_type ? "video" : "audio"))
-                .c_str());
-    });
-}
-
-void media::Receiver::stop() {
-    std::lock_guard guard(start_stop_mutex);
-
-    // HACK: FIXME this delay need to avoid deadlock &
-    // make sure that thread already called g_main_loop_run
-    // ideally something like try_join_for
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(50ms);
-    // EOH
-
-    g_main_loop_quit(loop);
-
-    g_print("[gst-receiver-%d] stopping playback\n", media_type);
-    gst_element_set_state(pipeline, GST_STATE_NULL);
-
-    if (thread) {
-        thread->join();
-        thread.reset();
-    }
-}
+void media::Receiver::stop() { m_p->stop(); }
 
 bool media::Receiver::push(const uint8_t *payload, size_t len) {
     GstState cur_state = GST_STATE_NULL, pending_state;
@@ -260,7 +181,7 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
     GstMapInfo info;
     GstFlowReturn ret;
 
-    gst_element_get_state(pipeline, &cur_state, &pending_state, 0);
+    gst_element_get_state(m_p->pipeline, &cur_state, &pending_state, 0);
     if (cur_state != GST_STATE_PAUSED && cur_state != GST_STATE_PLAYING)
         return true;
 
@@ -277,7 +198,7 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
     memcpy(info.data, payload, len);
     gst_buffer_unmap(buf, &info);
 
-    g_signal_emit_by_name(appsrc, "push-buffer", buf, &ret);
+    g_signal_emit_by_name(m_p->appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
     if (ret == GST_FLOW_ERROR) {
         g_printerr("[gst-receiver-%d] Failed to do 'push-buffer'\n",

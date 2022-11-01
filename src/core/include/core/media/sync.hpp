@@ -1,17 +1,10 @@
 #ifndef SYNC_H_
 #define SYNC_H_
 
-#include <gst/gst.h>
-#include <gst/net/net.h>
-
-#include <chrono>
-#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 // Synced Groups API
@@ -68,11 +61,8 @@ struct CaptureDevice
 class Sender
 {
   private:
-    std::unique_ptr<std::thread> thread;
-    std::mutex start_stop_mutex;
-    GMainLoop *loop;
-    guint bus_watch_id;
-    GstElement *pipeline, *tee;
+    class impl;
+    std::shared_ptr<impl> m_p;
     MediaType media_type;
 
   public:
@@ -129,11 +119,8 @@ struct PlaybackDevice
 class Receiver
 {
   private:
-    std::unique_ptr<std::thread> thread;
-    std::mutex start_stop_mutex;
-    GMainLoop *loop;
-    guint bus_watch_id;
-    GstElement *pipeline, *appsrc;
+    class impl;
+    std::shared_ptr<impl> m_p;
     MediaType media_type;
     // XXX: Make the instantation of the Clock global to all the receivers in a
     // single app

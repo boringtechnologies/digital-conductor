@@ -3,7 +3,7 @@
 [![build](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml/badge.svg)](https://github.com/Boring-App/digital-conductor/actions/workflows/build.yml)
 
 - [Install Qt 6](#install-qt-6)
-- [Install dependencies with Conan package manager](#install-dependencies-with-conan-package-manager)
+- [Install dependencies with Conan package manager (Recomended)](#install-dependencies-with-conan-package-manager)
 - [Manual dependencies install](#manual-dependencies-install)
   * [Install gstreamer](#install-gstreamer)
   * [Debian/Ubuntu Linux](#debian-ubuntu-linux)
