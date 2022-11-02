@@ -52,25 +52,7 @@ static void actual_sink_added_callback(GstChildProxy *,
     g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
 }
 
-static GstElement *get_audio_device(const media::PlaybackDevice &device,
-                                    const std::string &id) {
-    GstElement *sink;
-
-    // TODO use device for element creation
-
-#if defined(__linux__)
-    MAKE_ELEMENT(sink, "pulsesink", ("rx-" + id + "-sink").c_str());
-#elif defined(__APPLE__)
-    MAKE_ELEMENT(sink, "osxaudiosink", ("rx-" + id + "-sink").c_str());
-#endif
-
-    g_object_set(sink, "drift-tolerance", 10000, NULL);
-    g_object_set(sink, "alignment-threshold", 10000, NULL);
-
-    return sink;
-}
-
-struct media::Receiver::impl : BasePipeline {
+struct media::Receiver::impl final : BasePipeline {
     friend class media::Receiver;
 
     GstElement *appsrc;
@@ -81,6 +63,23 @@ struct media::Receiver::impl : BasePipeline {
           appsrc(NULL) {}
 
     ~impl() {}
+
+    GstElement *createAudioSinkElement(const media::PlaybackDevice &) {
+        GstElement *sink = NULL;
+
+        // TODO use device for element creation
+
+#if defined(__linux__)
+        MAKE_ELEMENT(sink, "pulsesink", (name + "-sink").c_str());
+#elif defined(__APPLE__)
+        MAKE_ELEMENT(sink, "osxaudiosink", (name + "-sink").c_str());
+#endif
+
+        g_object_set(sink, "drift-tolerance", 10000, NULL);
+        g_object_set(sink, "alignment-threshold", 10000, NULL);
+
+        return sink;
+    }
 };
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
@@ -90,16 +89,18 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     : m_p(new impl(id.c_str(), type)), media_type(type), write_cb(write_cb) {
     GstElement *rtpbin, *depayloader, *decoder, *convert, *sink, *appsink;
 
-    MAKE_ELEMENT(m_p->appsrc, "appsrc", ("rx-" + id + "-appsrc").c_str());
+    const std::string &name_prefix = m_p->name;
+
+    MAKE_ELEMENT(m_p->appsrc, "appsrc", (name_prefix + "-appsrc").c_str());
     g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
                  "is-live", true, nullptr);
-    MAKE_ELEMENT(rtpbin, "rtpbin", ("rx-" + id + "-rtpbin").c_str());
+    MAKE_ELEMENT(rtpbin, "rtpbin", (name_prefix + "-rtpbin").c_str());
     if (type == media::MediaType::Audio) {
         MAKE_ELEMENT(depayloader, "rtpvorbisdepay",
-                     ("rx-" + id + "-depay").c_str());
-        MAKE_ELEMENT(decoder, "vorbisdec", ("rx-" + id + "-dec").c_str());
-        MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
-        sink = get_audio_device(device, id);
+                     (name_prefix + "-depay").c_str());
+        MAKE_ELEMENT(decoder, "vorbisdec", (name_prefix + "-dec").c_str());
+        MAKE_ELEMENT(convert, "audioconvert", (name_prefix + "-cvrt").c_str());
+        sink = m_p->createAudioSinkElement(device);
         g_object_set(m_p->appsrc, "caps",
                      gst_caps_from_string(
                          "application/"
@@ -107,14 +108,14 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                          "48000,encoding-name=(string)VORBIS,payload=97"),
                      nullptr);
 
-        MAKE_ELEMENT(convert, "audioconvert", ("rx-" + id + "-cvrt").c_str());
-        MAKE_ELEMENT(sink, "autoaudiosink", ("rx-" + id + "-sink").c_str());
+        MAKE_ELEMENT(convert, "audioconvert", (name_prefix + "-cvrt").c_str());
+        MAKE_ELEMENT(sink, "autoaudiosink", (name_prefix + "-sink").c_str());
     } else if (type == media::MediaType::Video) {
         MAKE_ELEMENT(depayloader, "rtpvp8depay",
-                     ("rx-" + id + "-depay").c_str());
-        MAKE_ELEMENT(decoder, "vp8dec", ("rx-" + id + "-dec").c_str());
-        MAKE_ELEMENT(convert, "videoconvert", ("rx-" + id + "-cvrt").c_str());
-        MAKE_ELEMENT(sink, "autovideosink", ("rx-" + id + "-sink").c_str());
+                     (name_prefix + "-depay").c_str());
+        MAKE_ELEMENT(decoder, "vp8dec", (name_prefix + "-dec").c_str());
+        MAKE_ELEMENT(convert, "videoconvert", (name_prefix + "-cvrt").c_str());
+        MAKE_ELEMENT(sink, "autovideosink", (name_prefix + "-sink").c_str());
         g_signal_connect(sink, "child-added",
                          G_CALLBACK(actual_sink_added_callback), NULL);
         g_object_set(
@@ -125,7 +126,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
             nullptr);
     }
 
-    MAKE_ELEMENT(appsink, "appsink", ("rx-" + id + "-appsink-rtcp").c_str());
+    MAKE_ELEMENT(appsink, "appsink", (name_prefix + "-appsink-rtcp").c_str());
     GstAppSinkCallbacks callbacks = {0};
     callbacks.new_sample = new_sample;
     gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, this, NULL);
