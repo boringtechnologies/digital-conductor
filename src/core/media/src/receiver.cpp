@@ -63,23 +63,6 @@ struct media::Receiver::impl final : BasePipeline {
           appsrc(NULL) {}
 
     ~impl() {}
-
-    GstElement *createAudioSinkElement(const media::PlaybackDevice &) {
-        GstElement *sink = NULL;
-
-        // TODO use device for element creation
-
-#if defined(__linux__)
-        MAKE_ELEMENT(sink, "pulsesink", (name + "-sink").c_str());
-#elif defined(__APPLE__)
-        MAKE_ELEMENT(sink, "osxaudiosink", (name + "-sink").c_str());
-#endif
-
-        g_object_set(sink, "drift-tolerance", 10000, NULL);
-        g_object_set(sink, "alignment-threshold", 10000, NULL);
-
-        return sink;
-    }
 };
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
@@ -100,7 +83,6 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                      (name_prefix + "-depay").c_str());
         MAKE_ELEMENT(decoder, "vorbisdec", (name_prefix + "-dec").c_str());
         MAKE_ELEMENT(convert, "audioconvert", (name_prefix + "-cvrt").c_str());
-        sink = m_p->createAudioSinkElement(device);
         g_object_set(m_p->appsrc, "caps",
                      gst_caps_from_string(
                          "application/"
