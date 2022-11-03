@@ -10,19 +10,27 @@
 #include <mutex>
 #include <thread>
 
+#include <fmt/core.h>
 #include <juice/juice.h>
+
+using namespace std::chrono_literals;
 
 //******************************************************************************
 //******************************************************************************
 namespace dc
 {
 
-constexpr const char *const JP2P_PING   = "JP2PING ";
-constexpr const char *const JP2P_PONG   = "JP2PONG ";
-constexpr const char *const JP2P_MSG    = "JP2PMSG ";
-constexpr const char *const JP2P_VIDEO  = "JP2PVID ";
-constexpr const char *const JP2P_AUDIO  = "JP2PAUD ";
-constexpr const size_t JP2P_HEADER_SIZE = 8;
+constexpr const std::string_view JP2P_PING  = "JP2PING ";
+constexpr const std::string_view JP2P_PONG  = "JP2PONG ";
+constexpr const std::string_view JP2P_MSG   = "JP2PMSG ";
+constexpr const std::string_view JP2P_VIDEO = "JP2PVID ";
+constexpr const std::string_view JP2P_AUDIO = "JP2PAUD ";
+constexpr const size_t JP2P_HEADER_SIZE     = 8;
+
+static_assert(JP2P_PING.size() == JP2P_HEADER_SIZE && JP2P_PONG.size() == JP2P_HEADER_SIZE &&
+                  JP2P_MSG.size() == JP2P_HEADER_SIZE && JP2P_VIDEO.size() == JP2P_HEADER_SIZE &&
+                  JP2P_AUDIO.size() == JP2P_HEADER_SIZE,
+              "All P2P headers must have the same lenght");
 
 //******************************************************************************
 //******************************************************************************
@@ -55,8 +63,13 @@ class JuiceClient::impl
     std::atomic<bool> m_destroymarker;
     std::mutex m_sendLocker;
     std::thread m_pinger;
+    static size_t m_pingCounter;
+    static size_t m_pongCounter;
 
     std::chrono::system_clock::time_point m_lastReceived;
+
+    static std::chrono::milliseconds nowTimestamp();
+    static std::chrono::milliseconds parseTimestamp(const char *payload);
 
     static void onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr);
     static void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr);
@@ -73,19 +86,17 @@ JuiceClient::JuiceClient(const std::string &id, on_state_changed_t onStateChange
                    onAudioReceiveHandler))
 {
     m_p->m_pinger = std::thread([this]() {
-        const std::string pingmsg = JP2P_PING + this->id();
-
         while (!m_p->m_destroymarker)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(1s);
 
             if (m_p->m_agent)
             {
                 if (m_p->m_agent && juice_get_state(m_p->m_agent) >= JUICE_STATE_CONNECTED)
                 {
-                    // std::cout << "[juice] pinger " << "JUICE_STATE_CONNECTED" << std::endl;
-                    // send ping, raw message
-                    sendMessage(reinterpret_cast<const uint8_t *>(pingmsg.c_str()), pingmsg.size());
+                    auto now               = m_p->nowTimestamp();
+                    std::string latencymsg = fmt::format("{}{} {}", JP2P_PING, m_p->m_id, now.count());
+                    sendMessage(reinterpret_cast<const uint8_t *>(latencymsg.c_str()), latencymsg.size());
                 }
             }
         }
@@ -106,6 +117,30 @@ JuiceClient::~JuiceClient()
 
 //******************************************************************************
 //******************************************************************************
+
+size_t JuiceClient::impl::m_pingCounter = 0;
+size_t JuiceClient::impl::m_pongCounter = 0;
+
+std::chrono::milliseconds JuiceClient::impl::nowTimestamp()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+}
+
+std::chrono::milliseconds JuiceClient::impl::parseTimestamp(const char *payload_cstr)
+{
+    try
+    {
+        std::string payload   = payload_cstr;
+        std::string timestamp = payload.substr(payload.find_last_of(' ') + 1);
+        return std::chrono::milliseconds(std::stol(timestamp.c_str())); // TODO convert to safe
+    }
+    catch (...)
+    {
+        // fmt::print("Cannot parse time from \"{}\" payload", payload_cstr);
+    }
+    return 0ms;
+}
+
 // static
 void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr)
 {
@@ -166,32 +201,44 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     // std::cout << "    " << std::string(data, size) << std::endl;
 
     // TODO need incapsulate in client
-    if (memcmp(data, JP2P_MSG, JP2P_HEADER_SIZE) == 0)
+    if (memcmp(data, JP2P_MSG.data(), JP2P_HEADER_SIZE) == 0)
     {
         // p2p text message, need forward to handler?
         std::cout << size << " bytes from " << caller->id() << std::endl;
-        std::cout << "    " << std::string(data + 8, size - 8) << std::endl;
+        std::cout << "    " << std::string(data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE) << std::endl;
     }
-    else if (memcmp(data, JP2P_PING, JP2P_HEADER_SIZE) == 0)
+    else if (memcmp(data, JP2P_PING.data(), JP2P_HEADER_SIZE) == 0)
     {
-        // ping
-        //        std::cout << size << " bytes ping from " << caller->id() << std::endl;
-        //        std::cout << "    " << std::string(data, size) << std::endl;
+        auto ping    = parseTimestamp(data);
+        auto now     = nowTimestamp();
+        auto latency = now - ping;
 
-        std::string pongmsg = JP2P_PONG + caller->id();
+        if (m_pingCounter++ % 10 == 0 && ping.count() != 0 )
+        {
+            fmt::print("JP2P_PING from {} now:{}ms ping:{}ms latency{}ms\n", caller->id(), now.count(), ping.count(),
+                       latency.count());
+        }
+
+        std::string pongmsg = fmt::format("{}{} {}", JP2P_PONG, caller->id(), now.count());
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());
     }
-    else if (memcmp(data, JP2P_PONG, JP2P_HEADER_SIZE) == 0)
+    else if (memcmp(data, JP2P_PONG.data(), JP2P_HEADER_SIZE) == 0)
     {
-        // pong
-        //        std::cout << size << " bytes pong from " << caller->id() << std::endl;
-        //        std::cout << "    " << std::string(data, size) << std::endl;
+        auto pong    = parseTimestamp(data);
+        auto now     = nowTimestamp();
+        auto latency = now - pong;
+
+        if (m_pongCounter++ % 10 == 0 && pong.count() != 0)
+        {
+            fmt::print("JP2P_PONG from {} now:{}ms pong:{}ms latency{}ms\n", caller->id(), now.count(), pong.count(),
+                       latency.count());
+        }
     }
-    else if (memcmp(data, JP2P_AUDIO, JP2P_HEADER_SIZE) == 0)
+    else if (memcmp(data, JP2P_AUDIO.data(), JP2P_HEADER_SIZE) == 0)
     {
         caller->m_p->m_onAudioReceiveHandler(agent, data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE, user_ptr);
     }
-    else if (memcmp(data, JP2P_VIDEO, JP2P_HEADER_SIZE) == 0)
+    else if (memcmp(data, JP2P_VIDEO.data(), JP2P_HEADER_SIZE) == 0)
     {
         caller->m_p->m_onVideoReceiveHandler(agent, data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE, user_ptr);
     }
@@ -206,15 +253,18 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
 //******************************************************************************
 bool JuiceClient::init()
 {
+    constexpr const char *sturn_server_host  = "62.210.189.244";
+    constexpr const size_t sturn_server_port = 3478;
+
     memset(&m_p->m_config, 0, sizeof(juice_config_t));
 
-    m_p->m_config.stun_server_host = "62.210.189.244";
-    m_p->m_config.stun_server_port = 3478;
+    m_p->m_config.stun_server_host = sturn_server_host;
+    m_p->m_config.stun_server_port = sturn_server_port;
 
     memset(&m_p->m_turnServer, 0, sizeof(juice_turn_server_t));
 
-    m_p->m_turnServer.host     = "62.210.189.244";
-    m_p->m_turnServer.port     = 3478;
+    m_p->m_turnServer.host     = sturn_server_host;
+    m_p->m_turnServer.port     = sturn_server_port;
     m_p->m_turnServer.username = "testUser";
     m_p->m_turnServer.password = "testPassword";
 
@@ -284,7 +334,7 @@ void JuiceClient::sendMessage(const std::string &message)
 
     const static size_t datasize = 1096;
     char buffer[datasize];
-    memcpy(buffer, JP2P_MSG, JP2P_HEADER_SIZE);
+    memcpy(buffer, JP2P_MSG.data(), JP2P_HEADER_SIZE);
     const uint32_t size = std::min(message.size(), datasize);
     memcpy(buffer + JP2P_HEADER_SIZE, message.c_str(), size);
     juice_send(m_p->m_agent, buffer, size + JP2P_HEADER_SIZE);
@@ -307,8 +357,12 @@ void JuiceClient::sendVideo(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    static char buffer[512000];
-    memcpy(buffer, JP2P_VIDEO, JP2P_HEADER_SIZE);
+    constexpr size_t buffer_size = 512000;
+    if (size > buffer_size)
+        return;
+
+    static char buffer[buffer_size];
+    memcpy(buffer, JP2P_VIDEO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
     // video payload
@@ -321,8 +375,12 @@ void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    static char buffer[256000];
-    memcpy(buffer, JP2P_AUDIO, JP2P_HEADER_SIZE);
+    constexpr size_t buffer_size = 256000;
+    if (size > buffer_size)
+        return;
+
+    static char buffer[buffer_size];
+    memcpy(buffer, JP2P_AUDIO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
     // audio payload

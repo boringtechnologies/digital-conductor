@@ -54,6 +54,9 @@ class AppController::impl : public QObject
     dc::ReceiverPtr getAudioReceiver(const std::string &id);
 
   protected:
+    static constexpr const char *networkClockHost = "66.228.38.186";
+    static constexpr size_t networkClockPort      = 10000;
+
     AppController *m_o;
 
     AppController::State m_state;
@@ -67,13 +70,13 @@ class AppController::impl : public QObject
     std::map<std::string, dc::media::DeviceDescr> m_currentDevices;
 
     // sender
-    media::ClockInfo m_mediaclock = {"66.228.38.186", 10000};
+    media::ClockInfo m_mediaclock = {networkClockHost, networkClockPort};
     dc::SenderPtr m_videosender;
     dc::SenderPtr m_audiosender;
 
     // receiver
     bool m_syncMode                  = true;
-    media::ClockInfo m_receiverclock = {"66.228.38.186", 10000};
+    media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
     std::chrono::duration<int, std::milli> m_delay{500};
     std::map<std::string, dc::ReceiverPtr> m_videoreceivers;
     std::map<std::string, dc::ReceiverPtr> m_audioreceivers;
