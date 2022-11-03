@@ -1,9 +1,10 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python3
 import os
 import os.path
 import platform
 import shutil
 import subprocess
+
 
 def rm(f):
     if os.path.isdir(f):
@@ -15,6 +16,7 @@ def rm(f):
     elif os.path.isfile(f):
         print('Removing ' + f)
         os.unlink(f)
+
 
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__))))
 
