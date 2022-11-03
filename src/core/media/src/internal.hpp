@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 #define MAKE_ELEMENT(var, factory, name)                                     \
