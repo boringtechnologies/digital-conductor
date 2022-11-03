@@ -28,6 +28,8 @@ class Conan(ConanFile):
         self.requires("cxxopts/3.0.0")
         self.requires("libjuice/1.0.5")
 
+        self.requires("fmt/9.1.0")
+
     def config_options(self):
         self.options["gst-plugins-good"].with_vpx = True
 

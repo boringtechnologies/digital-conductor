@@ -67,6 +67,7 @@ include_directories(
 )
 
 find_package(cxxopts)
+find_package(fmt)
 include_directories(SYSTEM ${cxxopts_INCLUDE_DIRS})
 
 link_directories(
