@@ -85,12 +85,11 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
                      gst_caps_from_string(
                          "video/x-raw,width=640,height=480,framerate=30/1"),
                      nullptr);
-        MAKE_ELEMENT(encoder, "vp8enc", (id + "-publisher-videoenc").c_str());
+        MAKE_ELEMENT(encoder, "vp8enc", (name_prefix + "-videoenc").c_str());
         // Generates a keyframe every 5s, with RTCP feedback in place
         g_object_set(encoder, "deadline", 1, "keyframe-max-dist", 150,
                      "bits-per-pixel", 0.1f, nullptr);
-        payloader = gst_element_factory_make(
-            "rtpvp8pay", (id + "-publisher-videopayload").c_str());
+        MAKE_ELEMENT(payloader, "rtpvp8pay", (name_prefix + "-videopayload").c_str());
         g_object_set(payloader, "pt", 101, NULL);
     }
 

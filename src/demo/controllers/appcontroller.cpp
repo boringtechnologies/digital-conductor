@@ -149,6 +149,9 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
                       << "juice not initialized " << from << std::endl;
             return;
         }
+
+        std::cout << "[appctrl] onGrpcMessage P2PCANDIDATE: " << msg.data() << "\n";
+
         ptr->addRemote(msg.data());
     }
     break;
