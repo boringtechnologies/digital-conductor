@@ -213,9 +213,9 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
         auto now     = nowTimestamp();
         auto latency = now - ping;
 
-        if (m_pingCounter++ % 10 == 0 && ping.count() != 0 )
+        if (m_pingCounter++ % 10 == 0 && ping.count() != 0)
         {
-            fmt::print("JP2P_PING from {} now:{}ms ping:{}ms latency{}ms\n", caller->id(), now.count(), ping.count(),
+            fmt::print("JP2P_PING from {} now:{}ms ping:{}ms latency:{}ms\n", caller->id(), now.count(), ping.count(),
                        latency.count());
         }
 
@@ -230,7 +230,7 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
 
         if (m_pongCounter++ % 10 == 0 && pong.count() != 0)
         {
-            fmt::print("JP2P_PONG from {} now:{}ms pong:{}ms latency{}ms\n", caller->id(), now.count(), pong.count(),
+            fmt::print("JP2P_PONG from {} now:{}ms pong:{}ms latency:{}ms\n", caller->id(), now.count(), pong.count(),
                        latency.count());
         }
     }

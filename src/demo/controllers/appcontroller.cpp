@@ -77,7 +77,7 @@ class AppController::impl : public QObject
     // receiver
     bool m_syncMode                  = true;
     media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
-    std::chrono::duration<int, std::milli> m_delay{500};
+    std::chrono::duration<int, std::milli> m_delay{200};
     std::map<std::string, dc::ReceiverPtr> m_videoreceivers;
     std::map<std::string, dc::ReceiverPtr> m_audioreceivers;
 };

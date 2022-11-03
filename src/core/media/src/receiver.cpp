@@ -44,6 +44,14 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     g_free(padname);
 }
 
+static void rtpbin_new_jitterbuffer_callback(GstElement *,
+                                             GstElement *jitterbuffer, guint,
+                                             guint, gpointer *user_data) {
+    const char *name = (const char *)user_data;
+    std::cout << "[gst-" << name << "] " << __func__ << '\n';
+    g_object_set(jitterbuffer, "latency", 100, "drop-on-latency", TRUE, NULL);
+}
+
 static void actual_sink_added_callback(GstChildProxy *,
                                        GstBaseSink *actual_sink, gchar *,
                                        gpointer) {
@@ -78,6 +86,10 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
                  "is-live", true, nullptr);
     MAKE_ELEMENT(rtpbin, "rtpbin", (name_prefix + "-rtpbin").c_str());
+    g_signal_connect(rtpbin, "new-jitterbuffer",
+                     G_CALLBACK(rtpbin_new_jitterbuffer_callback),
+                     (gpointer)m_p->name.c_str());
+
     if (type == media::MediaType::Audio) {
         MAKE_ELEMENT(depayloader, "rtpvorbisdepay",
                      (name_prefix + "-depay").c_str());
