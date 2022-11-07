@@ -74,7 +74,7 @@ class JuiceClient::impl
 
     std::chrono::system_clock::time_point m_lastReceived;
 
-    void updatePingStat(const char *pongData);
+    void updatePingStat(const std::string &pongData);
 
     static void onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr);
     static void onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr);
@@ -121,26 +121,25 @@ JuiceClient::~JuiceClient()
 
 //******************************************************************************
 //******************************************************************************
-void JuiceClient::impl::updatePingStat(const char *pongData)
+void JuiceClient::impl::updatePingStat(const std::string &pongData)
 {
     try
     {
+        std::string millis = pongData.substr(pongData.find_last_of(' ') + 1);
+
         auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now_since_epoch() - std::chrono::milliseconds(std::stol(pongData + JP2P_HEADER_SIZE)));
+            now_since_epoch() - std::chrono::milliseconds(std::stol(millis.c_str())));
 
-        if (m_pingSeq == 0)
-        {
-            m_pingAvg = latency;
-        }
+        m_pingSeq++;
+        m_pingAvg = std::chrono::duration_cast<std::chrono::milliseconds>(
+            m_pingAvg + std::chrono::milliseconds((latency.count() - m_pingAvg.count()) / m_pingSeq));
 
-        m_pingAvg = std::chrono::duration_cast<std::chrono::milliseconds>(m_pingAvg + latency) / 2;
-
-        fmt::print("{} bytes from {}: seq={} time={} ms avg={} ms\n", strlen(pongData), m_id, m_pingSeq++,
+        fmt::print("{} bytes from {}: seq={} time={} ms avg={} ms\n", pongData.size(), m_id, m_pingSeq,
                    latency.count(), m_pingAvg.count());
     }
     catch (...)
     {
-        fmt::print("{} bytes from {}: cannot parse ping time from payload: {}", strlen(pongData), m_id, pongData);
+        fmt::print("{} bytes from {}: cannot parse ping time from payload: {}", pongData.size(), m_id, pongData);
     }
 }
 
@@ -211,12 +210,14 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     }
     else if (memcmp(data, JP2P_PING.data(), JP2P_HEADER_SIZE) == 0)
     {
-        std::string pongmsg = fmt::format("{}{} {}", JP2P_PONG, caller->id(), data + JP2P_HEADER_SIZE);
+        auto pongData       = std::string(data, size);
+        auto timestamp      = pongData.substr(pongData.find_last_of(' ') + 1);
+        std::string pongmsg = fmt::format("{}{} {}", JP2P_PONG, caller->id(), timestamp);
         caller->sendMessage(reinterpret_cast<const uint8_t *>(pongmsg.c_str()), pongmsg.size());
     }
     else if (memcmp(data, JP2P_PONG.data(), JP2P_HEADER_SIZE) == 0)
     {
-        cimpl->updatePingStat(data + JP2P_HEADER_SIZE);
+        cimpl->updatePingStat(std::string(data, size));
     }
     else if (memcmp(data, JP2P_AUDIO.data(), JP2P_HEADER_SIZE) == 0)
     {
