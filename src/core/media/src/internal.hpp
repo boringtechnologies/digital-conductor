@@ -1,6 +1,7 @@
 #ifndef MEDIA_INTERNAL_H
 #define MEDIA_INTERNAL_H
 
+#include <fmt/core.h>
 #include <gst/app/app.h>
 #include <gst/gst.h>
 #include <gst/net/net.h>
@@ -9,14 +10,6 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
-
-#define MAKE_ELEMENT(var, factory, name)                                     \
-    do {                                                                     \
-        var = gst_element_factory_make(factory, name);                       \
-        if (!var) {                                                          \
-            std::cerr << "Failed to find element: " << factory << std::endl; \
-        }                                                                    \
-    } while (0)
 
 #if GST_USE_STATIC_PLUGINS
 
@@ -152,6 +145,17 @@ struct BasePipeline {
         g_main_loop_unref(loop);
 
         g_print("[gst-%s] ~deconstructed\n", name.c_str());
+    }
+
+    GstElement *makeElement(const char *factoryname, std::string altname = {}) {
+        GstElement *result = gst_element_factory_make(
+            factoryname,
+            fmt::format("{}-{}", altname.empty() ? name : altname, factoryname)
+                .c_str());
+        if (!result) {
+            fmt::print(stderr, "Failed to find element: {}\n", factoryname);
+        }
+        return result;
     }
 
     void setupClock(const std::string &address, int port) {

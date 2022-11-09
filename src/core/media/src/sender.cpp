@@ -19,12 +19,11 @@ struct media::Sender::impl final : BasePipeline {
         : BasePipeline(name + "-snd-" + (type ? "video" : "audio")),
           tee(NULL) {}
 
-    ~impl() {}
+    ~impl() override {}
 
     GstElement *createSourceElement(const media::CaptureDevice &device) {
-        GstElement *source;
         std::cout << "[gst-" << name << "] use " << device.name << std::endl;
-        MAKE_ELEMENT(source, device.name.c_str(), (name + "-src").c_str());
+        GstElement *source = makeElement(device.name.c_str());
         if (!device.params.empty()) {
             std::cout << "[gst-" << name << "] with params:" << std::endl;
             for (const std::pair<std::string, std::string> &param :
@@ -67,36 +66,35 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
     const std::string &name_prefix = m_p->name;
 
     if (type == media::MediaType::Audio) {
-        MAKE_ELEMENT(conv, "audioconvert", (name_prefix + "-conv").c_str());
-        MAKE_ELEMENT(rate, "audioresample", (name_prefix + "-rate").c_str());
-        MAKE_ELEMENT(capsf, "capsfilter", (name_prefix + "-capsf").c_str());
+        conv = m_p->makeElement("audioconvert");
+        rate = m_p->makeElement("audioresample");
+        capsf = m_p->makeElement("capsfilter");
         g_object_set(capsf, "caps",
                      gst_caps_from_string("audio/x-raw,rate=48000"), nullptr);
-        MAKE_ELEMENT(encoder, "vorbisenc", (name_prefix + "-audioenc").c_str());
+        encoder = m_p->makeElement("vorbisenc");
         payloader = gst_element_factory_make("rtpvorbispay",
                                              (id + "-audiopayload").c_str());
         g_object_set(payloader, "pt", 97, "config-interval", 5, NULL);
     } else if (type == media::MediaType::Video) {
-        MAKE_ELEMENT(conv, "videoconvert", (name_prefix + "-conv").c_str());
-        MAKE_ELEMENT(rate, "videorate", (name_prefix + "-rate").c_str());
-        MAKE_ELEMENT(scale, "videoscale", (name_prefix + "-scale").c_str());
-        MAKE_ELEMENT(capsf, "capsfilter", (name_prefix + "-capsf").c_str());
+        conv = m_p->makeElement("videoconvert");
+        rate = m_p->makeElement("videorate");
+        scale = m_p->makeElement("videoscale");
+        capsf = m_p->makeElement("capsfilter");
         g_object_set(capsf, "caps",
                      gst_caps_from_string(
                          "video/x-raw,width=640,height=480,framerate=30/1"),
                      nullptr);
-        MAKE_ELEMENT(encoder, "vp8enc", (name_prefix + "-videoenc").c_str());
+        encoder = m_p->makeElement("vp8enc");
         // Generates a keyframe every 5s, with RTCP feedback in place
         g_object_set(encoder, "deadline", 1, "keyframe-max-dist", 150,
                      "bits-per-pixel", 0.1f, nullptr);
-        MAKE_ELEMENT(payloader, "rtpvp8pay",
-                     (name_prefix + "-videopayload").c_str());
+        payloader = m_p->makeElement("rtpvp8pay");
         g_object_set(payloader, "pt", 101, NULL);
     }
 
-    MAKE_ELEMENT(m_p->tee, "tee", (name_prefix + "-tee").c_str());
-    MAKE_ELEMENT(queue, "queue", (name_prefix + "-queue").c_str());
-    MAKE_ELEMENT(fakesink, "fakesink", (name_prefix + "-fakesink").c_str());
+    m_p->tee = m_p->makeElement("tee");
+    queue = m_p->makeElement("queue");
+    fakesink = m_p->makeElement("fakesink");
 
     gboolean link_succeed = FALSE;
     if (type == media::MediaType::Audio) {
@@ -186,7 +184,8 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
 void media::Sender::addReceiver(const std::string &id,
                                 media::WriteCallback write_cb) {
     GstElement *appsink, *rtpbin, *funnel, *queue, *rtcp_appsrc;
-    GstElement *bin = gst_bin_get_by_name(GST_BIN(m_p->pipeline), id.c_str());
+    GstElement *bin = gst_bin_get_by_name(
+        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
 
     const std::string &name_prefix = m_p->name;
 
@@ -196,14 +195,15 @@ void media::Sender::addReceiver(const std::string &id,
         return;
     }
 
-    bin = gst_bin_new(id.c_str());
+    bin = gst_bin_new(fmt::format("{}-bin", m_p->name).c_str());
     g_assert(bin != nullptr);
 
-    MAKE_ELEMENT(rtpbin, "rtpbin", (name_prefix + "-rtpbin").c_str());
-    MAKE_ELEMENT(funnel, "funnel", (name_prefix + "-funnel").c_str());
-    MAKE_ELEMENT(queue, "queue", (name_prefix + "-queue").c_str());
-    MAKE_ELEMENT(appsink, "appsink", (name_prefix + "-appsink").c_str());
-    MAKE_ELEMENT(rtcp_appsrc, "appsrc", (name_prefix + "-rtcp-appsrc").c_str());
+    auto name = fmt::format("{}->{}", m_p->name, id);
+    rtpbin = m_p->makeElement("rtpbin", name);
+    funnel = m_p->makeElement("funnel", name);
+    queue = m_p->makeElement("queue", name);
+    appsink = m_p->makeElement("appsink", name);
+    rtcp_appsrc = m_p->makeElement("appsrc", name);
 
     if (!bin || !funnel || !queue || !rtpbin || !appsink) {
         g_printerr("[gst-%s] failed to create elements in addReceiver",
@@ -301,7 +301,8 @@ GstPadProbeReturn probe_call_back(GstPad *pad, GstPadProbeInfo *info,
 }
 
 void media::Sender::removeReceiver(const std::string &id) {
-    GstElement *bin = gst_bin_get_by_name(GST_BIN(m_p->pipeline), id.c_str());
+    GstElement *bin = gst_bin_get_by_name(
+        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
     if (bin == nullptr) {
         g_printerr("[gst-%s] no such receiver in the current pipeline for %s\n",
                    m_p->name.c_str(), id.c_str());
@@ -336,8 +337,9 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
     if (cur_state != GST_STATE_PAUSED && cur_state != GST_STATE_PLAYING)
         return true;
 
-    rtcp_appsrc = gst_bin_get_by_name(GST_BIN(m_p->pipeline),
-                                      (m_p->name + "-rtcp-appsrc").c_str());
+    rtcp_appsrc = gst_bin_get_by_name(
+        GST_BIN(m_p->pipeline),
+        fmt::format("{}->{}-appsrc", m_p->name, id).c_str());
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {

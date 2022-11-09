@@ -49,8 +49,9 @@ static void rtpbin_new_jitterbuffer_callback(GstElement *,
                                              guint, gpointer *user_data) {
     const char *name = (const char *)user_data;
     std::cout << "[gst-" << name << "] " << __func__ << '\n';
-    //  g_object_set(jitterbuffer, "latency", 100, "drop-on-latency", TRUE,
-    //  NULL);
+    // g_object_set(jitterbuffer,
+    //              "latency", 100,
+    //              "drop-on-latency", TRUE, NULL);
 }
 
 static void actual_sink_added_callback(GstChildProxy *,
@@ -71,7 +72,7 @@ struct media::Receiver::impl final : BasePipeline {
         : BasePipeline(name + "-rcv-" + (type ? "video" : "audio")),
           appsrc(NULL) {}
 
-    ~impl() {}
+    ~impl() override {}
 };
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
@@ -83,19 +84,18 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 
     const std::string &name_prefix = m_p->name;
 
-    MAKE_ELEMENT(m_p->appsrc, "appsrc", (name_prefix + "-appsrc").c_str());
+    m_p->appsrc = m_p->makeElement("appsrc");
     g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
                  "is-live", true, nullptr);
-    MAKE_ELEMENT(rtpbin, "rtpbin", (name_prefix + "-rtpbin").c_str());
+    rtpbin = m_p->makeElement("rtpbin");
     g_signal_connect(rtpbin, "new-jitterbuffer",
                      G_CALLBACK(rtpbin_new_jitterbuffer_callback),
                      (gpointer)m_p->name.c_str());
 
     if (type == media::MediaType::Audio) {
-        MAKE_ELEMENT(depayloader, "rtpvorbisdepay",
-                     (name_prefix + "-depay").c_str());
-        MAKE_ELEMENT(decoder, "vorbisdec", (name_prefix + "-dec").c_str());
-        MAKE_ELEMENT(convert, "audioconvert", (name_prefix + "-cvrt").c_str());
+        depayloader = m_p->makeElement("rtpvorbisdepay");
+        decoder = m_p->makeElement("vorbisdec");
+        convert = m_p->makeElement("audioconvert");
         g_object_set(m_p->appsrc, "caps",
                      gst_caps_from_string(
                          "application/"
@@ -103,14 +103,13 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
                          "48000,encoding-name=(string)VORBIS,payload=97"),
                      nullptr);
 
-        MAKE_ELEMENT(convert, "audioconvert", (name_prefix + "-cvrt").c_str());
-        MAKE_ELEMENT(sink, "autoaudiosink", (name_prefix + "-sink").c_str());
+        convert = m_p->makeElement("audioconvert");
+        sink = m_p->makeElement("autoaudiosink");
     } else if (type == media::MediaType::Video) {
-        MAKE_ELEMENT(depayloader, "rtpvp8depay",
-                     (name_prefix + "-depay").c_str());
-        MAKE_ELEMENT(decoder, "vp8dec", (name_prefix + "-dec").c_str());
-        MAKE_ELEMENT(convert, "videoconvert", (name_prefix + "-cvrt").c_str());
-        MAKE_ELEMENT(sink, "autovideosink", (name_prefix + "-sink").c_str());
+        depayloader = m_p->makeElement("rtpvp8depay");
+        decoder = m_p->makeElement("vp8dec");
+        convert = m_p->makeElement("videoconvert");
+        sink = m_p->makeElement("autovideosink");
         g_signal_connect(sink, "child-added",
                          G_CALLBACK(actual_sink_added_callback), NULL);
         g_object_set(
@@ -121,7 +120,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
             nullptr);
     }
 
-    MAKE_ELEMENT(appsink, "appsink", (name_prefix + "-appsink-rtcp").c_str());
+    appsink = m_p->makeElement("appsink");
     GstAppSinkCallbacks callbacks = {0};
     callbacks.new_sample = new_sample;
     gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, this, NULL);
