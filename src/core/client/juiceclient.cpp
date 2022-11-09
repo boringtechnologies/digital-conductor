@@ -32,9 +32,11 @@ static_assert(JP2P_PING.size() == JP2P_HEADER_SIZE && JP2P_PONG.size() == JP2P_H
                   JP2P_AUDIO.size() == JP2P_HEADER_SIZE,
               "All P2P headers must have the same lenght");
 
-static std::chrono::milliseconds now_since_epoch()
+typedef std::chrono::duration<double, std::milli> double_millis_t;
+
+static double_millis_t now_since_epoch()
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    return std::chrono::duration_cast<double_millis_t>(std::chrono::system_clock::now().time_since_epoch());
 }
 
 //******************************************************************************
@@ -70,7 +72,7 @@ class JuiceClient::impl
 
     std::thread m_pinger;
     std::size_t m_pingSeq;
-    std::chrono::milliseconds m_pingAvg;
+    double_millis_t m_pingAvg;
 
     std::chrono::system_clock::time_point m_lastReceived;
 
@@ -127,14 +129,14 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
     {
         std::string millis = pongData.substr(pongData.find_last_of(' ') + 1);
 
-        auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now_since_epoch() - std::chrono::milliseconds(std::stol(millis.c_str())));
+        auto latency =
+            std::chrono::duration_cast<double_millis_t>(now_since_epoch() - double_millis_t(std::stol(millis.c_str())));
 
         m_pingSeq++;
-        m_pingAvg = std::chrono::duration_cast<std::chrono::milliseconds>(
-            m_pingAvg + std::chrono::milliseconds((latency.count() - m_pingAvg.count()) / m_pingSeq));
 
-        fmt::print("{} bytes from {}: seq={} time={} ms avg={} ms\n", pongData.size(), m_id, m_pingSeq,
+        m_pingAvg = std::chrono::duration_cast<double_millis_t>(m_pingAvg + (latency - m_pingAvg) / (double)m_pingSeq);
+
+        fmt::print("{} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
                    latency.count(), m_pingAvg.count());
     }
     catch (...)
@@ -199,14 +201,14 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
 
     cimpl->m_lastReceived = std::chrono::system_clock::now();
 
-    // std::cout << size << " bytes from " << caller->id() << std::endl;
-    // std::cout << "    " << std::string(data, size) << std::endl;
+    // fmt::print("[juice] {} bytes of {} from {} recieved\n", size, std::string(data, JP2P_HEADER_SIZE - 1),
+    // caller->id());
 
     // TODO need incapsulate in client
     if (memcmp(data, JP2P_MSG.data(), JP2P_HEADER_SIZE) == 0)
     {
         // p2p text message, need forward to handler?
-        fmt::print("{} bytes from {}\n    {}", size, caller->id(), data + JP2P_HEADER_SIZE);
+        fmt::print("[juice]\tfrom {} -> '{}'\n", caller->id(), data + JP2P_HEADER_SIZE);
     }
     else if (memcmp(data, JP2P_PING.data(), JP2P_HEADER_SIZE) == 0)
     {
@@ -283,7 +285,7 @@ bool JuiceClient::connect(const std::string &sdpRemote)
 {
     if (!m_p->m_agent)
     {
-        std::cout << "need init" << std::endl;
+        fmt::print("[juice] init {}", sdpRemote);
         return false;
     }
     return (juice_set_remote_description(m_p->m_agent, sdpRemote.c_str()) == JUICE_ERR_SUCCESS &&
@@ -385,7 +387,6 @@ std::string JuiceClient::sdp() const
 {
     char sdp[JUICE_MAX_SDP_STRING_LEN];
     juice_get_local_description(m_p->m_agent, sdp, JUICE_MAX_SDP_STRING_LEN);
-    // std::cout << "Local description " << sdp << std::endl;
     return sdp;
 }
 
