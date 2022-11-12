@@ -72,7 +72,6 @@ Done!
  - `find src -iname \*.h -o -iname \*.cpp -o -iname \*.hpp -o -iname \*.proto | xargs clang-format -i`
  - `find src -iname \*.cpp -not -iname test/app.cpp | xargs clang-tidy -p compile_commands.json`
 
-
 ## Main workflow of the app
 
 <details>
@@ -142,3 +141,25 @@ Done!
 
   ```
 </details>
+
+## Standalone GStreamer pipeline testing:
+
+Sender:
+
+```sh
+gst-launch-1.0 -v rtpbin name=rtpbin ntp-time-source=3 rtcp-sync-send-time=FALSE \
+    avfvideosrc device-index=0 ! videoconvert ! videorate ! videoscale ! video/x-raw,width=640,height=480,framerate=30/1 ! vp8enc deadline=1 keyframe-max-dist=150 bits-per-pixel=0.1 ! rtpvp8pay pt=101 ! tee name=tee ! rtpbin.send_rtp_sink_0 \
+    rtpbin.send_rtp_src_0 ! funnel ! queue ! udpsink host=127.0.0.1 port=5000 \
+    rtpbin.recv_rtcp_src_0 ! udpsink host=127.0.0.1 port=5001 sync=false async=false \
+    udpsrc port=5005 ! rtpbin.recv_rtcp_sink_0 \
+    tee. ! queue ! fakesink
+```
+
+Reciever
+```sh
+gst-launch-1.0 -v rtpbin buffer-mode=0 name=rtpbin \
+    udpsrc port=5000 caps="application/x-rtp,media=(string)video,clock-rate=(int)90000,encoding-name=(string)VP8,payload=(int)101" ! rtpbin.recv_rtp_sink_0 \
+    rtpbin. ! rtpvp8depay ! vp8dec ! videoconvert ! autovideosink \
+    udpsrc port=5001 ! rtpbin.recv_rtcp_sink_0 \
+    rtpbin.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=5005 sync=false async=false
+```
