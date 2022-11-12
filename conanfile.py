@@ -14,6 +14,7 @@ class Conan(ConanFile):
             self.requires("wayland/1.21.0", override=True)
             self.requires("libalsa/1.2.7.2", override=True)
 
+        self.requires("zlib/1.2.12", override=True)
         self.requires("glib/2.72.0", override=True)
         self.requires("libffi/3.4.2", override=True)
         self.requires("libiconv/1.17", override=True)
