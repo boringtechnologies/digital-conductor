@@ -19,7 +19,9 @@ class Conan(ConanFile):
         self.requires("libffi/3.4.2", override=True)
         self.requires("libiconv/1.17", override=True)
         self.requires("libpng/1.6.37", override=True)
+        self.requires("openssl/1.1.1s", override=True)
         self.requires("pango/1.50.10", override=True)
+
         self.requires("gstreamer/1.21.1")
         self.requires("gst-libav/1.21.1")
         self.requires("gst-plugins-base/1.21.1")
