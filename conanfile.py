@@ -14,6 +14,11 @@ class Conan(ConanFile):
             self.requires("wayland/1.21.0", override=True)
             self.requires("libalsa/1.2.7.2", override=True)
 
+        # keep outdated version as quick workaround for issus
+        # with lookup glib in cairo and graphene
+        self.requires("graphene/1.10.8", override=True)
+        self.requires("cairo/1.17.4", override=True)
+
         self.requires("zlib/1.2.12", override=True)
         self.requires("glib/2.72.0", override=True)
         self.requires("libffi/3.4.2", override=True)
