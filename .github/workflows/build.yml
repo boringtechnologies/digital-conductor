@@ -195,6 +195,9 @@ jobs:
             --settings build_type=Release       \
             ${{ github.event_name != 'workflow_dispatch' && '' || github.event.inputs.conan-extra-args }} \
             --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
+
+          conan lock create $(pwd)/conanfile.py --profile "${{ github.workspace }}/${{ matrix.conan-profile }}"
+
           conan remove --build --src --force '*'
 
       - run: cmake -B build -S . -C CMakeCache.txt
@@ -216,6 +219,13 @@ jobs:
           path: |
             bin/*.dmg
             bin/*.deb
+
+      - if: matrix.package-manager == 'conan'
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-conan-lock
+          path: |
+            conan.lock
 
       - uses: actions/upload-artifact@v3
         with:
