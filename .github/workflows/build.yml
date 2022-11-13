@@ -202,16 +202,16 @@ jobs:
 
       - run: cmake -B build -S . -C CMakeCache.txt
 
-      # - run: cmake --build build
+      - run: cmake --build build
 
-      # - if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
-      #   uses: ZedThree/clang-tidy-review@v0.10.0
-      #   with:
-      #     include: src/**/*.cpp
-      #     exclude: src/core/media/test/app.cpp
+      - if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        uses: ZedThree/clang-tidy-review@v0.10.0
+        with:
+          include: src/**/*.cpp
+          exclude: src/core/media/test/app.cpp
 
-      # - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
-      #   working-directory: package/${{ matrix.output-package }}
+      - run: env PATH="${{ env.QT_ROOT }}/bin:$PATH" ./build-package.sh
+        working-directory: package/${{ matrix.output-package }}
 
       - uses: actions/upload-artifact@v3
         with:
