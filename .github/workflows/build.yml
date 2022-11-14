@@ -177,7 +177,7 @@ jobs:
       - name: install packages with conan package-manager
         if: matrix.package-manager == 'conan'
         run: |
-          pip3 install conan
+          pip3 install --force-reinstall conan==1.53.0
 
           sh conan/add_cmake_cache_entry.sh WITH_CONAN ON BOOL
           sh conan/add_cmake_cache_entry.sh WITH_CONAN_PROFILE "${{ github.workspace }}/${{ matrix.conan-profile }}"
