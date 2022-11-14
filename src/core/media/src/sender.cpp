@@ -184,10 +184,13 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
 void media::Sender::addReceiver(const std::string &id,
                                 media::WriteCallback write_cb) {
     GstElement *appsink, *rtpbin, *funnel, *queue, *rtcp_appsrc;
-    GstElement *bin = gst_bin_get_by_name(
-        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
 
     const std::string &name_prefix = m_p->name;
+    const std::string bin_name = fmt::format("{}-bin", id);
+
+    GstElement *bin = gst_bin_get_by_name(
+        GST_BIN(m_p->pipeline), bin_name.c_str());
+
 
     if (bin != nullptr) {
         g_printerr("[gst-%s] receiver id %s already exists\n",
@@ -195,15 +198,14 @@ void media::Sender::addReceiver(const std::string &id,
         return;
     }
 
-    bin = gst_bin_new(fmt::format("{}-bin", m_p->name).c_str());
+    bin = gst_bin_new(bin_name.c_str());
     g_assert(bin != nullptr);
 
-    auto name = fmt::format("{}->{}", m_p->name, id);
-    rtpbin = m_p->makeElement("rtpbin", name);
-    funnel = m_p->makeElement("funnel", name);
-    queue = m_p->makeElement("queue", name);
-    appsink = m_p->makeElement("appsink", name);
-    rtcp_appsrc = m_p->makeElement("appsrc", name);
+    rtpbin = m_p->makeElement("rtpbin", id);
+    funnel = m_p->makeElement("funnel", id);
+    queue = m_p->makeElement("queue", id);
+    appsink = m_p->makeElement("appsink", id);
+    rtcp_appsrc = m_p->makeElement("appsrc", id);
 
     if (!bin || !funnel || !queue || !rtpbin || !appsink) {
         g_printerr("[gst-%s] failed to create elements in addReceiver",
@@ -302,7 +304,7 @@ GstPadProbeReturn probe_call_back(GstPad *pad, GstPadProbeInfo *info,
 
 void media::Sender::removeReceiver(const std::string &id) {
     GstElement *bin = gst_bin_get_by_name(
-        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
+        GST_BIN(m_p->pipeline), fmt::format("{}-bin", id).c_str());
     if (bin == nullptr) {
         g_printerr("[gst-%s] no such receiver in the current pipeline for %s\n",
                    m_p->name.c_str(), id.c_str());
@@ -339,7 +341,7 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
 
     rtcp_appsrc = gst_bin_get_by_name(
         GST_BIN(m_p->pipeline),
-        fmt::format("{}->{}-appsrc", m_p->name, id).c_str());
+        fmt::format("{}-appsrc", id).c_str());
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {
