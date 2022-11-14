@@ -49,9 +49,9 @@ static void rtpbin_new_jitterbuffer_callback(GstElement *,
                                              guint, gpointer *user_data) {
     const char *name = (const char *)user_data;
     std::cout << "[gst-" << name << "] " << __func__ << '\n';
-    // g_object_set(jitterbuffer,
-    //              "latency", 100,
-    //              "drop-on-latency", TRUE, NULL);
+    g_object_set(jitterbuffer,
+                  "latency", 0,
+                  "drop-on-latency", FALSE, NULL);
 }
 
 static void actual_sink_added_callback(GstChildProxy *,
