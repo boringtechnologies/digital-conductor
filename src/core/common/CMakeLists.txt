@@ -13,10 +13,8 @@ set(DigitalConductorCore_proto_src
     ${ProtocOutputDir}/autodiscovery.grpc.pb.h
     ${ProtocOutputDir}/autodiscovery.grpc.pb.cc)
 
-set(CMAKE_FIND_DEBUG_MODE TRUE)
-find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin)
-find_program(PROTOC_EXE protoc)
-set(CMAKE_FIND_DEBUG_MODE FALSE)
+find_program(PROTOC_EXE protoc REQUIRED)
+find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin REQUIRED)
 
 add_custom_command(
     OUTPUT ${DigitalConductorCore_proto_src}
