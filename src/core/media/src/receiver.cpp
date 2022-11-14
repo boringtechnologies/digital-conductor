@@ -33,7 +33,7 @@ static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
 static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     gchar *padname = gst_pad_get_name(pad);
     gchar *prefix = g_strdup_printf("recv_rtp_src_");
-    g_printerr("[gst-receiver] %s pad added in %s\n", padname, __func__);
+    fmt::print("[gst-receiver] {} pad added in {}\n", padname, __func__);
     if (g_str_has_prefix(padname, prefix)) {
         GstElement *downstream = (GstElement *)userdata;
         GstPad *sinkpad = gst_element_get_static_pad(downstream, "sink");
@@ -48,16 +48,14 @@ static void rtpbin_new_jitterbuffer_callback(GstElement *,
                                              GstElement *jitterbuffer, guint,
                                              guint, gpointer *user_data) {
     const char *name = (const char *)user_data;
-    std::cout << "[gst-" << name << "] " << __func__ << '\n';
-    g_object_set(jitterbuffer,
-                  "latency", 0,
-                  "drop-on-latency", FALSE, NULL);
+    fmt::print("[gst-receiver-{}] {}\n", name, __func__);
+    g_object_set(jitterbuffer, "latency", 0, "drop-on-latency", FALSE, NULL);
 }
 
 static void actual_sink_added_callback(GstChildProxy *,
                                        GstBaseSink *actual_sink, gchar *,
                                        gpointer) {
-    std::cout << "[gst-receiver] " << __func__ << '\n';
+    fmt::print("[gst-receiver] {}\n", __func__);
 
     g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
 }
@@ -145,7 +143,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     gst_pad_link(src_pad, recv_rtp_sink_pad);
     gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
     if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
-        g_printerr("[gst-receiver-%d] failed to link the elements\n",
+        fmt::print(stderr, "[gst-receiver-{}] failed to link the elements\n",
                    media_type);
         return;
     }
@@ -157,8 +155,8 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 
         long latency = delay.count() * GST_MSECOND;
 
-        g_print("[gst-receiver-%d] reciever latency %ld ns\n", media_type,
-                latency);
+        fmt::print("[gst-receiver-{}] reciever latency {} ns\n", media_type,
+                   latency);
 
         gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
     }
@@ -182,12 +180,14 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {
-        g_printerr("[gst-receiver-%d] Failed to allocate buffer\n", media_type);
+        fmt::print(stderr, "[gst-receiver-{}] Failed to allocate buffer\n",
+                   media_type);
         return false;
     }
 
     if (!gst_buffer_map(buf, &info, GST_MAP_WRITE)) {
-        g_printerr("[gst-receiver-%d] Failed to get buffer map\n", media_type);
+        fmt::print(stderr, "[gst-receiver-{}] Failed to get buffer map\n",
+                   media_type);
         return false;
     }
     memcpy(info.data, payload, len);
@@ -196,7 +196,7 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
     g_signal_emit_by_name(m_p->appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
     if (ret == GST_FLOW_ERROR) {
-        g_printerr("[gst-receiver-%d] Failed to do 'push-buffer'\n",
+        fmt::print(stderr, "[gst-receiver-{}] Failed to do 'push-buffer'\n",
                    media_type);
         return false;
     }

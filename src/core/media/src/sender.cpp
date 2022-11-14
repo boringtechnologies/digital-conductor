@@ -22,14 +22,13 @@ struct media::Sender::impl final : BasePipeline {
     ~impl() override {}
 
     GstElement *createSourceElement(const media::CaptureDevice &device) {
-        std::cout << "[gst-" << name << "] use " << device.name << std::endl;
+        fmt::print("[gst-sender-{}] use {}\n", name, device.name);
         GstElement *source = makeElement(device.name.c_str());
         if (!device.params.empty()) {
-            std::cout << "[gst-" << name << "] with params:" << std::endl;
+            fmt::print("[gst-sender-{}] with params:\n", name);
             for (const std::pair<std::string, std::string> &param :
                  device.params) {
-                std::cout << "  " << param.first << "=" << param.second
-                          << std::endl;
+                fmt::print("  {} = {}\n", param.first, param.second);
                 if (param.first == "device-index" || param.first == "device") {
                     GValue newValue = G_VALUE_INIT;
                     g_value_init(&newValue, G_TYPE_STRING);
@@ -44,8 +43,8 @@ struct media::Sender::impl final : BasePipeline {
                     g_object_set_property(G_OBJECT(source), param.first.c_str(),
                                           &targetValue);
                 } else {
-                    std::cout << "[gst-" << name
-                              << "] unknown property: " << param.first << '\n';
+                    fmt::print(stderr, "[gst-sender-{}] unknown property: {}\n",
+                               param.first);
                 }
             }
         }
@@ -115,11 +114,12 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
     }
 
     if (!link_succeed) {
-        g_printerr("[gst-%s] failed to link the elements\n", m_p->name.c_str());
+        fmt::print(stderr, "[gst-sender-{}] failed to link the elements\n",
+                   m_p->name);
         return;
     }
 
-    g_print("[gst-%s] elements linked successfully\n", m_p->name.c_str());
+    fmt::print("[gst-sender-{}] elements linked successfully\n", m_p->name);
 
     m_p->setupClock(clock.address, clock.port);
 }
@@ -170,7 +170,7 @@ static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
 static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     gchar *padname = gst_pad_get_name(pad);
     gchar *prefix = g_strdup_printf("send_rtp_src_");
-    g_printerr("[gst-sender] %s pad added\n", padname);
+    fmt::print("[gst-sender] {} pad added\n", padname);
     if (g_str_has_prefix(padname, prefix)) {
         GstElement *downstream = (GstElement *)userdata;
         GstPad *sinkpad = gst_element_request_pad_simple(downstream, "sink_%u");
@@ -184,30 +184,32 @@ static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
 void media::Sender::addReceiver(const std::string &id,
                                 media::WriteCallback write_cb) {
     GstElement *appsink, *rtpbin, *funnel, *queue, *rtcp_appsrc;
-    GstElement *bin = gst_bin_get_by_name(
-        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
 
     const std::string &name_prefix = m_p->name;
+    const std::string bin_name = fmt::format("{}-bin", id);
+
+    GstElement *bin =
+        gst_bin_get_by_name(GST_BIN(m_p->pipeline), bin_name.c_str());
 
     if (bin != nullptr) {
-        g_printerr("[gst-%s] receiver id %s already exists\n",
-                   m_p->name.c_str(), id.c_str());
+        fmt::print(stderr, "[gst-sender-{}] receiver id {} already exists\n",
+                   m_p->name, id);
         return;
     }
 
-    bin = gst_bin_new(fmt::format("{}-bin", m_p->name).c_str());
+    bin = gst_bin_new(bin_name.c_str());
     g_assert(bin != nullptr);
 
-    auto name = fmt::format("{}->{}", m_p->name, id);
-    rtpbin = m_p->makeElement("rtpbin", name);
-    funnel = m_p->makeElement("funnel", name);
-    queue = m_p->makeElement("queue", name);
-    appsink = m_p->makeElement("appsink", name);
-    rtcp_appsrc = m_p->makeElement("appsrc", name);
+    rtpbin = m_p->makeElement("rtpbin", id);
+    funnel = m_p->makeElement("funnel", id);
+    queue = m_p->makeElement("queue", id);
+    appsink = m_p->makeElement("appsink", id);
+    rtcp_appsrc = m_p->makeElement("appsrc", id);
 
     if (!bin || !funnel || !queue || !rtpbin || !appsink) {
-        g_printerr("[gst-%s] failed to create elements in addReceiver",
-                   m_p->name.c_str());
+        fmt::print(stderr,
+                   "[gst-sender-{}] failed to create elements in addReceiver",
+                   m_p->name);
         return;
     }
 
@@ -238,16 +240,20 @@ void media::Sender::addReceiver(const std::string &id,
     GstPad *rtp_send_sinkpad =
         gst_element_request_pad_simple(rtpbin, "send_rtp_sink_%u");
     if (!gst_element_link_pads(rtpbin, "send_rtcp_src_%u", funnel, "sink_%u"))
-        g_printerr("[gst-%s] Failed to link rtcp src and funnel",
-                   m_p->name.c_str());
+        fmt::print(stderr,
+                   "[gst-sender-{}] Failed to link rtcp src and funnel\n",
+                   m_p->name);
 
     if (!gst_element_link_pads(rtcp_appsrc, "src", rtpbin, "recv_rtcp_sink_%u"))
-        g_printerr("[gst-%s] Failed to link rtcp_appsrc and rtcp rcv sink",
-                   m_p->name.c_str());
+        fmt::print(
+            stderr,
+            "[gst-sender-{}] Failed to link rtcp_appsrc and rtcp rcv sink\n",
+            m_p->name);
 
     if (!gst_element_link_many(funnel, queue, appsink, nullptr))
-        g_print("[gst-%s] failed to link funnel and appsink",
-                m_p->name.c_str());
+        fmt::print(stderr,
+                   "[gst-sender-{}] failed to link funnel and appsink\n",
+                   m_p->name);
 
     gst_bin_add(GST_BIN(m_p->pipeline), bin);
     gst_element_sync_state_with_parent(bin);
@@ -256,7 +262,8 @@ void media::Sender::addReceiver(const std::string &id,
 
     gst_element_add_pad(bin, bin_ghost_pad);
     if (!gst_element_link(m_p->tee, bin))
-        g_printerr("[gst-%s] failed to link tee and bin", m_p->name.c_str());
+        fmt::print(stderr, "[gst-sender-{}] failed to link tee and bin\n",
+                   m_p->name);
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(m_p->pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
                               (m_p->name + "-added-" + id).c_str());
@@ -272,7 +279,7 @@ gboolean set_to_null(gpointer data) {
     RemoveCallbackCtx *ctx = (RemoveCallbackCtx *)data;
 
     GstStateChangeReturn ret = gst_element_set_state(ctx->bin, GST_STATE_NULL);
-    g_print("[gst-sender] state change return %d in %s\n", ret, __func__);
+    fmt::print("[gst-sender] state change return {} in {}\n", ret, __func__);
 
     GstElement *pipeline = (GstElement *)gst_element_get_parent(ctx->bin);
     gst_bin_remove(GST_BIN(pipeline), ctx->bin);
@@ -290,7 +297,8 @@ GstPadProbeReturn probe_call_back(GstPad *pad, GstPadProbeInfo *info,
     GstPad *peer_pad = gst_pad_get_peer(pad);
 
     if (!gst_pad_unlink(pad, peer_pad)) {
-        g_printerr("[gst-sender] failed to unlink pads in %s\n", __func__);
+        fmt::print(stderr, "[gst-sender] failed to unlink pads in {}\n",
+                   __func__);
     }
     gst_object_unref(peer_pad);
 
@@ -301,11 +309,13 @@ GstPadProbeReturn probe_call_back(GstPad *pad, GstPadProbeInfo *info,
 }
 
 void media::Sender::removeReceiver(const std::string &id) {
-    GstElement *bin = gst_bin_get_by_name(
-        GST_BIN(m_p->pipeline), fmt::format("{}-bin", m_p->name).c_str());
+    GstElement *bin = gst_bin_get_by_name(GST_BIN(m_p->pipeline),
+                                          fmt::format("{}-bin", id).c_str());
     if (bin == nullptr) {
-        g_printerr("[gst-%s] no such receiver in the current pipeline for %s\n",
-                   m_p->name.c_str(), id.c_str());
+        fmt::print(
+            stderr,
+            "[gst-sender-{}] no such receiver in the current pipeline for {}\n",
+            m_p->name, id);
         return;
     }
 
@@ -337,18 +347,19 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
     if (cur_state != GST_STATE_PAUSED && cur_state != GST_STATE_PLAYING)
         return true;
 
-    rtcp_appsrc = gst_bin_get_by_name(
-        GST_BIN(m_p->pipeline),
-        fmt::format("{}->{}-appsrc", m_p->name, id).c_str());
+    rtcp_appsrc = gst_bin_get_by_name(GST_BIN(m_p->pipeline),
+                                      fmt::format("{}-appsrc", id).c_str());
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {
-        g_printerr("[gst-%s] Failed to allocate buffer\n", m_p->name.c_str());
+        fmt::print(stderr, "[gst-sender-{}] Failed to allocate buffer\n",
+                   m_p->name);
         return false;
     }
 
     if (!gst_buffer_map(buf, &info, GST_MAP_WRITE)) {
-        g_printerr("[gst-%s] Failed to get buffer map\n", m_p->name.c_str());
+        fmt::print(stderr, "[gst-sender-{}] Failed to get buffer map\n",
+                   m_p->name);
         return false;
     }
     memcpy(info.data, payload, len);
@@ -357,7 +368,8 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
     g_signal_emit_by_name(rtcp_appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
     if (ret == GST_FLOW_ERROR) {
-        g_printerr("[gst-%s] Failed to do 'push-buffer'\n", m_p->name.c_str());
+        fmt::print(stderr, "[gst-sender-{}] Failed to do 'push-buffer'\n",
+                   m_p->name);
         return false;
     }
 
