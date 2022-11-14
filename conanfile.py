@@ -27,15 +27,15 @@ class Conan(ConanFile):
         self.requires("openssl/1.1.1s", override=True)
         self.requires("pango/1.50.10", override=True)
 
+        self.requires("grpc/1.48.0")
         self.requires("gstreamer/1.21.1")
         self.requires("gst-libav/1.21.1")
         self.requires("gst-plugins-base/1.21.1")
         self.requires("gst-plugins-good/1.21.1")
         self.requires("gst-plugins-bad/1.21.1")
-        self.requires("grpc/1.48.0")
-        self.requires("cxxopts/3.0.0")
         self.requires("libjuice/1.0.5")
 
+        self.requires("cxxopts/3.0.0")
         self.requires("fmt/9.1.0")
 
     def config_options(self):
