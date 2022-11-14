@@ -13,8 +13,18 @@ set(DigitalConductorCore_proto_src
     ${ProtocOutputDir}/autodiscovery.grpc.pb.h
     ${ProtocOutputDir}/autodiscovery.grpc.pb.cc)
 
-find_program(PROTOC_EXE protoc REQUIRED)
-find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin REQUIRED)
+set(CMAKE_FIND_DEBUG_MODE TRUE)
+find_program(PROTOC_EXE protoc)
+message(STATUS "PROTOC_EXE=${PROTOC_EXE}")
+if(NOT PROTOC_EXE)
+    set(PROTOC_EXE $<TARGET_FILE:protobuf::protoc>)
+endif()
+find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin)
+message(STATUS "GRPC_CPP_PLUGIN_EXE=${GRPC_CPP_PLUGIN_EXE}")
+if(NOT GRPC_CPP_PLUGIN_EXE)
+    set(PROTOC_EXE $<TARGET_FILE:grpc_cpp_plugin>)
+endif()
+set(CMAKE_FIND_DEBUG_MODE FALSE)
 
 add_custom_command(
     OUTPUT ${DigitalConductorCore_proto_src}
