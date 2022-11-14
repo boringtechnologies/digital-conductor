@@ -6,14 +6,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 project(DigitalConductorCore LANGUAGES CXX)
 
-include(cmake/common.cmake) # TODO replace it with plain find_package
-
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 find_package(ZLIB REQUIRED)
 
 find_package(LibJuice REQUIRED)
 
 if(WITH_CONAN)
+    find_package(Protobuf REQUIRED)
+    find_package(gRPC REQUIRED)
+
     set(GST_INCLUDE_DIRS)
     set(GST_LIBRARY_DIRS "")
     set(GST_LIBRARIES)
@@ -36,6 +37,10 @@ if(WITH_CONAN)
     set(GST_USE_STATIC_PLUGINS 1)
 
 else(WITH_CONAN)
+    include(cmake/common.cmake)
+    set(gRPC_LIBRARIES ${_REFLECTION} ${_GRPC_GRPCPP})
+    set(Protobuf_LIBRARIES ${_PROTOBUF_LIBPROTOBUF})
+
     find_package(PkgConfig REQUIRED)
 
     pkg_check_modules(GST REQUIRED
@@ -48,6 +53,7 @@ else(WITH_CONAN)
 
     set(GST_USE_STATIC_PLUGINS 0)
 endif()
+
 
 add_subdirectory(common)
 add_subdirectory(server)
@@ -72,7 +78,7 @@ add_library(DigitalConductorCore_lib
             ${PERMISSION_MGR_IMPL_CPP})
 
 target_include_directories(DigitalConductorCore_lib
-    PUBLIC ${LibJuice_INCLUDE_DIRS}
+    PUBLIC ${LibJuice_INCLUDE_DIRS} ${gRPC_INCLUDE_DIRS}
     PRIVATE ${GST_INCLUDE_DIRS})
 
 target_link_directories(DigitalConductorCore_lib PRIVATE
@@ -102,6 +108,5 @@ target_link_libraries(DigitalConductorCore_client PRIVATE
             DigitalConductorCore_proto
             DigitalConductorCore_lib
             ${GST_LIBRARIES}
-            ${_REFLECTION}
-            ${_GRPC_GRPCPP}
-            ${_PROTOBUF_LIBPROTOBUF})
+            ${gRPC_LIBRARIES}
+            ${Protobuf_LIBRARIES})

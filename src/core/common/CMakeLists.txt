@@ -13,13 +13,16 @@ set(DigitalConductorCore_proto_src
     ${ProtocOutputDir}/autodiscovery.grpc.pb.h
     ${ProtocOutputDir}/autodiscovery.grpc.pb.cc)
 
+find_program(PROTOC_EXE protoc REQUIRED)
+find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin REQUIRED)
+
 add_custom_command(
     OUTPUT ${DigitalConductorCore_proto_src}
-    COMMAND ${_PROTOBUF_PROTOC}
+    COMMAND ${PROTOC_EXE}
     ARGS --grpc_out "${ProtocOutputDir}"
          --cpp_out "${ProtocOutputDir}"
          -I "${DigitalConductorCore_proto_path}"
-         --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXE}"
         "${DigitalConductorCore_proto}"
     DEPENDS "${DigitalConductorCore_proto}")
 
@@ -32,9 +35,10 @@ add_library(DigitalConductorCore_proto ${DigitalConductorCore_proto_src} proto/a
 
 target_link_libraries(DigitalConductorCore_proto
     ${ZLIB_LIBRARIES}
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF})
+    ${gRPC_LIBRARIES}
+    ${Protobuf_LIBRARIES})
+
+target_include_directories(DigitalConductorCore_proto PUBLIC ${gRPC_INCLUDE_DIRS})
 
 set_target_properties(DigitalConductorCore_proto PROPERTIES
     OUTPUT_NAME "digitalconductorcore_proto")
