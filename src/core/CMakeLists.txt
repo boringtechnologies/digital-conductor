@@ -15,6 +15,10 @@ if(WITH_CONAN)
     find_package(Protobuf REQUIRED)
     find_package(gRPC REQUIRED)
 
+    # workaround: Could not find GRPC_CPP_PLUGIN_EXE using the following names
+    get_filename_component(gRPC_ROOT ${gRPC_INCLUDE_DIR} DIRECTORY)
+    list(APPEND CMAKE_PREFIX_PATH "${gRPC_ROOT}")
+
     set(GST_INCLUDE_DIRS)
     set(GST_LIBRARY_DIRS "")
     set(GST_LIBRARIES)
