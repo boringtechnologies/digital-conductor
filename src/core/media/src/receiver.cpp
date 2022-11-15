@@ -48,7 +48,7 @@ static void rtpbin_new_jitterbuffer_callback(GstElement *,
                                              GstElement *jitterbuffer, guint,
                                              guint, gpointer *user_data) {
     const char *name = (const char *)user_data;
-    fmt::print("[gst-receiver-{}] {}\n", name, __func__);
+    fmt::print("[gst-{}] {}\n", name, __func__);
     g_object_set(jitterbuffer, "latency", 0, "drop-on-latency", FALSE, NULL);
 }
 
@@ -143,8 +143,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     gst_pad_link(src_pad, recv_rtp_sink_pad);
     gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
     if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
-        fmt::print(stderr, "[gst-receiver-{}] failed to link the elements\n",
-                   media_type);
+        fmt::print(stderr, "[gst-{}] failed to link the elements\n", m_p->name);
         return;
     }
 
@@ -155,8 +154,7 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 
         long latency = delay.count() * GST_MSECOND;
 
-        fmt::print("[gst-receiver-{}] reciever latency {} ns\n", media_type,
-                   latency);
+        fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
 
         gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
     }
@@ -180,14 +178,12 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {
-        fmt::print(stderr, "[gst-receiver-{}] Failed to allocate buffer\n",
-                   media_type);
+        fmt::print(stderr, "[gst-{}] Failed to allocate buffer\n", m_p->name);
         return false;
     }
 
     if (!gst_buffer_map(buf, &info, GST_MAP_WRITE)) {
-        fmt::print(stderr, "[gst-receiver-{}] Failed to get buffer map\n",
-                   media_type);
+        fmt::print(stderr, "[gst-{}] Failed to get buffer map\n", m_p->name);
         return false;
     }
     memcpy(info.data, payload, len);
@@ -196,8 +192,7 @@ bool media::Receiver::push(const uint8_t *payload, size_t len) {
     g_signal_emit_by_name(m_p->appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
     if (ret == GST_FLOW_ERROR) {
-        fmt::print(stderr, "[gst-receiver-{}] Failed to do 'push-buffer'\n",
-                   media_type);
+        fmt::print(stderr, "[gst-{}] Failed to do 'push-buffer'\n", m_p->name);
         return false;
     }
 

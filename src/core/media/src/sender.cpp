@@ -22,28 +22,54 @@ struct media::Sender::impl final : BasePipeline {
     ~impl() override {}
 
     GstElement *createSourceElement(const media::CaptureDevice &device) {
-        fmt::print("[gst-sender-{}] use {}\n", name, device.name);
+        fmt::print("[gst-{}] use {}\n", name, device.name);
         GstElement *source = makeElement(device.name.c_str());
         if (!device.params.empty()) {
-            fmt::print("[gst-sender-{}] with params:\n", name);
+            fmt::print("[gst-{}] with params:\n", name);
             for (const std::pair<std::string, std::string> &param :
                  device.params) {
                 fmt::print("  {} = {}\n", param.first, param.second);
                 if (param.first == "device-index" || param.first == "device") {
-                    GValue newValue = G_VALUE_INIT;
-                    g_value_init(&newValue, G_TYPE_STRING);
-                    g_value_set_string(&newValue, param.second.c_str());
+                    GType srcType = G_TYPE_STRING;
 
                     GValue targetValue = G_VALUE_INIT;
                     g_object_get_property(G_OBJECT(source), param.first.c_str(),
                                           &targetValue);
+                    GType targetType = targetValue.g_type;
 
-                    g_value_transform(&newValue, &targetValue);
+                    if (g_value_type_compatible(srcType, targetType)) {
+                        g_value_set_string(&targetValue, param.second.c_str());
+                    } else if (g_value_type_transformable(srcType,
+                                                          targetType)) {
+                        GValue srcValue = G_VALUE_INIT;
+                        g_value_init(&srcValue, srcType);
+                        g_value_set_string(&srcValue, param.second.c_str());
+
+                        g_value_transform(&srcValue, &targetValue);
+                    } else if (targetType == G_TYPE_INT) {
+                        gint newValue = std::stoi(param.second);
+                        g_value_set_int(&targetValue, newValue);
+                    } else {
+                        const gchar *srcTypeName = g_type_name(srcType);
+                        const gchar *targetTypeName = g_type_name(targetType);
+                        fmt::print(
+                            stderr,
+                            "Cannot set {} to {}.{}. Convertion {} -> {} "
+                            "impossible\n",
+                            param.second, device.name, param.first, srcTypeName,
+                            targetTypeName);
+                        continue;
+                    }
 
                     g_object_set_property(G_OBJECT(source), param.first.c_str(),
                                           &targetValue);
+
+                    char *contents = g_strdup_value_contents(&targetValue);
+                    fmt::print("Setted x.{} =({}){}\n", param.first, contents,
+                               g_type_name(targetType));
+                    g_free(contents);
                 } else {
-                    fmt::print(stderr, "[gst-sender-{}] unknown property: {}\n",
+                    fmt::print(stderr, "[gst-{}] unknown property: {}\n",
                                param.first);
                 }
             }
@@ -192,7 +218,7 @@ void media::Sender::addReceiver(const std::string &id,
         gst_bin_get_by_name(GST_BIN(m_p->pipeline), bin_name.c_str());
 
     if (bin != nullptr) {
-        fmt::print(stderr, "[gst-sender-{}] receiver id {} already exists\n",
+        fmt::print(stderr, "[gst-{}] receiver id {} already exists\n",
                    m_p->name, id);
         return;
     }
@@ -207,8 +233,7 @@ void media::Sender::addReceiver(const std::string &id,
     rtcp_appsrc = m_p->makeElement("appsrc", id);
 
     if (!bin || !funnel || !queue || !rtpbin || !appsink) {
-        fmt::print(stderr,
-                   "[gst-sender-{}] failed to create elements in addReceiver",
+        fmt::print(stderr, "[gst-{}] failed to create elements in addReceiver",
                    m_p->name);
         return;
     }
@@ -240,19 +265,16 @@ void media::Sender::addReceiver(const std::string &id,
     GstPad *rtp_send_sinkpad =
         gst_element_request_pad_simple(rtpbin, "send_rtp_sink_%u");
     if (!gst_element_link_pads(rtpbin, "send_rtcp_src_%u", funnel, "sink_%u"))
-        fmt::print(stderr,
-                   "[gst-sender-{}] Failed to link rtcp src and funnel\n",
+        fmt::print(stderr, "[gst-{}] Failed to link rtcp src and funnel\n",
                    m_p->name);
 
     if (!gst_element_link_pads(rtcp_appsrc, "src", rtpbin, "recv_rtcp_sink_%u"))
-        fmt::print(
-            stderr,
-            "[gst-sender-{}] Failed to link rtcp_appsrc and rtcp rcv sink\n",
-            m_p->name);
+        fmt::print(stderr,
+                   "[gst-{}] Failed to link rtcp_appsrc and rtcp rcv sink\n",
+                   m_p->name);
 
     if (!gst_element_link_many(funnel, queue, appsink, nullptr))
-        fmt::print(stderr,
-                   "[gst-sender-{}] failed to link funnel and appsink\n",
+        fmt::print(stderr, "[gst-{}] failed to link funnel and appsink\n",
                    m_p->name);
 
     gst_bin_add(GST_BIN(m_p->pipeline), bin);
@@ -262,8 +284,7 @@ void media::Sender::addReceiver(const std::string &id,
 
     gst_element_add_pad(bin, bin_ghost_pad);
     if (!gst_element_link(m_p->tee, bin))
-        fmt::print(stderr, "[gst-sender-{}] failed to link tee and bin\n",
-                   m_p->name);
+        fmt::print(stderr, "[gst-{}] failed to link tee and bin\n", m_p->name);
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(m_p->pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
                               (m_p->name + "-added-" + id).c_str());
@@ -312,10 +333,9 @@ void media::Sender::removeReceiver(const std::string &id) {
     GstElement *bin = gst_bin_get_by_name(GST_BIN(m_p->pipeline),
                                           fmt::format("{}-bin", id).c_str());
     if (bin == nullptr) {
-        fmt::print(
-            stderr,
-            "[gst-sender-{}] no such receiver in the current pipeline for {}\n",
-            m_p->name, id);
+        fmt::print(stderr,
+                   "[gst-{}] no such receiver in the current pipeline for {}\n",
+                   m_p->name, id);
         return;
     }
 
@@ -352,14 +372,12 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
 
     buf = gst_buffer_new_allocate(nullptr, len, nullptr);
     if (buf == nullptr) {
-        fmt::print(stderr, "[gst-sender-{}] Failed to allocate buffer\n",
-                   m_p->name);
+        fmt::print(stderr, "[gst-{}] Failed to allocate buffer\n", m_p->name);
         return false;
     }
 
     if (!gst_buffer_map(buf, &info, GST_MAP_WRITE)) {
-        fmt::print(stderr, "[gst-sender-{}] Failed to get buffer map\n",
-                   m_p->name);
+        fmt::print(stderr, "[gst-{}] Failed to get buffer map\n", m_p->name);
         return false;
     }
     memcpy(info.data, payload, len);
@@ -368,8 +386,7 @@ bool media::Sender::push(const std::string &id, const uint8_t *payload,
     g_signal_emit_by_name(rtcp_appsrc, "push-buffer", buf, &ret);
     gst_buffer_unref(buf);
     if (ret == GST_FLOW_ERROR) {
-        fmt::print(stderr, "[gst-sender-{}] Failed to do 'push-buffer'\n",
-                   m_p->name);
+        fmt::print(stderr, "[gst-{}] Failed to do 'push-buffer'\n", m_p->name);
         return false;
     }
 
