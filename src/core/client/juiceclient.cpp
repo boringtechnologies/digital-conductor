@@ -6,7 +6,6 @@
 #include <atomic>
 #include <cassert>
 #include <cstring>
-#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -136,19 +135,19 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
 
         m_pingAvg = std::chrono::duration_cast<double_millis_t>(m_pingAvg + (latency - m_pingAvg) / (double)m_pingSeq);
 
-        fmt::print("{} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
+        fmt::print("[ping] {} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
                    latency.count(), m_pingAvg.count());
     }
     catch (...)
     {
-        fmt::print("{} bytes from {}: cannot parse ping time from payload: {}", pongData.size(), m_id, pongData);
+        fmt::print("[ping] {} bytes from {}: cannot parse ping time from payload: {}", pongData.size(), m_id, pongData);
     }
 }
 
 // static
 void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr)
 {
-    std::cout << "[juice] onStateChanged\n";
+    fmt::print("[juice] onStateChanged\n");
 
     // TODO ugly, use bind etc.
     dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
@@ -165,7 +164,7 @@ void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state
 // static
 void JuiceClient::impl::onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr)
 {
-    std::cout << "[juice] onCandidate\n";
+    fmt::print("[juice] onCandidate\n");
 
     // TODO ugly, use bind etc.
     dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
@@ -180,7 +179,7 @@ void JuiceClient::impl::onCandidate(juice_agent_t *agent, const char *sdp, void 
 // static
 void JuiceClient::impl::onGatheringDone(juice_agent_t *agent, void *user_ptr)
 {
-    std::cout << "[juice] onCandidate\n";
+    fmt::print("[juice] onCandidate\n");
 
     // TODO ugly, use bind etc.
     dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
@@ -231,7 +230,7 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     }
     else
     {
-        std::cerr << "Unknow type of traffic\n";
+        fmt::print(stderr, "Unknow type of traffic\n");
         assert(false);
     }
 }

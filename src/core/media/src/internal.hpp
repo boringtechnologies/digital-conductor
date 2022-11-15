@@ -7,7 +7,6 @@
 #include <gst/net/net.h>
 
 #include <chrono>
-#include <iostream>
 #include <mutex>
 #include <thread>
 
