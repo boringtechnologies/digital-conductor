@@ -38,6 +38,11 @@ static double_millis_t now_since_epoch()
     return std::chrono::duration_cast<double_millis_t>(std::chrono::system_clock::now().time_since_epoch());
 }
 
+constexpr auto operator""_Kbyte(const unsigned long long x) -> size_t
+{
+    return 1024 * x;
+}
+
 //******************************************************************************
 //******************************************************************************
 class JuiceClient::impl
@@ -343,11 +348,14 @@ void JuiceClient::sendVideo(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    constexpr size_t buffer_size = 512000;
+    constexpr size_t buffer_size = 256_Kbyte;
     if (size > buffer_size)
+    {
+        fmt::print(stderr, "send video buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
         return;
+    }
 
-    static char buffer[buffer_size];
+    static thread_local char buffer[buffer_size];
     memcpy(buffer, JP2P_VIDEO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
@@ -361,11 +369,14 @@ void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    constexpr size_t buffer_size = 256000;
+    constexpr size_t buffer_size = 128_Kbyte;
     if (size > buffer_size)
+    {
+        fmt::print(stderr, "send audio buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
         return;
+    }
 
-    static char buffer[buffer_size];
+    static thread_local char buffer[buffer_size];
     memcpy(buffer, JP2P_AUDIO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
