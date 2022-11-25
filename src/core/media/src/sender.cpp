@@ -114,7 +114,7 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
         g_object_set(encoder, "deadline", 1, "keyframe-max-dist", 150,
                      "bits-per-pixel", 0.1f, nullptr);
         payloader = m_p->makeElement("rtpvp8pay");
-        g_object_set(payloader, "pt", 101, NULL);
+        g_object_set(payloader, "pt", 101, "config-interval", 1, NULL);
     }
 
     m_p->tee = m_p->makeElement("tee");
