@@ -20,11 +20,13 @@ class GStPluginsBadConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "with_introspection": [True, False],
+        "with_x265": [True, False],
         }
     default_options = {
         "shared": False,
         "fPIC": True,
         "with_introspection": False,
+        "with_x265": False,
         }
     _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
@@ -67,6 +69,9 @@ class GStPluginsBadConan(ConanFile):
         self.requires("glib/2.70.1")
         self.requires("gstreamer/1.19.1")
         self.requires("gst-plugins-base/1.19.1")
+
+        if self.options.with_x265:
+            self.requires("libx265/3.4")
 
     def build_requirements(self):
         self.build_requires("meson/0.54.2")
@@ -119,6 +124,9 @@ class GStPluginsBadConan(ConanFile):
         # end hack
         defs["wrap_mode"] = "nofallback"
         defs["introspection"] = "enabled" if self.options.with_introspection else "disabled"
+        if self.options.with_x265:
+            defs["gpl"] = "enabled"
+            defs["x265"] = "enabled"
         meson.configure(build_folder=self._build_subfolder,
                         source_folder=self._source_subfolder,
                         defs=defs)
@@ -226,6 +234,9 @@ class GStPluginsBadConan(ConanFile):
         if self.settings.os == "Macos" or self.settings.os == "iOS":
             plugins.append("applemedia")
 
+        if self.options.with_x265:
+            plugins.append("x265")
+
         gst_plugin_path = os.path.join(self.package_folder, "lib", "gstreamer-1.0")
         if self.options.shared:
             self.output.info("Appending GST_PLUGIN_PATH env var : %s" % gst_plugin_path)
@@ -236,5 +247,10 @@ class GStPluginsBadConan(ConanFile):
             self.cpp_info.defines.append("GST_PLUGINS_BAD_STATIC")
             self.cpp_info.libdirs.append(gst_plugin_path)
             self.cpp_info.libs.extend(["gst%s" % plugin for plugin in plugins])
+
+        if self.options.with_x265:
+            self.cpp_info.libs.extend(
+                ["gst%s" % lib for lib in ["codecs-1.0", "codecparsers-1.0"]]
+            )
 
         self.cpp_info.includedirs = ["include", os.path.join("include", "gstreamer-1.0")]
