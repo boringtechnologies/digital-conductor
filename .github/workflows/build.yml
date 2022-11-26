@@ -8,6 +8,8 @@ on:
   pull_request:
     paths-ignore:
       - '**.md'
+  schedule:
+    - cron: '0 5 */6 * *'
   workflow_dispatch:
     inputs:
       conan-extra-args:
