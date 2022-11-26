@@ -1,0 +1,8 @@
+patches:
+  5.1.0:
+  - base_path: source_subfolder
+    patch_file: patches/icu-5.1.x.patch
+sources:
+  5.1.0:
+    sha256: 2edb95db668781aaa8d60959d21be2ff80085f31b12053cdd660d9a50ce84f05
+    url: https://github.com/harfbuzz/harfbuzz/releases/download/5.1.0/harfbuzz-5.1.0.tar.xz
