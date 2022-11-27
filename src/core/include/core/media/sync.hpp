@@ -79,7 +79,8 @@ class Sender
     // XXX: Do we want audio and video senders to be completely independent? If
     // not, we can add an audio and video device here, and the type might be
     // redundant
-    Sender(const std::string &id, MediaType type, const CaptureDevice &device, const ClockInfo &clock);
+    Sender(const std::string &id, MediaType type, const CaptureDevice &device, const ClockInfo &clock,
+           std::function<void()> onPlayingFn = {});
 
     // Just tear everything down
     ~Sender();
@@ -166,6 +167,7 @@ class Receiver
 
     WriteCallback write_cb;
 };
+
 } // namespace media
 
 #endif // SYNC_H_

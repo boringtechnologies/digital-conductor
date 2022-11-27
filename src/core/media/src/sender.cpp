@@ -15,8 +15,10 @@ struct media::Sender::impl final : BasePipeline {
 
     GstElement *tee;
 
-    impl(const std::string &name, media::MediaType type)
-        : BasePipeline(name + "-snd-" + (type ? "video" : "audio")),
+    impl(const std::string &name, media::MediaType type,
+         std::function<void()> onPlayingFn)
+        : BasePipeline(name + "-snd-" + (type ? "video" : "audio"),
+                       onPlayingFn),
           tee(NULL) {}
 
     ~impl() override {}
@@ -81,8 +83,11 @@ struct media::Sender::impl final : BasePipeline {
 
 media::Sender::Sender(const std::string &id, media::MediaType type,
                       const media::CaptureDevice &device,
-                      const media::ClockInfo &clock)
-    : m_p(new impl(id.c_str(), type)), media_type(type), write_cbs() {
+                      const media::ClockInfo &clock,
+                      std::function<void()> onPlayingFn)
+    : m_p(new impl(id.c_str(), type, onPlayingFn)),
+      media_type(type),
+      write_cbs() {
     GstElement *source, *conv, *rate, *scale, *capsf, *encoder, *payloader,
         *queue, *fakesink;
 

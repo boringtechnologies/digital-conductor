@@ -91,50 +91,30 @@ static void gst_register_static_plugins() {
 #endif
 }
 
-static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
-    GMainLoop *loop = (GMainLoop *)data;
-
-    switch (GST_MESSAGE_TYPE(msg)) {
-        case GST_MESSAGE_EOS:
-            g_print("end of stream\n");
-            g_main_loop_quit(loop);
-            break;
-
-        case GST_MESSAGE_ERROR: {
-            gchar *debug;
-            GError *error;
-
-            gst_message_parse_error(msg, &error, &debug);
-            g_free(debug);
-
-            g_printerr("error: %s\n", error->message);
-            g_error_free(error);
-            g_main_loop_quit(loop);
-        } break;
-        default:
-            break;
-    }
-
-    return TRUE;
-}
+static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data);
 
 struct BasePipeline {
     std::string name;
     std::unique_ptr<std::thread> thread;
     std::mutex start_stop_mutex;
+    std::function<void()> onPlayingFn;
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline;
 
-    BasePipeline(const std::string &name)
-        : name(name), thread(nullptr), start_stop_mutex() {
+    BasePipeline(const std::string &name,
+                 std::function<void()> onPlayingFn = {})
+        : name(name),
+          thread(nullptr),
+          start_stop_mutex(),
+          onPlayingFn(onPlayingFn) {
         g_print("[gst-%s] ctor\n", name.c_str());
 
         loop = g_main_loop_new(nullptr, FALSE);
         pipeline = gst_pipeline_new(name.c_str());
 
         GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-        bus_watch_id = gst_bus_add_watch(bus, bus_callback, loop);
+        bus_watch_id = gst_bus_add_watch(bus, bus_callback, this);
         gst_object_unref(bus);
     }
 
@@ -216,5 +196,41 @@ struct BasePipeline {
         gst_element_set_state(pipeline, GST_STATE_PLAYING);
     }
 };
+
+static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
+    BasePipeline *self = (BasePipeline *)data;
+    GMainLoop *loop = (GMainLoop *)self->loop;
+
+    switch (GST_MESSAGE_TYPE(msg)) {
+        case GST_MESSAGE_EOS:
+            g_print("end of stream\n");
+            g_main_loop_quit(loop);
+            break;
+
+        case GST_MESSAGE_ERROR: {
+            gchar *debug;
+            GError *error;
+
+            gst_message_parse_error(msg, &error, &debug);
+            g_free(debug);
+
+            g_printerr("error: %s\n", error->message);
+            g_error_free(error);
+            g_main_loop_quit(loop);
+        } break;
+
+        case GST_MESSAGE_STATE_CHANGED: {
+            GstState new_state;
+            gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
+            if (new_state == GST_STATE_PLAYING && self->onPlayingFn) {
+                self->onPlayingFn();
+            }
+        } break;
+        default:
+            break;
+    }
+
+    return TRUE;
+}
 
 #endif

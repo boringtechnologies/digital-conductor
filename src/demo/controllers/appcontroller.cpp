@@ -658,17 +658,24 @@ void AppController::startStreaming()
     const dc::media::DeviceDescr &audioDevDescr = m_p->m_currentDevices[audioDeviceClass];
     media::CaptureDevice audioDevice{audioDevDescr.internalName, audioDevDescr.internalParams};
 
-    const auto &user = m_p->m_rpcClient->peer().id();
+    auto &rpcClient  = m_p->m_rpcClient;
+    const auto &user = rpcClient->peer().id();
 
     // start senders
-    m_p->m_videosender.reset(new media::Sender(user, media::MediaType::Video, videoDevice, m_p->m_mediaclock));
+    m_p->m_videosender.reset(
+        new media::Sender(user, media::MediaType::Video, videoDevice, m_p->m_mediaclock, [rpcClient]() {
+            std::async(std::launch::async, [rpcClient] {
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+                dc::PeerType peerType = (dc::PeerType)(rpcClient->peer().type() | dc::PeerType::WRITER);
+                rpcClient->updatePeer(peerType);
+                // WORKROUND for: [proto_buffer_writer.h:67]   assertion failed: !byte_buffer->Valid() on server side
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            });
+        }));
     m_p->m_videosender->start();
 
     m_p->m_audiosender.reset(new media::Sender(user, media::MediaType::Audio, audioDevice, m_p->m_mediaclock));
     m_p->m_audiosender->start();
-
-    dc::PeerType peerType = (dc::PeerType)(m_p->m_rpcClient->peer().type() | dc::PeerType::WRITER);
-    m_p->m_rpcClient->updatePeer(peerType);
 
     // connect peers
     //    for (const dc::Peer & p : m_p->m_rpcPeers)
