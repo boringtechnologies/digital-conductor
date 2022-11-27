@@ -138,11 +138,14 @@ class Receiver
     // happens yet. The ::start() method must be called.
     //
     // XXX: If a Sender sends audio and video, this API will need to change too.
-    Receiver(const std::string &id, MediaType type, const PlaybackDevice &device, const ClockInfo &clock,
-             std::chrono::duration<int, std::milli> delay, bool synchronize, WriteCallback write_cb);
+    Receiver(const std::string &id, MediaType type, const PlaybackDevice &device, WriteCallback write_cb);
 
     // Just tear everything down
     ~Receiver();
+
+    // Set pipeline clock and latency
+    void setSync(bool enabled, std::chrono::duration<int, std::milli> delay = std::chrono::milliseconds(500),
+                 const ClockInfo &clock = {});
 
     // Start streaming media from any connected senders.
     //
@@ -152,6 +155,9 @@ class Receiver
 
     // Shut down reading media from senders.
     void stop();
+
+    // Restart media to apply sync settings
+    void restart();
 
     // Push the data to the appsrc
     // returns TRUE is push is successful

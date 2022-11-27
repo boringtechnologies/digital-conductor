@@ -210,6 +210,11 @@ struct BasePipeline {
             thread.reset();
         }
     }
+
+    void restart() {
+        gst_element_set_state(pipeline, GST_STATE_NULL);
+        gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    }
 };
 
 #endif

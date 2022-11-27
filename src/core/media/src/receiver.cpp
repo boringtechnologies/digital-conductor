@@ -64,29 +64,29 @@ struct media::Receiver::impl final : BasePipeline {
     friend class media::Receiver;
 
     GstElement *appsrc;
-    const char *media_name;
+    GstElement *rtpbin;
 
     impl(const std::string &name, media::MediaType type)
         : BasePipeline(name + "-rcv-" + (type ? "video" : "audio")),
-          appsrc(NULL) {}
+          appsrc(NULL),
+          rtpbin(NULL) {}
 
     ~impl() override {}
 };
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
-                          const PlaybackDevice &device, const ClockInfo &clock,
-                          std::chrono::duration<int, std::milli> delay,
-                          bool synchronize, media::WriteCallback write_cb)
+                          const PlaybackDevice &device,
+                          media::WriteCallback write_cb)
     : m_p(new impl(id.c_str(), type)), media_type(type), write_cb(write_cb) {
-    GstElement *rtpbin, *depayloader, *decoder, *convert, *sink, *appsink;
+    GstElement *depayloader, *decoder, *convert, *sink, *appsink;
 
     const std::string &name_prefix = m_p->name;
 
     m_p->appsrc = m_p->makeElement("appsrc");
     g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
                  "is-live", true, nullptr);
-    rtpbin = m_p->makeElement("rtpbin");
-    g_signal_connect(rtpbin, "new-jitterbuffer",
+    m_p->rtpbin = m_p->makeElement("rtpbin");
+    g_signal_connect(m_p->rtpbin, "new-jitterbuffer",
                      G_CALLBACK(rtpbin_new_jitterbuffer_callback),
                      (gpointer)m_p->name.c_str());
 
@@ -124,47 +124,56 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
     gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, this, NULL);
     g_object_set(appsink, "emit-signals", FALSE, nullptr);
 
-    g_signal_connect(rtpbin, "pad-added", G_CALLBACK(rtpbin_pad_padded),
+    g_signal_connect(m_p->rtpbin, "pad-added", G_CALLBACK(rtpbin_pad_padded),
                      depayloader);
-    if (synchronize) {
-        g_object_set(rtpbin, "buffer-mode", 4, "ntp-time-source", 3, "ntp-sync",
-                     true, nullptr);
-    } else {
-        g_object_set(rtpbin, "buffer-mode", 0, nullptr);
-    }
 
     GstPad *src_pad = gst_element_get_static_pad(m_p->appsrc, "src");
     GstPad *recv_rtp_sink_pad =
-        gst_element_request_pad_simple(rtpbin, "recv_rtp_sink_%u");
+        gst_element_request_pad_simple(m_p->rtpbin, "recv_rtp_sink_%u");
 
-    gst_bin_add_many(GST_BIN(m_p->pipeline), m_p->appsrc, rtpbin, depayloader,
-                     decoder, convert, sink, appsink, nullptr);
+    gst_bin_add_many(GST_BIN(m_p->pipeline), m_p->appsrc, m_p->rtpbin,
+                     depayloader, decoder, convert, sink, appsink, nullptr);
 
     gst_pad_link(src_pad, recv_rtp_sink_pad);
-    gst_element_link_pads(rtpbin, "send_rtcp_src_%u", appsink, "sink");
+    gst_element_link_pads(m_p->rtpbin, "send_rtcp_src_%u", appsink, "sink");
     if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
         fmt::print(stderr, "[gst-{}] failed to link the elements\n", m_p->name);
         return;
-    }
-
-    if (synchronize) {
-        m_p->setupClock(clock.address, clock.port);
-        /* Set this high enough so that it's higher than the minimum latency
-         * on all receivers */
-
-        long latency = delay.count() * GST_MSECOND;
-
-        fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
-
-        gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
     }
 }
 
 media::Receiver::~Receiver() {}
 
+void media::Receiver::setSync(bool enabled,
+                              std::chrono::duration<int, std::milli> delay,
+                              const ClockInfo &clock) {
+    // NOTE according to rtpbin implementation buffer-mode & ntp-time-source
+    // handled on set_property and no pipeline restart need
+    if (enabled) {
+        g_object_set(m_p->rtpbin, "buffer-mode", 4,  // BUFFER_MODE_SYNCED
+                     "ntp-time-source", 3,  // NTP_TIME_SOURCE_CLOCK_TIME
+                     "ntp-sync", TRUE, nullptr);
+        m_p->setupClock(clock.address, clock.port);
+        // Set this high enough so that it's higher than the minimum latency on
+        // all receivers
+        long latency = delay.count() * GST_MSECOND;
+        gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
+        fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
+    } else {
+        g_object_set(m_p->rtpbin, "buffer-mode", 0,  // BUFFER_MODE_NONE
+                     "ntp-time-source", 0,           // NTP_TIME_SOURCE_NTP
+                     "ntp-sync", FALSE, nullptr);
+        gst_pipeline_auto_clock(GST_PIPELINE(m_p->pipeline));
+        gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline),
+                                 GST_CLOCK_TIME_NONE);
+    }
+}
+
 void media::Receiver::start() { m_p->start(); }
 
 void media::Receiver::stop() { m_p->stop(); }
+
+void media::Receiver::restart() { m_p->restart(); }
 
 bool media::Receiver::push(const uint8_t *payload, size_t len) {
     GstState cur_state = GST_STATE_NULL, pending_state;

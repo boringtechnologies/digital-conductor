@@ -526,18 +526,19 @@ int main(int argc, char *argv[])
 
             std::string id   = v[0];
             bool synchronize = true;
-            mediareceiver.reset(new media::Receiver(id, mediatype, playbackDevice, receiverclock, delay, synchronize,
-                                                    [id](const uint8_t *data, size_t len) {
-                                                        if (mediatype == media::MediaType::Audio)
-                                                        {
-                                                            jcclients[id]->sendAudio(data, len);
-                                                        }
-                                                        else if (mediatype == media::MediaType::Video)
-                                                        {
-                                                            jcclients[id]->sendVideo(data, len);
-                                                        }
-                                                        // std::cout << len << " bytes to " << id << std::endl;
-                                                    }));
+            mediareceiver.reset(
+                new media::Receiver(id, mediatype, playbackDevice, [id](const uint8_t *data, size_t len) {
+                    if (mediatype == media::MediaType::Audio)
+                    {
+                        jcclients[id]->sendAudio(data, len);
+                    }
+                    else if (mediatype == media::MediaType::Video)
+                    {
+                        jcclients[id]->sendVideo(data, len);
+                    }
+                    // std::cout << len << " bytes to " << id << std::endl;
+                }));
+            mediareceiver->setSync(synchronize, delay, receiverclock);
             mediareceiver->start();
         }
         else if (command == "stopstream")

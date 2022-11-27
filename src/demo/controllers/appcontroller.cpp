@@ -573,6 +573,15 @@ void AppController::setSyncMode(const bool sync)
     std::cout << "[appctrl] "
               << "sync mode " << (sync ? "on" : "off") << std::endl;
     m_p->m_syncMode = sync;
+
+    for (const dc::Peer &peer : m_p->m_rpcPeers)
+    {
+        if (!(peer.type() & dc::PeerType::WRITER) ||
+            m_p->m_videoreceivers.find(peer.id()) == m_p->m_videoreceivers.end())
+            continue;
+        m_p->m_videoreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
+        m_p->m_audioreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
+    }
 }
 
 //******************************************************************************
@@ -749,21 +758,17 @@ void AppController::receiveStream()
         // no need to select anything for video
         media::PlaybackDevice videodevice;
         m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video, videodevice,
-                                                                   m_p->m_receiverclock, m_p->m_delay, m_p->m_syncMode,
                                                                    [ptr](const uint8_t *data, size_t len) {
                                                                        ptr->sendVideo(data, len);
-                                                                       // std::cout << len << " bytes to " << id <<
-                                                                       // std::endl;
                                                                    }));
+        m_p->m_videoreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
 
         media::PlaybackDevice audiodevice;
         m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio, audiodevice,
-                                                                   m_p->m_receiverclock, m_p->m_delay, m_p->m_syncMode,
                                                                    [ptr](const uint8_t *data, size_t len) {
                                                                        ptr->sendAudio(data, len);
-                                                                       // std::cout << len << " bytes to " << id <<
-                                                                       // std::endl;
                                                                    }));
+        m_p->m_audioreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
 
         // start connection
         if (!m_p->m_rpcClient->p2pInit(peer.id(), ptr->sdp()))
