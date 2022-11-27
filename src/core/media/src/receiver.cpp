@@ -150,9 +150,10 @@ void media::Receiver::setSync(bool enabled,
     // NOTE according to rtpbin implementation buffer-mode & ntp-time-source
     // handled on set_property and no pipeline restart need
     if (enabled) {
-        g_object_set(m_p->rtpbin, "buffer-mode", 4,  // BUFFER_MODE_SYNCED
-                     "ntp-time-source", 3,  // NTP_TIME_SOURCE_CLOCK_TIME
-                     "ntp-sync", TRUE, nullptr);
+        g_object_set(m_p->rtpbin, "ntp-sync", TRUE, "ntp-time-source",
+                     3,                 // NTP_TIME_SOURCE_NTP
+                     "buffer-mode", 4,  // BUFFER_MODE_SYNCED
+                     NULL);
         m_p->setupClock(clock.address, clock.port);
         // Set this high enough so that it's higher than the minimum latency on
         // all receivers
@@ -160,9 +161,10 @@ void media::Receiver::setSync(bool enabled,
         gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
         fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
     } else {
-        g_object_set(m_p->rtpbin, "buffer-mode", 0,  // BUFFER_MODE_NONE
-                     "ntp-time-source", 0,           // NTP_TIME_SOURCE_NTP
-                     "ntp-sync", FALSE, nullptr);
+        g_object_set(m_p->rtpbin, "ntp-sync", FALSE, "ntp-time-source",
+                     0,                 // NTP_TIME_SOURCE_CLOCK_TIME/
+                     "buffer-mode", 0,  // BUFFER_MODE_NONE
+                     NULL);
         gst_pipeline_auto_clock(GST_PIPELINE(m_p->pipeline));
         gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline),
                                  GST_CLOCK_TIME_NONE);
