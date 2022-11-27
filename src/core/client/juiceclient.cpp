@@ -301,9 +301,10 @@ bool JuiceClient::connect(const std::string &sdpRemote)
 void JuiceClient::disconnect()
 {
     if (!m_p->m_agent)
-    {
         return;
-    }
+
+    std::lock_guard<std::mutex> l(m_p->m_sendLocker);
+
     juice_destroy(m_p->m_agent);
     m_p->m_agent = nullptr;
 }
