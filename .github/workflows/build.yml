@@ -106,7 +106,8 @@ jobs:
             brew install cmake ccache
           elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
             sudo apt-get install -y build-essential cmake clang ccache libvulkan-dev
-            sudo snap install cqtdeployer
+            curl -sL -o ./cqtdeployer.deb https://github.com/QuasarApp/CQtDeployer/releases/download/v1.6.2268/CQtDeployer_1.6.2268.24847be_Linux_x86_64.deb
+            sudo dpkg -i cqtdeployer.deb
           fi
           ccache -o cache_dir=${HOME}/.ccache
           ccache -M 2G
