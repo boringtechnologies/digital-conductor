@@ -17,6 +17,8 @@
 #include <QGuiApplication>
 #include <QTimer>
 
+#include <fmt/core.h>
+
 #include <chrono>
 #include <future>
 #include <memory>
@@ -75,6 +77,7 @@ class AppController::impl : public QObject
     dc::SenderPtr m_audiosender;
 
     // receiver
+    bool m_recieving                 = false;
     bool m_syncMode                  = true;
     media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
     std::chrono::duration<int, std::milli> m_delay{200};
@@ -205,14 +208,15 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
         const auto peerList = msg.peers().peers();
         std::vector<dc::Peer> peers;
         peers.reserve(peerList.size());
+        bool startReceive = false;
         for (size_t i = 0; i < peerList.size(); i++)
         {
             const dc::Peer &peer = peerList.Get(i);
 
-            // sanoty check
+            // sanity check
             if (thisPeer.group() != peer.group())
             {
-                std::cerr << "FIXME This filtration must be done on server\n";
+                fmt::print(stderr, "FIXME This filtration must be done on server\n");
                 continue;
             }
 
@@ -222,9 +226,20 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
                 continue;
             }
 
+            if (m_recieving && peer.type() & dc::PeerType::WRITER &&
+                m_videoreceivers.find(peer.id()) == m_videoreceivers.end())
+            {
+                startReceive = true;
+            }
+
             peers.push_back(peer);
         }
         m_rpcPeers = peers;
+
+        if (startReceive)
+        {
+            m_o->receiveStream(false);
+        }
     }
     break;
 
@@ -694,27 +709,26 @@ void AppController::startStreaming()
 
 //******************************************************************************
 //******************************************************************************
-void AppController::receiveStream()
+void AppController::receiveStream(bool recreate)
 {
     if (m_p->m_videosender)
     {
-        std::cerr << "[appctrl] receiveStream "
-                  << "i'm a sender, abort receiving" << std::endl;
+        fmt::print(stderr, "[appctrl] receiveStream i'm a sender, abort receiving\n");
         // TODO emit error
         return;
     }
     if (!m_p->m_videoreceivers.empty())
     {
-        std::cerr << "[appctrl] receiveStream "
-                  << "already receiving, abort receiving" << std::endl;
+        fmt::print(stderr, "[appctrl] receiveStream already receiving abort receiving\n");
         // TODO emit error
         return;
     }
 
+    m_p->m_recieving = true;
+
     dc::PeerType peerType = (dc::PeerType)(m_p->m_rpcClient->peer().type() | dc::PeerType::READER);
     m_p->m_rpcClient->updatePeer(peerType);
 
-    // TODO one writer temporary
     for (const dc::Peer &peer : m_p->m_rpcPeers)
     {
         if (!(peer.type() & dc::PeerType::WRITER))
@@ -723,7 +737,12 @@ void AppController::receiveStream()
             continue;
         }
 
-        // dc::JuiceClientPtr ptr = m_p->getP2PClient(id);
+        if (!recreate && m_p->m_videoreceivers.find(peer.id()) != m_p->m_videoreceivers.end())
+        {
+            // already created
+            continue;
+        }
+
         dc::JuiceClientPtr ptr = m_p->getP2PClient(peer.id());
         if (ptr)
         {
@@ -757,17 +776,15 @@ void AppController::receiveStream()
 
         // no need to select anything for video
         media::PlaybackDevice videodevice;
-        m_p->m_videoreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Video, videodevice,
-                                                                   [ptr](const uint8_t *data, size_t len) {
-                                                                       ptr->sendVideo(data, len);
-                                                                   }));
+        m_p->m_videoreceivers[peer.id()].reset(
+            new media::Receiver(peer.id(), media::MediaType::Video, videodevice,
+                                [ptr](const uint8_t *data, size_t len) { ptr->sendVideo(data, len); }));
         m_p->m_videoreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
 
         media::PlaybackDevice audiodevice;
-        m_p->m_audioreceivers[peer.id()].reset(new media::Receiver(peer.id(), media::MediaType::Audio, audiodevice,
-                                                                   [ptr](const uint8_t *data, size_t len) {
-                                                                       ptr->sendAudio(data, len);
-                                                                   }));
+        m_p->m_audioreceivers[peer.id()].reset(
+            new media::Receiver(peer.id(), media::MediaType::Audio, audiodevice,
+                                [ptr](const uint8_t *data, size_t len) { ptr->sendAudio(data, len); }));
         m_p->m_audioreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
 
         // start connection
@@ -826,6 +843,8 @@ void AppController::stopStream()
 
 void AppController::stopReceive()
 {
+    m_p->m_recieving = false;
+
     dc::PeerType type = (dc::PeerType)(m_p->m_rpcClient->peer().type() & ~dc::PeerType::READER);
     m_p->m_rpcClient->updatePeer(type);
 

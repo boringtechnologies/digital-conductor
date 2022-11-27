@@ -112,7 +112,8 @@ add_dependencies(DigitalConductorDemo
 target_link_libraries(DigitalConductorDemo PRIVATE
     DigitalConductorLib
     DigitalConductorCore_proto
-    DigitalConductorCore_lib)
+    DigitalConductorCore_lib
+    fmt::fmt)
 
 target_include_directories(DigitalConductorDemo PRIVATE
     ${LibJuice_INCLUDE_DIRS}

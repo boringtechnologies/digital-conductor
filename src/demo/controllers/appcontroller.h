@@ -78,7 +78,7 @@ class AppController : public QObject
     void selectDevice(const dc::media::DeviceDescr &dev);
 
     void startStreaming();
-    void receiveStream();
+    void receiveStream(bool recreate = true);
     void stopStream();
     void stopReceive();
 
