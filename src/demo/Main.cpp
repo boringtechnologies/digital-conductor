@@ -6,11 +6,14 @@
 
 #include "QmlEngine/QmlEngine.hpp"
 
+#include <fmt/core.h>
+
 #include <QCommandLineParser>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QRandomGenerator>
+
 
 //*****************************************************************************
 //*****************************************************************************
@@ -35,7 +38,7 @@ QString autogenerateName(const uint32_t length = 4)
 //*****************************************************************************
 int main(int argc, char *argv[])
 {
-    std::cout << "Qt DigitalConductor (rev: " << DC_GIT_REV << ")" << std::endl;
+    fmt::print("[main] Qt DigitalConductor (rev: {})", DC_GIT_REV);
 
     QCoreApplication::setOrganizationName("DC");
     QCoreApplication::setApplicationName("DigitalConductor");
@@ -98,12 +101,11 @@ int main(int argc, char *argv[])
     else
     {
         // generate user name
-        std::cout << "generate user name" << std::endl;
+        fmt::print("[main] generate user name\n");
         userName = autogenerateName();
     }
 
-    std::cout << "connect to " << signallingServer.toStdString() << " as " << userName.toStdString() << "-"
-              << userGroup.toStdString() << std::endl;
+    fmt::print("[main] connect to {} as {}-{}\n", signallingServer.toStdString(), userName.toStdString(), userGroup.toStdString());
 
     AppController *ac = AppController::instance();
     ac->init(userName, userGroup, signallingServer, "");

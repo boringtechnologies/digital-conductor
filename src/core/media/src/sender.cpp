@@ -223,7 +223,7 @@ void media::Sender::addReceiver(const std::string &id,
         gst_bin_get_by_name(GST_BIN(m_p->pipeline), bin_name.c_str());
 
     if (bin != nullptr) {
-        fmt::print(stderr, "[gst-{}] receiver id {} already exists\n",
+        fmt::print(stderr, "[gst-{}] receiver bin for {} already exists\n",
                    m_p->name, id);
         return;
     }
@@ -293,6 +293,8 @@ void media::Sender::addReceiver(const std::string &id,
 
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(m_p->pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
                               (m_p->name + "-added-" + id).c_str());
+
+    fmt::print(stderr, "[gst-{}] receiver bin for {} added\n", m_p->name, id);
 }
 
 struct RemoveCallbackCtx {
@@ -338,9 +340,7 @@ void media::Sender::removeReceiver(const std::string &id) {
     GstElement *bin = gst_bin_get_by_name(GST_BIN(m_p->pipeline),
                                           fmt::format("{}-bin", id).c_str());
     if (bin == nullptr) {
-        fmt::print(stderr,
-                   "[gst-{}] no such receiver in the current pipeline for {}\n",
-                   m_p->name, id);
+        fmt::print(stderr, "[gst-{}] no bin to remove for {}\n", m_p->name, id);
         return;
     }
 
@@ -358,6 +358,8 @@ void media::Sender::removeReceiver(const std::string &id) {
 
     gst_object_unref(bin_ghost_pad);
     gst_object_unref(tee_src_pad);
+
+    fmt::print(stderr, "[gst-{}] receiver bin for {} removed\n", m_p->name, id);
 }
 
 bool media::Sender::push(const std::string &id, const uint8_t *payload,

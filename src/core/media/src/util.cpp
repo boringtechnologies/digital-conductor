@@ -61,13 +61,13 @@ Util::impl::impl()
 //******************************************************************************
 //******************************************************************************
 void Util::impl::watchThreadFn() {
-    std::cout << "monitor thread started" << std::endl;
+    fmt::print("[utils] monitor thread started\n");
 
     m_monitorLoop = g_main_loop_new(nullptr, false);
 
     m_monitor = gst_device_monitor_new();
     if (!m_monitor) {
-        std::cout << "no monitor";
+        fmt::print(stderr, "[utils] no monitor\n");
         return;
     }
 
@@ -79,7 +79,7 @@ void Util::impl::watchThreadFn() {
 
     gboolean ret = gst_device_monitor_start(m_monitor);
     if (!ret) {
-        std::cout << "monitor not started " << ret << std::endl;
+        fmt::print(stderr, "[utils] monitor not started {}\n", ret);
         return;
     }
 
@@ -103,7 +103,7 @@ void Util::impl::watchThreadFn() {
 
     //    g_list_free_full(devices, gst_object_unref);
 
-    std::cout << "monitor thread stopped" << std::endl;
+    fmt::print("[utils] monitor thread stopped\n");
 }
 
 //******************************************************************************
@@ -117,22 +117,6 @@ void Util::impl::addDevice(GstDevice *dev) {
     descr.deviceClass = deviceClass;
 
     getDeviceParams(dev, descr.internalName, descr.internalParams);
-
-    //    std::cout << "found " << deviceClass << " device " << deviceName <<
-    //    std::endl; std::cout << "    " << descr.internalName;
-    if (descr.internalParams.empty()) {
-        std::cout << std::endl;
-    } else {
-        //        std::cout << " params" << std::endl;
-        //        for (uint32_t i = 0; i < descr.internalParams.size(); ++i)
-        //        {
-        //            std::cout << "        "
-        //                      << descr.internalParams[i].first
-        //                      << ":"
-        //                      << descr.internalParams[i].second
-        //                      << std::endl;
-        //        }
-    }
 
     g_free(deviceClass);
     g_free(deviceName);
@@ -234,9 +218,7 @@ void Util::impl::getDeviceParams(
                 gchar *valuestr = gst_value_serialize(&value);
 
                 if (!valuestr) {
-                    std::cout << "Could not serialize property "
-                              << GST_OBJECT_NAME(element) << ":"
-                              << property->name << std::endl;
+                    fmt::print(stderr, "[utils] Could not serialize property {}:{}\n", GST_OBJECT_NAME(element), property->name);
                     g_free(valuestr);
                 } else {
                     params.emplace_back(property->name, valuestr);
@@ -259,7 +241,7 @@ void Util::impl::getDeviceParams(
 // static
 gboolean Util::impl::busMsgHandler(GstBus *bus, GstMessage *msg,
                                    gpointer userData) {
-    std::cout << "gst message " << GST_MESSAGE_TYPE_NAME(msg) << std::endl;
+    fmt::print("[utils] gst message {}\n", GST_MESSAGE_TYPE_NAME(msg));
 
     Util::impl *impl = reinterpret_cast<Util::impl *>(userData);
 
@@ -281,8 +263,6 @@ gboolean Util::impl::busMsgHandler(GstBus *bus, GstMessage *msg,
             gst_object_unref(device);
             break;
         default:
-            std::cout << "gst message " << GST_MESSAGE_TYPE_NAME(msg)
-                      << std::endl;
             break;
     }
 
@@ -362,7 +342,7 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(
            std::chrono::system_clock::now()) {
         GstDeviceMonitor *monitor = gst_device_monitor_new();
         if (!monitor) {
-            std::cout << "no monitor";
+            fmt::print(stderr, "[utils] no monitor");
             break;
         }
 
@@ -370,7 +350,7 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(
 
         gboolean ret = gst_device_monitor_start(monitor);
         if (!ret) {
-            std::cout << "monitor not started " << ret << std::endl;
+            fmt::print(stderr, "[utils] monitor not started {}\n", ret);
             break;
         }
 
@@ -387,7 +367,7 @@ std::vector<DeviceDescr> Util::getDeviceListDirect(
 
             m_p->getDeviceParams(dev, descr.internalName, descr.internalParams);
 
-            std::cout << "[utils] found " << descr.toStdString() << '\n';
+            fmt::print("[utils] found {}\n", descr.toStdString());
 
             m_p->m_devicesDirect[descr.deviceClass + descr.deviceName] = descr;
 
