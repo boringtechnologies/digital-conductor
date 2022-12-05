@@ -64,6 +64,8 @@ class AppController : public QObject
     void showMessage(const QString &text);
     void stateChanged();
     void syncModeChanged();
+    void setSenderBusy(bool busy);
+    void setReceiverBusy(bool busy);
 
   public slots:
     void init(const QString &userName, const QString &group, const QString &target, const QString &rwMode);

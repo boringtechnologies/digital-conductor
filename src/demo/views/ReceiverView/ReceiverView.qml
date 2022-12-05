@@ -35,6 +35,15 @@ Rectangle {
             onClicked: {
                 checked ? Controller.receiveStream() : Controller.stopReceive();
             }
+
+            Connections {
+                target: Controller
+
+                function onSetReceiverBusy(busy) {
+                    receiverSwitch.isBusy = busy;
+                    receiverSwitch.enabled = !busy;
+                }
+            }
         }
 
         Rectangle {

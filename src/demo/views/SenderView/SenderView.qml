@@ -39,6 +39,15 @@ Rectangle {
             onClicked: {
                 checked ? Controller.startStreaming() : Controller.stopStream();
             }
+
+            Connections {
+                target: Controller
+
+                function onSetSenderBusy(busy) {
+                    senderSwitch.isBusy = busy;
+                    senderSwitch.enabled = !busy;
+                }
+            }
         }
 
         Rectangle {

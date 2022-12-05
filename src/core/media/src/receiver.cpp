@@ -57,7 +57,15 @@ static void actual_sink_added_callback(GstChildProxy *,
                                        gpointer) {
     fmt::print("[gst-receiver] {}\n", __func__);
 
-    g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
+    if (!actual_sink) return;
+
+    GstElementClass *sinkClass = GST_ELEMENT_CLASS(actual_sink);
+    const gchar *sinkName = gst_element_class_get_metadata(
+        sinkClass, GST_ELEMENT_METADATA_LONGNAME);
+
+    if (g_strcmp0(sinkName, "Fake Sink")) {
+        g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
+    }
 }
 
 struct media::Receiver::impl final : BasePipeline {
@@ -66,8 +74,10 @@ struct media::Receiver::impl final : BasePipeline {
     GstElement *appsrc;
     GstElement *rtpbin;
 
-    impl(const std::string &name, media::MediaType type)
-        : BasePipeline(name + "-rcv-" + (type ? "video" : "audio")),
+    impl(const std::string &name, media::MediaType type,
+         std::function<void()> onPlayingFn)
+        : BasePipeline(name + "-rcv-" + (type ? "video" : "audio"),
+                       onPlayingFn),
           appsrc(NULL),
           rtpbin(NULL) {}
 
@@ -76,8 +86,11 @@ struct media::Receiver::impl final : BasePipeline {
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device,
-                          media::WriteCallback write_cb)
-    : m_p(new impl(id.c_str(), type)), media_type(type), write_cb(write_cb) {
+                          media::WriteCallback write_cb,
+                          std::function<void()> onPlayingFn)
+    : m_p(new impl(id.c_str(), type, onPlayingFn)),
+      media_type(type),
+      write_cb(write_cb) {
     GstElement *depayloader, *decoder, *convert, *sink, *appsink;
 
     const std::string &name_prefix = m_p->name;

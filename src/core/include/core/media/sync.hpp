@@ -139,7 +139,8 @@ class Receiver
     // happens yet. The ::start() method must be called.
     //
     // XXX: If a Sender sends audio and video, this API will need to change too.
-    Receiver(const std::string &id, MediaType type, const PlaybackDevice &device, WriteCallback write_cb);
+    Receiver(const std::string &id, MediaType type, const PlaybackDevice &device, WriteCallback write_cb,
+             std::function<void()> onPlayingFn = {});
 
     // Just tear everything down
     ~Receiver();

@@ -14,6 +14,7 @@ Switch {
     property string header
 
     property bool isChecked: false
+    property bool isBusy: false
 
     property var selectModel: []
     property alias placeholder: idTextField.placeholderText
@@ -39,6 +40,14 @@ Switch {
             width: 26
             height: 26
             radius: 13
+
+            BusyIndicator {
+                width: 20
+                height: 20
+                anchors.centerIn: parent
+                running: isBusy
+                Universal.accent: Common.secondaryColor
+            }
         }
     }
     contentItem: Row {
