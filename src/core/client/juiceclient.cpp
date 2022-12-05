@@ -140,8 +140,8 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
 
         m_pingAvg = std::chrono::duration_cast<double_millis_t>(m_pingAvg + (latency - m_pingAvg) / (double)m_pingSeq);
 
-        fmt::print("[ping] {} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
-                   latency.count(), m_pingAvg.count());
+        // fmt::print("[ping] {} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
+        //            latency.count(), m_pingAvg.count());
     }
     catch (...)
     {
@@ -152,16 +152,13 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
 // static
 void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state, void *user_ptr)
 {
-    fmt::print("[juice] onStateChanged\n");
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // TODO ugly, use bind etc.
-    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl *cimpl = caller->m_p.get();
+    fmt::print("[juice-{}] onStateChanged\n", caller->id());
 
+    auto cimpl = caller->m_p;
     cimpl->m_lastReceived = std::chrono::system_clock::now();
-
-    // default, call handler
-    caller->m_p->m_onStateChangedHandler(agent, state, user_ptr);
+    cimpl->m_onStateChangedHandler(agent, state, user_ptr);
 }
 
 //******************************************************************************
@@ -169,14 +166,11 @@ void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state
 // static
 void JuiceClient::impl::onCandidate(juice_agent_t *agent, const char *sdp, void *user_ptr)
 {
-    fmt::print("[juice] onCandidate\n");
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // TODO ugly, use bind etc.
-    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl *cimpl = caller->m_p.get();
+    fmt::print("[juice-{}] onCandidate\n", caller->id());
 
-    // default, call handler
-    cimpl->m_onCandidateHandler(agent, sdp, user_ptr);
+    caller->m_p->m_onCandidateHandler(agent, sdp, user_ptr);
 }
 
 //******************************************************************************
@@ -184,14 +178,11 @@ void JuiceClient::impl::onCandidate(juice_agent_t *agent, const char *sdp, void 
 // static
 void JuiceClient::impl::onGatheringDone(juice_agent_t *agent, void *user_ptr)
 {
-    fmt::print("[juice] onCandidate\n");
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
 
-    // TODO ugly, use bind etc.
-    dc::JuiceClient *caller      = reinterpret_cast<dc::JuiceClient *>(user_ptr);
-    dc::JuiceClient::impl *cimpl = caller->m_p.get();
+    fmt::print("[juice-{}] onCandidate\n", caller->id());
 
-    // default, call handler
-    cimpl->m_onGatheringDoneHandler(agent, user_ptr);
+    caller->m_p->m_onGatheringDoneHandler(agent, user_ptr);
 }
 
 //******************************************************************************
@@ -212,7 +203,7 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     if (memcmp(data, JP2P_MSG.data(), JP2P_HEADER_SIZE) == 0)
     {
         // p2p text message, need forward to handler?
-        fmt::print("[juice]\tfrom {} -> '{}'\n", caller->id(), data + JP2P_HEADER_SIZE);
+        fmt::print("[juice-{}] message '{}'\n", caller->id(), data + JP2P_HEADER_SIZE);
     }
     else if (memcmp(data, JP2P_PING.data(), JP2P_HEADER_SIZE) == 0)
     {
@@ -235,7 +226,7 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     }
     else
     {
-        fmt::print(stderr, "Unknow type of traffic\n");
+        fmt::print(stderr, "[juice-{}] unknow type of traffic\n", caller->id());
         assert(false);
     }
 }
@@ -287,9 +278,10 @@ bool JuiceClient::init(const std::string &sdp)
 //******************************************************************************
 bool JuiceClient::connect(const std::string &sdpRemote)
 {
+    fmt::print("[juice-{}] init {}\n", m_p->m_id, sdpRemote);
     if (!m_p->m_agent)
     {
-        fmt::print("[juice] init {}", sdpRemote);
+        fmt::print(stderr, "[juice-{}] agent == nullptr\n", m_p->m_id);
         return false;
     }
     return (juice_set_remote_description(m_p->m_agent, sdpRemote.c_str()) == JUICE_ERR_SUCCESS &&
@@ -300,6 +292,7 @@ bool JuiceClient::connect(const std::string &sdpRemote)
 //******************************************************************************
 void JuiceClient::disconnect()
 {
+    fmt::print("[juice-{}] disconnect\n", m_p->m_id);
     if (!m_p->m_agent)
         return;
 
@@ -313,6 +306,7 @@ void JuiceClient::disconnect()
 //******************************************************************************
 void JuiceClient::addRemote(const std::string &sdpRemote)
 {
+    fmt::print("[juice-{}] addRemote\n", m_p->m_id);
     juice_add_remote_candidate(m_p->m_agent, sdpRemote.c_str());
 }
 
@@ -349,14 +343,14 @@ void JuiceClient::sendVideo(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    constexpr size_t buffer_size = 256_Kbyte;
+    constexpr size_t buffer_size = 128_Kbyte;
     if (size > buffer_size)
     {
         fmt::print(stderr, "send video buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
         return;
     }
 
-    static thread_local char buffer[buffer_size];
+    char buffer[buffer_size];
     memcpy(buffer, JP2P_VIDEO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
@@ -370,14 +364,14 @@ void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    constexpr size_t buffer_size = 128_Kbyte;
+    constexpr size_t buffer_size = 64_Kbyte;
     if (size > buffer_size)
     {
         fmt::print(stderr, "send audio buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
         return;
     }
 
-    static thread_local char buffer[buffer_size];
+    char buffer[buffer_size];
     memcpy(buffer, JP2P_AUDIO.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, data, size);
 
