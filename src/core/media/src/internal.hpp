@@ -220,7 +220,7 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
         } break;
 
         case GST_MESSAGE_STATE_CHANGED: {
-            if (!GST_IS_PIPELINE (msg->src)) break;
+            if (!GST_IS_PIPELINE(msg->src)) break;
             GstState old_state, new_state;
             gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
             if (new_state == GST_STATE_PLAYING && self->onPlayingFn) {

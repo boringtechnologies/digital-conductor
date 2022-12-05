@@ -218,7 +218,9 @@ void Util::impl::getDeviceParams(
                 gchar *valuestr = gst_value_serialize(&value);
 
                 if (!valuestr) {
-                    fmt::print(stderr, "[utils] Could not serialize property {}:{}\n", GST_OBJECT_NAME(element), property->name);
+                    fmt::print(stderr,
+                               "[utils] Could not serialize property {}:{}\n",
+                               GST_OBJECT_NAME(element), property->name);
                     g_free(valuestr);
                 } else {
                     params.emplace_back(property->name, valuestr);

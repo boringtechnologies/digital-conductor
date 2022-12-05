@@ -140,7 +140,8 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
 
         m_pingAvg = std::chrono::duration_cast<double_millis_t>(m_pingAvg + (latency - m_pingAvg) / (double)m_pingSeq);
 
-        // fmt::print("[ping] {} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id, m_pingSeq,
+        // fmt::print("[ping] {} bytes from {}: seq={} time={:.2f} ms avg={:.2f} ms\n", pongData.size(), m_id,
+        // m_pingSeq,
         //            latency.count(), m_pingAvg.count());
     }
     catch (...)
@@ -156,7 +157,7 @@ void JuiceClient::impl::onStateChanged(juice_agent_t *agent, juice_state_t state
 
     fmt::print("[juice-{}] onStateChanged\n", caller->id());
 
-    auto cimpl = caller->m_p;
+    auto cimpl            = caller->m_p;
     cimpl->m_lastReceived = std::chrono::system_clock::now();
     cimpl->m_onStateChangedHandler(agent, state, user_ptr);
 }

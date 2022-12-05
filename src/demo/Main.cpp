@@ -14,7 +14,6 @@
 #include <QQmlApplicationEngine>
 #include <QRandomGenerator>
 
-
 //*****************************************************************************
 //*****************************************************************************
 void registerTypes(QQmlEngine &engine);
@@ -105,7 +104,8 @@ int main(int argc, char *argv[])
         userName = autogenerateName();
     }
 
-    fmt::print("[main] connect to {} as {}-{}\n", signallingServer.toStdString(), userName.toStdString(), userGroup.toStdString());
+    fmt::print("[main] connect to {} as {}-{}\n", signallingServer.toStdString(), userName.toStdString(),
+               userGroup.toStdString());
 
     AppController *ac = AppController::instance();
     ac->init(userName, userGroup, signallingServer, "");
