@@ -220,9 +220,14 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
         } break;
 
         case GST_MESSAGE_STATE_CHANGED: {
-            GstState new_state;
-            gst_message_parse_state_changed(msg, NULL, &new_state, NULL);
+            if (!GST_IS_PIPELINE (msg->src)) break;
+            GstState old_state, new_state;
+            gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
             if (new_state == GST_STATE_PLAYING && self->onPlayingFn) {
+                g_print("[gst-%s] GST_MESSAGE_STATE_CHANGED from %s -> %s\n",
+                        self->name.c_str(),
+                        gst_element_state_get_name(old_state),
+                        gst_element_state_get_name(new_state));
                 self->onPlayingFn();
             }
         } break;
