@@ -65,6 +65,22 @@ $ cmake -S . -B build
 $ cmake --build build
 ```
 
+## Run
+
+Project consist of two parts:
+
+- server (`DigitalConductorCore_server`)
+  - run `bin/digitalconductorcore-server | tee >(split --additional-suffix=.log -d -l 20000 - dc-server-)`
+  - Default port can be changed with `DC_GRPC_SERVER_PORT` environemnt variable
+
+- client (`DigitalConductorDemo`)
+  - run `bin/digitalconductor-demo` or `open bin/digitalconductor-demo.app`
+  - generate license for a key presented in UI with `bin/digitalconductor --generate_license ${KEY} --expiry_date 1`
+  - paset output from the command above
+
+
+Suggested way to run s
+
 Done!
 
 ## Code quality
