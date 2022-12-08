@@ -576,7 +576,8 @@ void AppController::onSenderViewReady()
 
 void AppController::groupChanged(QString newGroup)
 {
-    if (newGroup.toStdString() == m_p->m_rpcClient->peer().group()) {
+    if (newGroup.toStdString() == m_p->m_rpcClient->peer().group())
+    {
         return;
     }
     fmt::print("[appctrl] group changed to: {}\n", newGroup.toStdString());
@@ -692,7 +693,7 @@ void AppController::receiveStream(bool recreate)
         return;
     }
 
-    emit setReceiverBusy(m_p->m_recieving = true);
+    m_p->m_recieving = true;
     updateGroupEditable();
 
     auto rpcClient        = m_p->m_rpcClient;
@@ -727,6 +728,8 @@ void AppController::receiveStream(bool recreate)
             ptr->disconnect();
             ptr.reset();
         }
+
+        emit setReceiverBusy(true);
 
         // connection to sender
         ptr.reset(new dc::JuiceClient(
