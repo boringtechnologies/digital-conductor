@@ -59,7 +59,7 @@ class GRpcClient
 
     void subscribe(PeerType type = READER, on_message_handler_t handler = nullptr);
     void updateType(PeerType newType);
-    void updateGroup(std::string group);
+    void updateGroup(const std::string& newGroup);
     void unsubscribe();
     void sendMessage(const std::string &to, const dc::MessageType type, const std::string &data);
 

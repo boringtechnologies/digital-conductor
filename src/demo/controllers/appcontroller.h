@@ -63,7 +63,7 @@ class AppController : public QObject
     void setSenderBusy(bool busy);
     void setReceiverBusy(bool busy);
     void setGroupEditable(bool editable);
-    void updatedGroup(QString name);
+    void updatedGroup(const QString& newGroup);
 
   public slots:
     void init(const QString &userName, const QString &group, const QString &target, const QString &rwMode);

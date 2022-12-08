@@ -64,7 +64,7 @@ void GRpcClient::updateType(PeerType newType)
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::updateGroup(std::string newGroup)
+void GRpcClient::updateGroup(const std::string& newGroup)
 {
     fmt::print("[grpc] updateGroup({})\n", newGroup);
 
