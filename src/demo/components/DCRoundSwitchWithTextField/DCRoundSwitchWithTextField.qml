@@ -15,13 +15,16 @@ Switch {
 
     property bool isChecked: false
     property bool isBusy: false
+    property bool isEditable: true
+    property string disabledEditTooltip: string
 
     property var selectModel: []
     property alias placeholder: idTextField.placeholderText
-    property alias test: idTextField.text
+    property alias textValue: idTextField.text
     property int currentSelectIndex: 0
 
     signal selected(string value)
+    signal groupChanged(string value)
 
     checked: isChecked
 
@@ -64,12 +67,18 @@ Switch {
 
         DCTextField {
             id: idTextField
-            enabled: false
-            placeholderText: placeholder
+            enabled: isEditable
             width: parent.width - headerId.width - indicatorId.width - 30
             leftPadding: 5
             topPadding: 5
             bottomPadding: 5
+
+            onEditingFinished: groupChanged(idTextField.text);
+
+            ToolTip.delay: 2000
+            ToolTip.timeout: 1000
+            ToolTip.visible: hovered && !isEditable
+            ToolTip.text: disabledEditTooltip
         }
     }
 }

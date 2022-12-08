@@ -58,7 +58,8 @@ class GRpcClient
     }
 
     void subscribe(PeerType type = READER, on_message_handler_t handler = nullptr);
-    void updatePeer(PeerType newType);
+    void updateType(PeerType newType);
+    void updateGroup(std::string group);
     void unsubscribe();
     void sendMessage(const std::string &to, const dc::MessageType type, const std::string &data);
 
@@ -66,6 +67,9 @@ class GRpcClient
     bool p2pAccept(const std::string &to, const std::string &sdp);
     bool p2pCandidate(const std::string &to, const std::string &candidate);
     bool p2pDisconnect(const std::string &to, const std::string &reason);
+
+  protected:
+    void updatePeer();
 
   private:
     std::unique_ptr<dc::DcRpc::Stub> m_stub;

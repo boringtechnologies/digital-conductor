@@ -35,10 +35,13 @@ Rectangle {
             id: senderSwitch
             Layout.fillWidth: true
             header: qsTr("Start Sending to")
-            placeholder: Controller.group
+            disabledEditTooltip: qsTr("Stop streaming and recieving to change group")
+            textValue: Controller.group
             onClicked: {
                 checked ? Controller.startStreaming() : Controller.stopStream();
             }
+
+            onGroupChanged: newGroup => Controller.groupChanged(newGroup);
 
             Connections {
                 target: Controller
@@ -46,6 +49,14 @@ Rectangle {
                 function onSetSenderBusy(busy) {
                     senderSwitch.isBusy = busy;
                     senderSwitch.enabled = !busy;
+                }
+
+                function onSetGroupEditable(editable) {
+                    senderSwitch.isEditable = editable;
+                }
+
+                function onUpdatedGroup(group) {
+                    senderSwitch.textValue = group;
                 }
             }
         }
