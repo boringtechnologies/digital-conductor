@@ -1,0 +1,16 @@
+# cmake-format - https://github.com/cheshirekow/cmake_format
+format:
+  line_width: 120
+  tab_size: 2
+  use_tabchars: false
+  max_pargs_hwrap: 3
+  command_case: canonical # TODO change to lower https://gitlab.kitware.com/cmake/cmake/-/commit/77543bd
+  keyword_case: unchanged #
+
+lint:
+  disabled_codes: []
+  function_pattern: '[0-9a-z_]+'
+  macro_pattern: '[0-9A-Z_]+'
+  global_var_pattern: '[A-Z][0-9A-Z_]+'
+  public_var_pattern: '[A-Z][0-9A-Za-z_]+'
+  private_var_pattern: '_[0-9A-Za-z_]+'

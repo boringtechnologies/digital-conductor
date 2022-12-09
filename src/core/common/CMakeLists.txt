@@ -16,31 +16,26 @@ set(DigitalConductorCore_proto_src
 find_program(PROTOC_EXE protoc REQUIRED)
 find_program(GRPC_CPP_PLUGIN_EXE grpc_cpp_plugin REQUIRED)
 
-add_custom_command(
-    OUTPUT ${DigitalConductorCore_proto_src}
-    COMMAND ${PROTOC_EXE}
-    ARGS --grpc_out "${ProtocOutputDir}"
-         --cpp_out "${ProtocOutputDir}"
-         -I "${DigitalConductorCore_proto_path}"
-         --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXE}"
-        "${DigitalConductorCore_proto}"
-    DEPENDS "${DigitalConductorCore_proto}")
+add_custom_command(OUTPUT ${DigitalConductorCore_proto_src}
+  COMMAND
+    ${PROTOC_EXE} ARGS --grpc_out "${ProtocOutputDir}" --cpp_out "${ProtocOutputDir}" -I
+    "${DigitalConductorCore_proto_path}" --plugin=protoc-gen-grpc="${GRPC_CPP_PLUGIN_EXE}"
+    "${DigitalConductorCore_proto}"
+  DEPENDS "${DigitalConductorCore_proto}"
+  COMMENT "Generate gRPC and ProtoBuf c++ code")
 
-add_custom_target(
-	run_protoc
-	ALL
-	DEPENDS ${DigitalConductorCore_proto})
+add_custom_target(run_protoc ALL DEPENDS ${DigitalConductorCore_proto} COMMENT "Protoc target")
 
 add_library(DigitalConductorCore_proto ${DigitalConductorCore_proto_src} proto/autodiscovery.proto)
 
-target_link_libraries(DigitalConductorCore_proto
-    ${ZLIB_LIBRARIES}
-    ${gRPC_LIBRARIES}
-    ${Protobuf_LIBRARIES})
+target_link_libraries(
+  DigitalConductorCore_proto
+  ${ZLIB_LIBRARIES}
+  ${GRPC_LIBRARIES}
+  ${Protobuf_LIBRARIES})
 
-target_include_directories(DigitalConductorCore_proto PUBLIC ${gRPC_INCLUDE_DIRS})
+target_include_directories(DigitalConductorCore_proto PUBLIC ${GRPC_INCLUDE_DIRS})
 
-set_target_properties(DigitalConductorCore_proto PROPERTIES
-    OUTPUT_NAME "digitalconductorcore_proto")
+set_target_properties(DigitalConductorCore_proto PROPERTIES OUTPUT_NAME "digitalconductorcore_proto")
 
 target_include_directories(DigitalConductorCore_proto PUBLIC ${ProtocOutputDir})
