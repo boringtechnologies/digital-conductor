@@ -41,14 +41,10 @@ class AppController : public QObject
 
     Q_PROPERTY(bool syncModeEnabled READ syncModeEnabled WRITE setSyncMode NOTIFY syncModeChanged)
 
-  protected:
-    AppController();
-
   public:
     static AppController *instance(QQmlEngine * = nullptr, QJSEngine * = nullptr);
     virtual ~AppController();
 
-  public:
     // std::shared_ptr<dc::GRpcClient> rpcClient();
     std::vector<dc::Peer> getPeers() const;
 
@@ -66,6 +62,8 @@ class AppController : public QObject
     void syncModeChanged();
     void setSenderBusy(bool busy);
     void setReceiverBusy(bool busy);
+    void setGroupEditable(bool editable);
+    void updatedGroup(const QString &newGroup);
 
   public slots:
     void init(const QString &userName, const QString &group, const QString &target, const QString &rwMode);
@@ -85,6 +83,13 @@ class AppController : public QObject
     void stopReceive();
 
     void onSenderViewReady();
+
+    void groupChanged(QString newGroup);
+
+  protected:
+    AppController();
+
+    void updateGroupEditable();
 
   private:
     class impl;

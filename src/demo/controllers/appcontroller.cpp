@@ -78,6 +78,7 @@ class AppController::impl : public QObject
 
     // receiver
     bool m_recieving                 = false;
+    bool m_streaming                 = false;
     bool m_syncMode                  = true;
     media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
     std::chrono::duration<int, std::milli> m_delay{200};
@@ -573,6 +574,17 @@ void AppController::onSenderViewReady()
     mgr.requestMissingPermissions();
 }
 
+void AppController::groupChanged(QString newGroup)
+{
+    if (newGroup.toStdString() == m_p->m_rpcClient->peer().group())
+    {
+        return;
+    }
+    fmt::print("[appctrl] group changed to: {}\n", newGroup.toStdString());
+    m_p->m_rpcClient->updateGroup(newGroup.toStdString());
+    emit updatedGroup(newGroup);
+}
+
 //******************************************************************************
 //******************************************************************************
 void AppController::setSyncMode(const bool sync)
@@ -637,7 +649,8 @@ void AppController::startStreaming()
         return;
     }
 
-    emit setSenderBusy(true);
+    emit setSenderBusy(m_p->m_streaming = true);
+    updateGroupEditable();
 
     const dc::media::DeviceDescr &videoDevDescr = m_p->m_currentDevices[videoDeviceClass];
     media::CaptureDevice videoDevice{videoDevDescr.internalName, videoDevDescr.internalParams};
@@ -652,7 +665,7 @@ void AppController::startStreaming()
     m_p->m_videosender.reset(
         new media::Sender(user, media::MediaType::Video, videoDevice, m_p->m_mediaclock, [this, rpcClient]() {
             dc::PeerType peerType = (dc::PeerType)(rpcClient->peer().type() | dc::PeerType::WRITER);
-            rpcClient->updatePeer(peerType);
+            rpcClient->updateType(peerType);
             emit setSenderBusy(false);
         }));
     m_p->m_videosender->start();
@@ -680,13 +693,12 @@ void AppController::receiveStream(bool recreate)
         return;
     }
 
-    emit setReceiverBusy(true);
-
     m_p->m_recieving = true;
+    updateGroupEditable();
 
     auto rpcClient        = m_p->m_rpcClient;
     dc::PeerType peerType = (dc::PeerType)(rpcClient->peer().type() | dc::PeerType::READER);
-    rpcClient->updatePeer(peerType);
+    rpcClient->updateType(peerType);
 
     for (const dc::Peer &peer : m_p->m_rpcPeers)
     {
@@ -716,6 +728,8 @@ void AppController::receiveStream(bool recreate)
             ptr->disconnect();
             ptr.reset();
         }
+
+        emit setReceiverBusy(true);
 
         // connection to sender
         ptr.reset(new dc::JuiceClient(
@@ -762,9 +776,11 @@ void AppController::stopStream()
 {
     fmt::print("[appctrl] stopStream()\n");
 
+    m_p->m_streaming = false;
+
     auto rpcClient    = m_p->m_rpcClient;
     dc::PeerType type = (dc::PeerType)(rpcClient->peer().type() & ~dc::PeerType::WRITER);
-    rpcClient->updatePeer(type);
+    rpcClient->updateType(type);
 
     if (m_p->m_audiosender)
     {
@@ -792,6 +808,8 @@ void AppController::stopStream()
 
         m_p->m_p2pConnections.clear();
     }
+
+    updateGroupEditable();
 }
 
 void AppController::stopReceive()
@@ -801,7 +819,7 @@ void AppController::stopReceive()
     m_p->m_recieving = false;
 
     dc::PeerType type = (dc::PeerType)(m_p->m_rpcClient->peer().type() & ~dc::PeerType::READER);
-    m_p->m_rpcClient->updatePeer(type);
+    m_p->m_rpcClient->updateType(type);
 
     for (const std::pair<std::string, dc::ReceiverPtr> &r : m_p->m_videoreceivers)
     {
@@ -826,4 +844,11 @@ void AppController::stopReceive()
     m_p->m_videoreceivers.clear();
 
     emit setReceiverBusy(false);
+    updateGroupEditable();
+}
+
+void AppController::updateGroupEditable()
+{
+    bool editable = !(m_p->m_streaming || m_p->m_recieving);
+    emit setGroupEditable(editable);
 }

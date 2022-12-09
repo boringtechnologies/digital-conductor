@@ -26,6 +26,11 @@ Window {
 //        text: "The document has been modified."
 //    }
 
+    MouseArea {
+        anchors.fill: parent
+        onClicked: forceActiveFocus()
+    }
+
     Connections {
         target: Controller
 

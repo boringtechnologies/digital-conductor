@@ -31,10 +31,13 @@ Rectangle {
             id: receiverSwitch
             Layout.fillWidth: true
             header: qsTr("Start Receiving from")
-            placeholder: Controller.group
+            disabledEditTooltip: qsTr("Stop streaming and recieving to change group")
+            textValue: Controller.group
             onClicked: {
                 checked ? Controller.receiveStream() : Controller.stopReceive();
             }
+
+            onGroupChanged: newGroup => Controller.groupChanged(newGroup);
 
             Connections {
                 target: Controller
@@ -42,6 +45,14 @@ Rectangle {
                 function onSetReceiverBusy(busy) {
                     receiverSwitch.isBusy = busy;
                     receiverSwitch.enabled = !busy;
+                }
+
+                function onSetGroupEditable(editable) {
+                    receiverSwitch.isEditable = editable;
+                }
+
+                function onUpdatedGroup(group) {
+                    receiverSwitch.textValue = group;
                 }
             }
         }

@@ -92,7 +92,7 @@ class MessageWriter : public grpc::ServerWriteReactor<dc::Message>
     void OnCancel() override
     {
         // std::cout << "OnCancel()" << std::endl;
-        std::cout << m_id << " disconnected, unsubscribed" << std::endl;
+        std::cout << "[messageWriter] " << m_id << " disconnected, unsubscribed" << std::endl;
         m_service->clientDisconnected(m_id);
         delete this;
     }
@@ -119,13 +119,10 @@ void Service::broadcastPeerList(const std::string &origin, const std::string &gr
     for (const std::pair<std::string, dc::Peer> &pair : m_peers)
     {
         const dc::Peer &peer = pair.second;
-        // filter by group
-        if (!peer.group().empty() && peer.group() != group)
+        if (!peer.group().empty() && peer.group() == group)
         {
-            continue;
+            peers.push_back(peer);
         }
-
-        peers.push_back(peer);
     }
 
     PeerList peerList;
@@ -209,13 +206,28 @@ grpc::ServerUnaryReactor *Service::updatePeer(grpc::CallbackServerContext *conte
         return reactor;
     }
 
+    const std::string oldGroup = m_peers[request->id()].group();
+    const dc::PeerType oldType = m_peers[request->id()].type();
+
     m_peers[request->id()] = *request;
 
-    broadcastPeerList(request->id(), request->group(), request->id());
+    if (oldType != request->type()) // update type
+    {
+        broadcastPeerList(request->id(), request->group(), request->id());
+    }
+    else if (oldGroup != request->group()) // notify old group & new group
+    {
+        broadcastPeerList(request->id(), request->group());
+        broadcastPeerList(request->id(), oldGroup);
+    }
+    else
+    {
+        std::cout << "[updatePeer] skip update: no changes of type or group" << std::endl;
+    }
 
     reactor->Finish(grpc::Status::OK);
 
-    std::cout << "[updatePeer] succeed for " << request->id() << " new type is " << request->type() << std::endl;
+    std::cout << "[updatePeer] succeed for " << request->id() << std::endl;
 
     return reactor;
 }

@@ -53,12 +53,30 @@ void GRpcClient::subscribe(PeerType type, on_message_handler_t handler)
 
 //******************************************************************************
 //******************************************************************************
-void GRpcClient::updatePeer(PeerType newType)
+void GRpcClient::updateType(PeerType newType)
 {
     fmt::print("[grpc] updatePeer({})\n", newType);
 
     m_peer.set_type(newType);
 
+    updatePeer();
+}
+
+//******************************************************************************
+//******************************************************************************
+void GRpcClient::updateGroup(const std::string &newGroup)
+{
+    fmt::print("[grpc] updateGroup({})\n", newGroup);
+
+    m_peer.set_group(newGroup);
+
+    updatePeer();
+}
+
+//******************************************************************************
+//******************************************************************************
+void GRpcClient::updatePeer()
+{
     Empty resp;
 
     grpc::ClientContext context;
