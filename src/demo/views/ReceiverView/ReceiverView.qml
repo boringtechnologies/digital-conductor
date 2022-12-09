@@ -9,6 +9,7 @@ import "qrc:/dc/components/DCText"
 import "qrc:/dc/components/DCRoundSwitch"
 import "qrc:/dc/components/DCComboBox"
 import "qrc:/dc/components/DCRoundSwitchWithTextField"
+import "qrc:/dc/components/DCSlider"
 import "qrc:/dc/common/common.js" as Common
 
 Rectangle {
@@ -115,15 +116,32 @@ Rectangle {
             color: Common.midGray
         }
 
-        DCRoundSwitch {
-            id: syncSwitch
+        Column {
             Layout.fillWidth: true
-            header: "Synchronization"
-            checked: Controller.syncModeEnabled
-            onClicked: {
-                Controller.syncModeEnabled = checked;
+            spacing: 15
+
+            DCRoundSwitch {
+                id: syncSwitch
+                Layout.fillWidth: true
+                header: "Synchronization"
+                checked: Controller.syncModeEnabled
+                onClicked: {
+                    Controller.syncModeEnabled = checked;
+                    syncLatency.enabled = checked;
+                }
             }
 
+            DCSlider {
+                id: syncLatency
+                Layout.fillWidth: true
+                from: 300
+                value: Controller.syncDelay;
+                to: 2000
+                stepSize: 50
+                label: "Delay:"
+
+                onValueSelected: value => Controller.setSyncDelay(value)
+            }
         }
     }
 }

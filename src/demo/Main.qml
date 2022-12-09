@@ -15,7 +15,7 @@ import "qrc:/dc/views/RegisterLicenseView"
 Window {
 
     minimumWidth: 530
-    minimumHeight: 350
+    minimumHeight: 375
     visible: true
     title: "Digital Conductor Demo"
     color: Common.primaryColor

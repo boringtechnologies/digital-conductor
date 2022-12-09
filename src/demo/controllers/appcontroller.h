@@ -40,6 +40,7 @@ class AppController : public QObject
     Q_PROPERTY(QString newDeviceLicense READ generateLicenseToken CONSTANT)
 
     Q_PROPERTY(bool syncModeEnabled READ syncModeEnabled WRITE setSyncMode NOTIFY syncModeChanged)
+    Q_PROPERTY(size_t syncDelay READ syncDelay WRITE setSyncDelay NOTIFY syncDelayChanged)
 
   public:
     static AppController *instance(QQmlEngine * = nullptr, QJSEngine * = nullptr);
@@ -51,6 +52,7 @@ class AppController : public QObject
     State state() const;
 
     QString group() const;
+    size_t syncDelay() const;
 
     QString generateLicenseToken() const;
 
@@ -60,6 +62,7 @@ class AppController : public QObject
     void showMessage(const QString &text);
     void stateChanged();
     void syncModeChanged();
+    void syncDelayChanged();
     void setSenderBusy(bool busy);
     void setReceiverBusy(bool busy);
     void setGroupEditable(bool editable);
@@ -74,6 +77,7 @@ class AppController : public QObject
     void copyToClipboard(QString data);
 
     void setSyncMode(const bool sync);
+    void setSyncDelay(const size_t syncDelay);
 
     void selectDevice(const dc::media::DeviceDescr &dev);
 

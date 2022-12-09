@@ -214,7 +214,11 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
             gst_message_parse_error(msg, &error, &debug);
             g_free(debug);
 
-            g_printerr("error: %s\n", error->message);
+            g_printerr("error: %s code: %d quark: %d\n", error->message,
+                       error->code, error->domain);
+
+            // TODO: handle 'Output window was closed'
+
             g_error_free(error);
             g_main_loop_quit(loop);
         } break;

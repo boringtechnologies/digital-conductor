@@ -149,6 +149,9 @@ class Receiver
     void setSync(bool enabled, std::chrono::duration<int, std::milli> delay = std::chrono::milliseconds(500),
                  const ClockInfo &clock = {});
 
+    // Set pipeline latency
+    void setSyncDelay(std::chrono::duration<int, std::milli> delay);
+
     // Start streaming media from any connected senders.
     //
     // XXX: How should we handle errors? We could return an error here, but an

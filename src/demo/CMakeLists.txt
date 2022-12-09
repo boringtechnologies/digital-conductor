@@ -56,6 +56,7 @@ set(QML_SOURCES
   components/DCLinkButton/DCLinkButton.qml
   components/DCTextArea/DCTextArea.qml
   components/DCButton/DCButton.qml
+  components/DCSlider/DCSlider.qml
 
   views/AppGui/AppGui.qml
   views/AppGui/AppGui.js
@@ -85,10 +86,14 @@ add_custom_command(
       ${QML_SOURCES}
   )
 
-qt_add_executable(DigitalConductorDemo
-  ${CPP_SOURCES}
+set(QRC_SOURCES
   "${PROJECT_SOURCE_DIR}/qmlindex.qrc"
   "${PROJECT_SOURCE_DIR}/images/_images.qrc"
+)
+
+qt_add_executable(DigitalConductorDemo
+  ${CPP_SOURCES}
+  ${QRC_SOURCES}
 )
 
 qt_add_qml_module(DigitalConductorDemo

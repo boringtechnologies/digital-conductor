@@ -81,7 +81,7 @@ class AppController::impl : public QObject
     bool m_streaming                 = false;
     bool m_syncMode                  = true;
     media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
-    std::chrono::duration<int, std::milli> m_delay{200};
+    std::chrono::duration<int, std::milli> m_delay{300};
     std::map<std::string, dc::ReceiverPtr> m_videoreceivers;
     std::map<std::string, dc::ReceiverPtr> m_audioreceivers;
 };
@@ -514,6 +514,13 @@ QString AppController::group() const
 
 //******************************************************************************
 //******************************************************************************
+size_t AppController::syncDelay() const
+{
+    return m_p->m_delay.count();
+}
+
+//******************************************************************************
+//******************************************************************************
 AppController::State AppController::state() const
 {
     return m_p->m_state;
@@ -599,6 +606,23 @@ void AppController::setSyncMode(const bool sync)
             continue;
         m_p->m_videoreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
         m_p->m_audioreceivers[peer.id()]->setSync(m_p->m_syncMode, m_p->m_delay, m_p->m_receiverclock);
+    }
+}
+
+//******************************************************************************
+//******************************************************************************
+void AppController::setSyncDelay(const size_t syncDelay)
+{
+    fmt::print("[appctrl] sync delay {}\n", syncDelay);
+    m_p->m_delay = std::chrono::duration<int, std::milli>(syncDelay);
+
+    for (const dc::Peer &peer : m_p->m_rpcPeers)
+    {
+        if (!(peer.type() & dc::PeerType::WRITER) ||
+            m_p->m_videoreceivers.find(peer.id()) == m_p->m_videoreceivers.end())
+            continue;
+        m_p->m_videoreceivers[peer.id()]->setSyncDelay(m_p->m_delay);
+        m_p->m_audioreceivers[peer.id()]->setSyncDelay(m_p->m_delay);
     }
 }
 

@@ -14,6 +14,7 @@
     <file>components/DCLinkButton/DCLinkButton.qml</file>
     <file>components/DCTextArea/DCTextArea.qml</file>
     <file>components/DCButton/DCButton.qml</file>
+    <file>components/DCSlider/DCSlider.qml</file>
     <file>views/AppGui/AppGui.qml</file>
     <file>views/AppGui/AppGui.js</file>
     <file>views/PeerListView/PeerList/PeerList.qml</file>

@@ -78,9 +78,6 @@ Project consist of two parts:
   - generate license for a key presented in UI with `bin/digitalconductor --generate_license ${KEY} --expiry_date 1`
   - paset output from the command above
 
-
-Suggested way to run s
-
 Done!
 
 ## Code quality
@@ -179,3 +176,8 @@ gst-launch-1.0 -v rtpbin buffer-mode=0 name=rtpbin \
     udpsrc port=5001 ! rtpbin.recv_rtcp_sink_0 \
     rtpbin.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=5005 sync=false async=false
 ```
+
+## Known issues
+
+- "Unknown Component(M300)" - https://bugreports.qt.io/browse/QTCREATORBUG-25620
+- 

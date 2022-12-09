@@ -57,13 +57,8 @@ static void actual_sink_added_callback(GstChildProxy *,
                                        gpointer) {
     fmt::print("[gst-receiver] {}\n", __func__);
 
-    if (!actual_sink) return;
-
-    GstElementClass *sinkClass = GST_ELEMENT_CLASS(actual_sink);
-    const gchar *sinkName = gst_element_class_get_metadata(
-        sinkClass, GST_ELEMENT_METADATA_LONGNAME);
-
-    if (g_strcmp0(sinkName, "Fake Sink")) {
+    if (g_object_class_find_property(G_OBJECT_GET_CLASS(G_OBJECT(actual_sink)),
+                                     "force-aspect-ratio")) {
         g_object_set(actual_sink, "force-aspect-ratio", TRUE, NULL);
     }
 }
@@ -168,11 +163,7 @@ void media::Receiver::setSync(bool enabled,
                      "buffer-mode", 4,  // BUFFER_MODE_SYNCED
                      NULL);
         m_p->setupClock(clock.address, clock.port);
-        // Set this high enough so that it's higher than the minimum latency on
-        // all receivers
-        long latency = delay.count() * GST_MSECOND;
-        gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
-        fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
+        setSyncDelay(delay);
     } else {
         g_object_set(m_p->rtpbin, "ntp-sync", FALSE, "ntp-time-source",
                      0,                 // NTP_TIME_SOURCE_CLOCK_TIME/
@@ -182,6 +173,15 @@ void media::Receiver::setSync(bool enabled,
         gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline),
                                  GST_CLOCK_TIME_NONE);
     }
+}
+
+void media::Receiver::setSyncDelay(
+    std::chrono::duration<int, std::milli> delay) {
+    // Set this high enough so that it's higher than the minimum latency on
+    // all receivers
+    long latency = delay.count() * GST_MSECOND;
+    gst_pipeline_set_latency(GST_PIPELINE(m_p->pipeline), latency);
+    fmt::print("[gst-{}] reciever latency {} ns\n", m_p->name, latency);
 }
 
 void media::Receiver::start() { m_p->start(); }
