@@ -61,29 +61,27 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-include_directories(
-  "${PROJECT_SOURCE_DIR}/src/lib"
-  "${PROJECT_SOURCE_DIR}/src/core/include"
-)
+include_directories("${PROJECT_SOURCE_DIR}/src/lib" "${PROJECT_SOURCE_DIR}/src/core/include")
 
 find_package(cxxopts)
 find_package(fmt)
 include_directories(SYSTEM ${cxxopts_INCLUDE_DIRS})
 
-link_directories(
-  "${PROJECT_SOURCE_DIR}/bin"
-)
+link_directories("${PROJECT_SOURCE_DIR}/bin")
 
 if(NOT WIN32)
   link_libraries(pthread)
 endif()
 
-execute_process(COMMAND git describe --always --dirty OUTPUT_VARIABLE DC_GIT_REV OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(
+  COMMAND git describe --always --dirty
+  OUTPUT_VARIABLE DC_GIT_REV
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
 add_definitions(-DDC_GIT_REV="${DC_GIT_REV}")
 
 add_subdirectory(src/core core)
-add_subdirectory(src/lib  lib)
-add_subdirectory(src/cli  cli)
+add_subdirectory(src/lib lib)
+add_subdirectory(src/cli cli)
 
 set(CUSTOM_BUILD_DEPENDS DigitalConductorLib DigitalConductorCli)
 
@@ -95,13 +93,7 @@ endif()
 add_custom_command(
   COMMENT "Copying compile_commands.json to project root"
   DEPENDS ${CUSTOM_BUILD_DEPENDS}
-  OUTPUT
-    "${PROJECT_SOURCE_DIR}/compile_commands.json"
-  COMMAND "${CMAKE_COMMAND}" -E copy
-    "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
-    "${PROJECT_SOURCE_DIR}"
-  )
+  OUTPUT "${PROJECT_SOURCE_DIR}/compile_commands.json"
+  COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json" "${PROJECT_SOURCE_DIR}")
 
-add_custom_target(DigitalConductor ALL
-  DEPENDS "${PROJECT_SOURCE_DIR}/compile_commands.json"
-)
+add_custom_target(DigitalConductor ALL DEPENDS "${PROJECT_SOURCE_DIR}/compile_commands.json")

@@ -33,6 +33,11 @@ jobs:
           clang-format-version: '14'
           check-path: 'src'
 
+      - name: cmake-lint
+        run: |
+          pip3 install cmakelang
+          cmake-lint $(find ./src ./*/cmake \( -name CMakeLists.txt -o -name "*.cmake" \))
+
   build:
     name: Build on ${{ matrix.os }} with packages from ${{ matrix.package-manager }}
     runs-on: ${{ matrix.os }}

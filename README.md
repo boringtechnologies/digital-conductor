@@ -84,6 +84,8 @@ Done!
 
  - `find src -iname \*.h -o -iname \*.cpp -o -iname \*.hpp -o -iname \*.proto | xargs clang-format -i`
  - `find src -iname \*.cpp -not -iname test/app.cpp | xargs clang-tidy -p compile_commands.json`
+ - `cmake-lint $(find ./src ./*/cmake \( -name CMakeLists.txt -o -name "*.cmake" \))`
+   + `cmake-format -i $(find ./src ./*/cmake \( -name CMakeLists.txt -o -name "*.cmake" \))`
 
 ## Main workflow of the app
 
