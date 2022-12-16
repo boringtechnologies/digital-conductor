@@ -14,6 +14,8 @@
 
 #include "internal.hpp"
 
+const char BUFFER_CREATE_TIME_META[] = "GstBufferCreationTiming";
+
 //******************************************************************************
 //******************************************************************************
 namespace dc {
@@ -303,6 +305,10 @@ bool Util::initializeMediaModule(const std::string &pluginsPath) {
     gst_init(nullptr, nullptr);
 
     gst_register_static_plugins();
+
+    static const gchar *tags[] = {NULL};
+    static const char BUFFER_CREATE_TIME_META[] = "GstBufferCreationTiming";
+    gst_meta_register_custom(BUFFER_CREATE_TIME_META, tags, NULL, NULL, NULL);
 
     // TODO instead of GST_PLUGIN_PATH may be use this code?
     // GstRegistry * registry = gst_registry_get();

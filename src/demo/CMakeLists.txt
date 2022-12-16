@@ -98,7 +98,7 @@ target_link_libraries(
           DigitalConductorCore_lib
           fmt::fmt)
 
-target_include_directories(DigitalConductorDemo PRIVATE ${LibJuice_INCLUDE_DIRS} ${GST_INCLUDE_DIRS})
+target_include_directories(DigitalConductorDemo PRIVATE ${LibJuice_INCLUDE_DIRS})
 
 target_link_libraries(DigitalConductorDemo PRIVATE Qt6::Quick)
 

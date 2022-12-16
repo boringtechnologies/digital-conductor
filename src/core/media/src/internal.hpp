@@ -91,6 +91,8 @@ static void gst_register_static_plugins() {
 #endif
 }
 
+extern const char BUFFER_CREATE_TIME_META[];
+
 static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data);
 
 struct BasePipeline {
@@ -236,6 +238,7 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
             }
         } break;
         default:
+            // g_printerr("MESSAGE: %s \n", GST_MESSAGE_TYPE_NAME(msg));
             break;
     }
 

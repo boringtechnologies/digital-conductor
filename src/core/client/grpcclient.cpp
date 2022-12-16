@@ -14,7 +14,7 @@ namespace dc
 //******************************************************************************
 void GRpcClient::subscribe(PeerType type, on_message_handler_t handler)
 {
-    fmt::print("[grpc] subscribe({})\n", type);
+    fmt::print("[grpc] subscribe({})\n", (int)type);
 
     if (m_reader.joinable())
     {
@@ -55,7 +55,7 @@ void GRpcClient::subscribe(PeerType type, on_message_handler_t handler)
 //******************************************************************************
 void GRpcClient::updateType(PeerType newType)
 {
-    fmt::print("[grpc] updatePeer({})\n", newType);
+    fmt::print("[grpc] updatePeer({})\n", (int)newType);
 
     m_peer.set_type(newType);
 

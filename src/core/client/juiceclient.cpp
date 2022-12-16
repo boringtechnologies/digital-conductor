@@ -19,19 +19,18 @@ using namespace std::chrono_literals;
 namespace dc
 {
 
-constexpr const std::string_view JP2P_PING  = "JP2PING ";
-constexpr const std::string_view JP2P_PONG  = "JP2PONG ";
-constexpr const std::string_view JP2P_MSG   = "JP2PMSG ";
-constexpr const std::string_view JP2P_VIDEO = "JP2PVID ";
-constexpr const std::string_view JP2P_AUDIO = "JP2PAUD ";
-constexpr const size_t JP2P_HEADER_SIZE     = 8;
+constexpr const std::string_view JP2P_PING    = "JP2PING ";
+constexpr const std::string_view JP2P_PONG    = "JP2PONG ";
+constexpr const std::string_view JP2P_MSG     = "JP2PMSG ";
+constexpr const std::string_view JP2P_VIDEO   = "JP2PVID ";
+constexpr const std::string_view JP2P_AUDIO   = "JP2PAUD ";
+constexpr const std::string_view JP2P_LATENCY = "JP2PLAT ";
+constexpr const size_t JP2P_HEADER_SIZE       = 8;
 
 static_assert(JP2P_PING.size() == JP2P_HEADER_SIZE && JP2P_PONG.size() == JP2P_HEADER_SIZE &&
                   JP2P_MSG.size() == JP2P_HEADER_SIZE && JP2P_VIDEO.size() == JP2P_HEADER_SIZE &&
                   JP2P_AUDIO.size() == JP2P_HEADER_SIZE,
               "All P2P headers must have the same lenght");
-
-typedef std::chrono::duration<double, std::milli> double_millis_t;
 
 static double_millis_t now_since_epoch()
 {
@@ -51,11 +50,12 @@ class JuiceClient::impl
 
     impl(JuiceClient *owner, const std::string &id, on_state_changed_t onStateChangedHandler,
          on_candidate_t onCandidateHandler, on_gathering_done_t onGatheringDoneHandler, on_recv_t onVideoReceiveHandler,
-         on_recv_t onAudioReceiveHandler)
+         on_recv_t onAudioReceiveHandler, on_latency_t onLatencyRecieveHandler)
         : m_o(owner), m_id(id), m_onStateChangedHandler(onStateChangedHandler),
           m_onCandidateHandler(onCandidateHandler), m_onGatheringDoneHandler(onGatheringDoneHandler),
           m_onVideoReceiveHandler(onVideoReceiveHandler), m_onAudioReceiveHandler(onAudioReceiveHandler),
-          m_destroymarker(false), m_pingSeq(0), m_pingAvg(0ms), m_lastReceived()
+          m_onLatencyRecieveHandler(onLatencyRecieveHandler), m_destroymarker(false), m_pingSeq(0), m_pingAvg(0ms),
+          m_lastReceived()
     {
     }
 
@@ -70,6 +70,7 @@ class JuiceClient::impl
     on_gathering_done_t m_onGatheringDoneHandler;
     on_recv_t m_onVideoReceiveHandler;
     on_recv_t m_onAudioReceiveHandler;
+    on_latency_t m_onLatencyRecieveHandler;
 
     std::atomic<bool> m_destroymarker;
     std::mutex m_sendLocker;
@@ -92,9 +93,10 @@ class JuiceClient::impl
 //******************************************************************************
 JuiceClient::JuiceClient(const std::string &id, on_state_changed_t onStateChangedHandler,
                          on_candidate_t onCandidateHandler, on_gathering_done_t onGatheringDoneHandler,
-                         on_recv_t onVideoReceiveHandler, on_recv_t onAudioReceiveHandler)
+                         on_recv_t onVideoReceiveHandler, on_recv_t onAudioReceiveHandler,
+                         on_latency_t onLatencyRecieveHandler)
     : m_p(new impl(this, id, onStateChangedHandler, onCandidateHandler, onGatheringDoneHandler, onVideoReceiveHandler,
-                   onAudioReceiveHandler))
+                   onAudioReceiveHandler, onLatencyRecieveHandler))
 {
     m_p->m_pinger = std::thread([this]() {
         while (!m_p->m_destroymarker)
@@ -133,8 +135,8 @@ void JuiceClient::impl::updatePingStat(const std::string &pongData)
     {
         std::string millis = pongData.substr(pongData.find_last_of(' ') + 1);
 
-        auto latency =
-            std::chrono::duration_cast<double_millis_t>(now_since_epoch() - double_millis_t(std::stol(millis.c_str())));
+        auto latency = std::chrono::duration_cast<double_millis_t>(
+            (now_since_epoch() - double_millis_t(std::stol(millis.c_str()))) / 2);
 
         m_pingSeq++;
 
@@ -224,6 +226,14 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     else if (memcmp(data, JP2P_VIDEO.data(), JP2P_HEADER_SIZE) == 0)
     {
         caller->m_p->m_onVideoReceiveHandler(agent, data + JP2P_HEADER_SIZE, size - JP2P_HEADER_SIZE, user_ptr);
+    }
+    else if (memcmp(data, JP2P_LATENCY.data(), JP2P_HEADER_SIZE) == 0)
+    {
+        double latencyDouble = *(double *)(data + JP2P_HEADER_SIZE);
+
+        auto latency = double_millis_t(latencyDouble);
+        fmt::print("[juice-{}] RECIEVED {}\n", caller->id(), latency.count());
+        caller->m_p->m_onLatencyRecieveHandler(agent, latency, user_ptr);
     }
     else
     {
@@ -382,6 +392,21 @@ void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
 
 //******************************************************************************
 //******************************************************************************
+void JuiceClient::sendLatency(const double_millis_t latency)
+{
+    std::lock_guard<std::mutex> l(m_p->m_sendLocker);
+
+    char buffer[JP2P_HEADER_SIZE + sizeof(double)];
+    double payload = latency.count();
+    memcpy(buffer, JP2P_LATENCY.data(), JP2P_HEADER_SIZE);
+    memcpy(buffer + JP2P_HEADER_SIZE, &payload, sizeof(double));
+
+    // audio payload
+    juice_send(m_p->m_agent, const_cast<const char *>(buffer), sizeof buffer);
+}
+
+//******************************************************************************
+//******************************************************************************
 std::string JuiceClient::id() const
 {
     return m_p->m_id;
@@ -406,6 +431,11 @@ juice_state_t JuiceClient::state() const
     }
 
     return JUICE_STATE_FAILED;
+}
+
+double_millis_t JuiceClient::averagePing() const
+{
+    return m_p->m_pingAvg;
 }
 
 } // namespace dc

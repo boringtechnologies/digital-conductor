@@ -134,7 +134,7 @@ Rectangle {
             DCSlider {
                 id: syncLatency
                 Layout.fillWidth: true
-                from: 300
+                from: 50
                 value: Controller.syncDelay;
                 to: 2000
                 stepSize: 50

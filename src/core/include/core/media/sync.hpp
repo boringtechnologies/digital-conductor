@@ -36,6 +36,8 @@ enum MediaType
 // appsink's context after pull-sample
 typedef std::function<void(const uint8_t *, size_t len)> WriteCallback;
 
+typedef std::chrono::duration<double, std::milli> double_millis_t;
+
 // Common clock information for all receivers
 struct ClockInfo
 {
@@ -80,7 +82,7 @@ class Sender
     // not, we can add an audio and video device here, and the type might be
     // redundant
     Sender(const std::string &id, MediaType type, const CaptureDevice &device, const ClockInfo &clock,
-           std::function<void()> onPlayingFn = {});
+           std::function<void()> onPlayingFn = {}, std::function<void(double_millis_t)> onLatencyMeasured = {});
 
     // Just tear everything down
     ~Sender();
