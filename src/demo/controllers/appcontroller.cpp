@@ -412,8 +412,10 @@ void AppController::impl::onLatencyRecv(juice_agent_t *agent, const dc::double_m
     }
     auto recieverLatency = m_videoreceivers[senderId]->averageLatency();
 
-    if (recieverLatency.count() < 20)
+    if (recieverLatency.count() < 100)
     {
+        // if reciever latency less than 100 ms probably this happens
+        // on start when no actually frames comming
         fmt::print(stderr, "[appctrl] reciever's latency not measured yet, skip update\n");
         return;
     }
@@ -425,16 +427,17 @@ void AppController::impl::onLatencyRecv(juice_agent_t *agent, const dc::double_m
         auto totalLatency = senderLatency + networkLatency + recieverLatency;
         auto totalRounded = roundUp(totalLatency.count(), 50);
 
-        fmt::print("[appctrl] sender {}ms + network {}ms + reciever {}ms\n", senderLatency.count(),
+        fmt::print("[appctrl] sender {:.2f}ms + network {:.2f}ms + reciever {:.2f}ms\n", senderLatency.count(),
                    networkLatency.count(), recieverLatency.count());
-        fmt::print("[appctrl] apply initial sender latency {}ms rounded to {}ms\n", totalLatency.count(), totalRounded);
+        fmt::print("[appctrl] apply initial sender latency {:.2f}ms rounded to {}ms\n", totalLatency.count(),
+                   totalRounded);
 
         emit m_o->minSyncDelayChanged(totalRounded);
         m_recieverLatencySet = true;
     }
     else
     {
-        fmt::print("[appctrl] skip recieved latency sender {}ms + network {}ms + reciever {}ms\n",
+        fmt::print("[appctrl] skip recieved latency sender {:.2f}ms + network {:.2f}ms + reciever {:.2f}ms\n",
                    senderLatency.count(), networkLatency.count(), recieverLatency.count());
     }
 }
@@ -758,7 +761,6 @@ void AppController::startStreaming()
                     if (dc::JuiceClientPtr juiceClient = m_p->getP2PClient(peer.id()))
                     {
                         juiceClient->sendLatency(latency);
-                        fmt::print("send sender latecy {}ms\n", latency.count());
                     }
                 }
             }

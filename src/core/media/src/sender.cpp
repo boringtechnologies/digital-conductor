@@ -108,7 +108,8 @@ media::Sender::Sender(
     std::function<void()> onPlayingFn,
     std::function<void(std::chrono::duration<int, std::milli>)>
         onLatencyMeasured)
-    : m_p(new impl(id.c_str(), type, onPlayingFn, onLatencyMeasured)) {
+    : m_p(new impl(id.c_str(), type, onPlayingFn, onLatencyMeasured)),
+      write_cbs() {
     GstElement *source, *identity, *conv, *rate, *scale, *capsf, *encoder,
         *payloader, *queue, *fakesink;
 

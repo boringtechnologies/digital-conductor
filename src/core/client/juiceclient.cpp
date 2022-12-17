@@ -228,9 +228,10 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
     }
     else if (memcmp(data, JP2P_LATENCY.data(), JP2P_HEADER_SIZE) == 0)
     {
-        double latencyDouble = *(double *)(data + JP2P_HEADER_SIZE);
+        auto payload      = std::string(data, size);
+        std::string value = payload.substr(payload.find_last_of(' ') + 1);
 
-        auto latency = double_millis_t(latencyDouble);
+        auto latency = double_millis_t(std::stod(value));
         caller->m_p->m_onLatencyRecieveHandler(agent, latency, user_ptr);
     }
     else
@@ -355,7 +356,8 @@ void JuiceClient::sendVideo(const uint8_t *data, const uint32_t size)
     constexpr size_t buffer_size = 128_Kbyte;
     if (size > buffer_size)
     {
-        fmt::print(stderr, "send video buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
+        fmt::print(stderr, "[juice-{}] send video buffer size ({}byte) less than send data size ({}bytes)\n", m_p->m_id,
+                   buffer_size, size);
         return;
     }
 
@@ -376,7 +378,8 @@ void JuiceClient::sendAudio(const uint8_t *data, const uint32_t size)
     constexpr size_t buffer_size = 64_Kbyte;
     if (size > buffer_size)
     {
-        fmt::print(stderr, "send audio buffer size ({}byte) less than send data size ({}bytes)", buffer_size, size);
+        fmt::print(stderr, "[juice-{}] send audio buffer size ({}byte) less than send data size ({}bytes)\n", m_p->m_id,
+                   buffer_size, size);
         return;
     }
 
@@ -394,13 +397,10 @@ void JuiceClient::sendLatency(const double_millis_t latency)
 {
     std::lock_guard<std::mutex> l(m_p->m_sendLocker);
 
-    char buffer[JP2P_HEADER_SIZE + sizeof(double)];
-    double payload = latency.count();
-    memcpy(buffer, JP2P_LATENCY.data(), JP2P_HEADER_SIZE);
-    memcpy(buffer + JP2P_HEADER_SIZE, &payload, sizeof(double));
+    auto buffer = fmt::format("{}{:.2f}", JP2P_LATENCY, latency.count());
 
     // letancy payload
-    juice_send(m_p->m_agent, const_cast<const char *>(buffer), sizeof buffer);
+    juice_send(m_p->m_agent, const_cast<const char *>(buffer.c_str()), buffer.size());
 }
 
 //******************************************************************************
