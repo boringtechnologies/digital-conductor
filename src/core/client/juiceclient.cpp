@@ -55,7 +55,7 @@ class JuiceClient::impl
           m_onCandidateHandler(onCandidateHandler), m_onGatheringDoneHandler(onGatheringDoneHandler),
           m_onVideoReceiveHandler(onVideoReceiveHandler), m_onAudioReceiveHandler(onAudioReceiveHandler),
           m_onLatencyRecieveHandler(onLatencyRecieveHandler), m_destroymarker(false), m_pingSeq(0), m_pingAvg(0ms),
-          m_lastReceived()
+          
     {
     }
 

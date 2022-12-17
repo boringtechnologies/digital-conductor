@@ -97,7 +97,7 @@ struct media::Sender::impl final : BasePipeline {
     }
 
     static void handoff_callback(GstElement *identity, GstBuffer *buffer,
-                                 gpointer udata) {
+                                 gpointer  /*udata*/) {
         GstClock *clock = gst_element_get_clock(identity);
         GstCustomMeta *meta =
             gst_buffer_add_custom_meta(buffer, BUFFER_CREATE_TIME_META);
