@@ -37,6 +37,7 @@ enum MediaType
 typedef std::function<void(const uint8_t *, size_t len)> WriteCallback;
 
 typedef std::chrono::duration<double, std::milli> double_millis_t;
+typedef std::chrono::duration<int, std::milli> int_millis_t;
 
 // Common clock information for all receivers
 struct ClockInfo
@@ -66,7 +67,6 @@ class Sender
   private:
     class impl;
     std::shared_ptr<impl> m_p;
-    MediaType media_type;
 
   public:
     // The constructor takes:
@@ -82,7 +82,7 @@ class Sender
     // not, we can add an audio and video device here, and the type might be
     // redundant
     Sender(const std::string &id, MediaType type, const CaptureDevice &device, const ClockInfo &clock,
-           std::function<void()> onPlayingFn = {}, std::function<void(double_millis_t)> onLatencyMeasured = {});
+           std::function<void()> onPlayingState = {}, std::function<void(int_millis_t)> onLatencyMeasured = {});
 
     // Just tear everything down
     ~Sender();
@@ -92,6 +92,9 @@ class Sender
     // XXX: How should we handle errors? We could return an error here, but an
     // error callback might be better.
     void start();
+
+    // Return average pipeline latency
+    double_millis_t averageLatency();
 
     // Shut down capturing media and streaming to any connected receivers.
     void stop();
@@ -125,7 +128,6 @@ class Receiver
   private:
     class impl;
     std::shared_ptr<impl> m_p;
-    MediaType media_type;
     // XXX: Make the instantation of the Clock global to all the receivers in a
     // single app
 
@@ -148,17 +150,19 @@ class Receiver
     ~Receiver();
 
     // Set pipeline clock and latency
-    void setSync(bool enabled, std::chrono::duration<int, std::milli> delay = std::chrono::milliseconds(500),
-                 const ClockInfo &clock = {});
+    void setSync(bool enabled, int_millis_t delay = std::chrono::milliseconds(500), const ClockInfo &clock = {});
 
     // Set pipeline latency
-    void setSyncDelay(std::chrono::duration<int, std::milli> delay);
+    void setSyncDelay(int_millis_t delay);
 
     // Start streaming media from any connected senders.
     //
     // XXX: How should we handle errors? We could return an error here, but an
     // error callback might be better.
     void start();
+
+    // Return average pipeline latency
+    double_millis_t averageLatency();
 
     // Shut down reading media from senders.
     void stop();
@@ -170,8 +174,6 @@ class Receiver
     // returns TRUE is push is successful
     // returns FALSE in case of an error
     bool push(const uint8_t *payload, size_t len);
-
-    WriteCallback write_cb;
 };
 
 } // namespace media

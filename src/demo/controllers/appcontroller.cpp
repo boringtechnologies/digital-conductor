@@ -401,34 +401,41 @@ void AppController::impl::onAudioRecv(juice_agent_t *agent, const char *data, si
 
 void AppController::impl::onLatencyRecv(juice_agent_t *agent, const dc::double_millis_t senderLatency, void *user_ptr)
 {
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    auto senderId           = caller->id();
+    auto videoReciever      = m_videoreceivers[senderId];
+
+    if (!videoReciever)
+    {
+        fmt::print(stderr, "[appctrl] no video reciever found for {}\n", senderId);
+        return;
+    }
+    auto recieverLatency = m_videoreceivers[senderId]->averageLatency();
+
+    if (recieverLatency.count() < 20)
+    {
+        fmt::print(stderr, "[appctrl] reciever's latency not measured yet, skip update\n");
+        return;
+    }
+
+    auto networkLatency = caller->averagePing();
+
     if (!m_recieverLatencySet)
     {
-        dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+        auto totalLatency = senderLatency + networkLatency + recieverLatency;
+        auto totalRounded = roundUp(totalLatency.count(), 50);
 
-        auto networkLatency = caller->averagePing();
-        auto senderId       = caller->id();
-        auto totalLatency   = senderLatency + networkLatency;
-        auto totalRounded   = roundUp(totalLatency.count(), 50);
-
+        fmt::print("[appctrl] sender {}ms + network {}ms + reciever {}ms\n", senderLatency.count(),
+                   networkLatency.count(), recieverLatency.count());
         fmt::print("[appctrl] apply initial sender latency {}ms rounded to {}ms\n", totalLatency.count(), totalRounded);
 
-        m_delay = std::chrono::duration<int, std::milli>(totalRounded);
-        if (auto reciever = m_audioreceivers[senderId])
-        {
-            reciever->setSyncDelay(m_delay);
-        }
-        if (auto reciever = m_videoreceivers[senderId])
-        {
-            reciever->setSyncDelay(m_delay);
-        }
-
-        emit m_o->syncDelayChanged();
-
+        emit m_o->minSyncDelayChanged(totalRounded);
         m_recieverLatencySet = true;
     }
     else
     {
-        fmt::print("[appctrl] skip recieved sender latency {}ms\n", senderLatency.count());
+        fmt::print("[appctrl] skip recieved latency sender {}ms + network {}ms + reciever {}ms\n",
+                   senderLatency.count(), networkLatency.count(), recieverLatency.count());
     }
 }
 

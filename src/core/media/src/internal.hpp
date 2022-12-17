@@ -10,6 +10,8 @@
 #include <mutex>
 #include <thread>
 
+#include "core/media/sync.hpp"
+
 #if GST_USE_STATIC_PLUGINS
 
 extern "C" {
@@ -91,7 +93,9 @@ static void gst_register_static_plugins() {
 #endif
 }
 
-extern const char BUFFER_CREATE_TIME_META[];
+extern const std::string BUFFER_META_CREATE_TIME;
+extern const std::string BUFFER_META_CREATE_TIME_PROP;
+const size_t LATENCY_MEASURE_COUNT = 250;
 
 static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data);
 
@@ -99,17 +103,24 @@ struct BasePipeline {
     std::string name;
     std::unique_ptr<std::thread> thread;
     std::mutex start_stop_mutex;
-    std::function<void()> onPlayingFn;
+    std::function<void()> on_playing_state;
+    std::function<void(media::int_millis_t)> on_latency_measured;
+    size_t measure_counter;
+    double average_latency;
     GMainLoop *loop;
     guint bus_watch_id;
     GstElement *pipeline;
 
-    BasePipeline(const std::string &name,
-                 std::function<void()> onPlayingFn = {})
+    BasePipeline(
+        const std::string &name, std::function<void()> on_playing_state = {},
+        std::function<void(media::int_millis_t)> on_latency_measured = {})
         : name(name),
           thread(nullptr),
           start_stop_mutex(),
-          onPlayingFn(onPlayingFn) {
+          on_playing_state(on_playing_state),
+          on_latency_measured(on_latency_measured),
+          measure_counter(0),
+          average_latency(0) {
         g_print("[gst-%s] ctor\n", name.c_str());
 
         loop = g_main_loop_new(nullptr, FALSE);
@@ -151,6 +162,71 @@ struct BasePipeline {
         /* Wait for the clock to stabilise */
         gst_clock_wait_for_sync(net_clock, GST_CLOCK_TIME_NONE);
         gst_pipeline_use_clock(GST_PIPELINE(pipeline), net_clock);
+    }
+
+    void addBufferCreateTimeMeta(GstElement *element, GstBuffer *buffer) {
+        GstClock *clock = gst_element_get_clock(element);
+        GstCustomMeta *meta =
+            gst_buffer_add_custom_meta(buffer, BUFFER_META_CREATE_TIME.c_str());
+        GstStructure *structure = gst_custom_meta_get_structure(meta);
+        gst_structure_set(structure, BUFFER_META_CREATE_TIME_PROP.c_str(),
+                          GST_TYPE_CLOCK_TIME, gst_clock_get_time(clock), NULL);
+        g_object_unref(clock);
+    }
+
+    void measureLatencyForCreateTimeMeta(GstElement *element,
+                                         GstBuffer *buffer) {
+        GstCustomMeta *meta =
+            gst_buffer_get_custom_meta(buffer, BUFFER_META_CREATE_TIME.c_str());
+        if (meta) {
+            GstClock *clock = gst_element_get_clock(element);
+            GstClockTime now = gst_clock_get_time(clock);
+            GstClockTime buf_time = 0;
+            GstStructure *structure = gst_custom_meta_get_structure(meta);
+            gst_structure_get_clock_time(
+                structure, BUFFER_META_CREATE_TIME_PROP.c_str(), &buf_time);
+
+            uint64_t latency = GST_TIME_AS_MSECONDS(now - buf_time);
+            measure_counter++;
+            average_latency +=
+                (latency - average_latency) / (double)measure_counter;
+            if (measure_counter % LATENCY_MEASURE_COUNT == 0) {
+                if (on_latency_measured) {
+                    on_latency_measured(
+                        media::int_millis_t((long)average_latency));
+                }
+                measure_counter = 0;
+                average_latency = 0;
+            }
+        }
+    }
+
+    GstFlowReturn writeSample(GstAppSink *sink,
+                              const media::WriteCallback &write_cb,
+                              bool measureLatency = false) {
+        if (GstSample *sample = gst_app_sink_pull_sample(sink)) {
+            /* The only thing we do in this example is print a * to indicate a
+             * received buffer */
+            GstBuffer *buf = gst_sample_get_buffer(sample);
+
+            if (measureLatency) {
+                measureLatencyForCreateTimeMeta(GST_ELEMENT(sink), buf);
+            }
+
+            GstMapInfo info;
+            gst_buffer_map(buf, &info, GST_MAP_READ);
+
+            if (write_cb) {
+                write_cb((const uint8_t *)info.data, info.size);
+            }
+
+            gst_buffer_unmap(buf, &info);
+
+            gst_sample_unref(sample);
+            return GST_FLOW_OK;
+        }
+
+        return GST_FLOW_ERROR;
     }
 
     void start() {
@@ -229,12 +305,12 @@ static gboolean bus_callback(GstBus *bus, GstMessage *msg, gpointer data) {
             if (!GST_IS_PIPELINE(msg->src)) break;
             GstState old_state, new_state;
             gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
-            if (new_state == GST_STATE_PLAYING && self->onPlayingFn) {
+            if (new_state == GST_STATE_PLAYING && self->on_playing_state) {
                 g_print("[gst-%s] GST_MESSAGE_STATE_CHANGED from %s -> %s\n",
                         self->name.c_str(),
                         gst_element_state_get_name(old_state),
                         gst_element_state_get_name(new_state));
-                self->onPlayingFn();
+                self->on_playing_state();
             }
         } break;
         default:

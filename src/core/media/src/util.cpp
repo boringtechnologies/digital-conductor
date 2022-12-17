@@ -14,7 +14,8 @@
 
 #include "internal.hpp"
 
-const char BUFFER_CREATE_TIME_META[] = "GstBufferCreationTiming";
+const std::string BUFFER_META_CREATE_TIME = "GstBufferCreationTiming";
+const std::string BUFFER_META_CREATE_TIME_PROP = "creation-time";
 
 //******************************************************************************
 //******************************************************************************

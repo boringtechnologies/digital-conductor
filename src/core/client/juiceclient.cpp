@@ -54,8 +54,7 @@ class JuiceClient::impl
         : m_o(owner), m_id(id), m_onStateChangedHandler(onStateChangedHandler),
           m_onCandidateHandler(onCandidateHandler), m_onGatheringDoneHandler(onGatheringDoneHandler),
           m_onVideoReceiveHandler(onVideoReceiveHandler), m_onAudioReceiveHandler(onAudioReceiveHandler),
-          m_onLatencyRecieveHandler(onLatencyRecieveHandler), m_destroymarker(false), m_pingSeq(0), m_pingAvg(0ms),
-          
+          m_onLatencyRecieveHandler(onLatencyRecieveHandler), m_destroymarker(false), m_pingSeq(0), m_pingAvg(0ms)
     {
     }
 
@@ -232,7 +231,6 @@ void JuiceClient::impl::onRecv(juice_agent_t *agent, const char *data, size_t si
         double latencyDouble = *(double *)(data + JP2P_HEADER_SIZE);
 
         auto latency = double_millis_t(latencyDouble);
-        fmt::print("[juice-{}] RECIEVED {}\n", caller->id(), latency.count());
         caller->m_p->m_onLatencyRecieveHandler(agent, latency, user_ptr);
     }
     else
@@ -401,7 +399,7 @@ void JuiceClient::sendLatency(const double_millis_t latency)
     memcpy(buffer, JP2P_LATENCY.data(), JP2P_HEADER_SIZE);
     memcpy(buffer + JP2P_HEADER_SIZE, &payload, sizeof(double));
 
-    // audio payload
+    // letancy payload
     juice_send(m_p->m_agent, const_cast<const char *>(buffer), sizeof buffer);
 }
 

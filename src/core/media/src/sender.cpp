@@ -18,24 +18,15 @@ struct WriteCallbackCtx {
 struct media::Sender::impl final : BasePipeline {
     friend class media::Sender;
 
-    static constexpr char CREATE_TIME_PROP[] = "creation-time";
-    static constexpr size_t MEASURE_COUNT = 100;
-
     GstElement *tee;
 
-    std::function<void(double_millis_t)> onLatencyMeasured;
-    size_t measureCounter;
-    double averageLatency;
-
     impl(const std::string &name, media::MediaType type,
-         std::function<void()> onPlayingFn,
-         std::function<void(double_millis_t)> onLatencyMeasured)
+         std::function<void()> onPlayingState,
+         std::function<void(std::chrono::duration<int, std::milli>)>
+             onLatencyMeasured)
         : BasePipeline(name + "-snd-" + (type ? "video" : "audio"),
-                       onPlayingFn),
-          tee(NULL),
-          onLatencyMeasured(onLatencyMeasured),
-          measureCounter(0),
-          averageLatency(0) {}
+                       onPlayingState, onLatencyMeasured),
+          tee(NULL) {}
 
     ~impl() override {}
 
@@ -97,71 +88,27 @@ struct media::Sender::impl final : BasePipeline {
     }
 
     static void handoff_callback(GstElement *identity, GstBuffer *buffer,
-                                 gpointer  /*udata*/) {
-        GstClock *clock = gst_element_get_clock(identity);
-        GstCustomMeta *meta =
-            gst_buffer_add_custom_meta(buffer, BUFFER_CREATE_TIME_META);
-        GstStructure *structure = gst_custom_meta_get_structure(meta);
-        gst_structure_set(structure, CREATE_TIME_PROP, GST_TYPE_CLOCK_TIME,
-                          gst_clock_get_time(clock), NULL);
-        g_object_unref(clock);
+                                 gpointer userdata) {
+        auto pimpl = static_cast<media::Sender::impl *>(userdata);
+        pimpl->addBufferCreateTimeMeta(identity, buffer);
     }
 
     static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
         WriteCallbackCtx *ctx = static_cast<WriteCallbackCtx *>(userdata);
-        media::WriteCallback &write_cb = ctx->sender->write_cbs[ctx->id];
-        auto m_p = ctx->sender->m_p;
+        auto pimpl = ctx->sender->m_p;
+        auto &write_cb = ctx->sender->write_cbs[ctx->id];
 
-        /* Retrieve the buffer */
-        GstSample *sample = gst_app_sink_pull_sample(sink);
-        if (sample) {
-            GstBuffer *buf = gst_sample_get_buffer(sample);
-
-            GstCustomMeta *meta =
-                gst_buffer_get_custom_meta(buf, BUFFER_CREATE_TIME_META);
-            if (meta) {
-                GstClock *clock = gst_element_get_clock(GST_ELEMENT(sink));
-                GstClockTime now = gst_clock_get_time(clock);
-                GstClockTime buf_time = 0;
-                GstStructure *structure = gst_custom_meta_get_structure(meta);
-                gst_structure_get_clock_time(structure, CREATE_TIME_PROP,
-                                             &buf_time);
-
-                uint64_t latency = GST_TIME_AS_MSECONDS(now - buf_time);
-                m_p->measureCounter++;
-                m_p->averageLatency += (latency - m_p->averageLatency) /
-                                       (double)m_p->measureCounter;
-                if (m_p->measureCounter % MEASURE_COUNT == 0) {
-                    m_p->onLatencyMeasured(
-                        double_millis_t(m_p->averageLatency));
-                    m_p->measureCounter = 0;
-                }
-            }
-            GstMapInfo info;
-            gst_buffer_map(buf, &info, GST_MAP_READ);
-
-            if (write_cb) {
-                write_cb((const uint8_t *)info.data, info.size);
-            }
-
-            gst_buffer_unmap(buf, &info);
-
-            gst_sample_unref(sample);
-            return GST_FLOW_OK;
-        }
-
-        return GST_FLOW_ERROR;
+        return pimpl->writeSample(sink, write_cb, true);
     }
 };
 
-media::Sender::Sender(const std::string &id, media::MediaType type,
-                      const media::CaptureDevice &device,
-                      const media::ClockInfo &clock,
-                      std::function<void()> onPlayingFn,
-                      std::function<void(double_millis_t)> onLatencyMeasured)
-    : m_p(new impl(id.c_str(), type, onPlayingFn, onLatencyMeasured)),
-      media_type(type),
-      write_cbs() {
+media::Sender::Sender(
+    const std::string &id, media::MediaType type,
+    const media::CaptureDevice &device, const media::ClockInfo &clock,
+    std::function<void()> onPlayingFn,
+    std::function<void(std::chrono::duration<int, std::milli>)>
+        onLatencyMeasured)
+    : m_p(new impl(id.c_str(), type, onPlayingFn, onLatencyMeasured)) {
     GstElement *source, *identity, *conv, *rate, *scale, *capsf, *encoder,
         *payloader, *queue, *fakesink;
 
@@ -182,9 +129,8 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
                                              (id + "-audiopayload").c_str());
         g_object_set(payloader, "pt", 97, "config-interval", 5, NULL);
     } else if (type == media::MediaType::Video) {
-        g_object_set(identity, "signal-handoffs", TRUE, "sync", TRUE, NULL);
         g_signal_connect(identity, "handoff",
-                         G_CALLBACK(&impl::handoff_callback), NULL);
+                         G_CALLBACK(&impl::handoff_callback), m_p.get());
         conv = m_p->makeElement("videoconvert");
         rate = m_p->makeElement("videorate");
         scale = m_p->makeElement("videoscale");
@@ -238,6 +184,10 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
 media::Sender::~Sender() {}
 
 void media::Sender::start() { m_p->start(); }
+
+media::double_millis_t media::Sender::averageLatency() {
+    return double_millis_t(m_p->average_latency);
+}
 
 void media::Sender::stop() { m_p->stop(); }
 

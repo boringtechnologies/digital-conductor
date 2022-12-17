@@ -55,6 +55,13 @@ Rectangle {
                 function onUpdatedGroup(group) {
                     receiverSwitch.textValue = group;
                 }
+
+                function onMinSyncDelayChanged(minSyncDelay) {
+                    if (syncLatency.value < minSyncDelay) {
+                        syncLatency.value = minSyncDelay
+                    }
+                    syncLatency.from = minSyncDelay;
+                }
             }
         }
 
