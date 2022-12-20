@@ -10,15 +10,22 @@
 #include "gst/app/gstappsink.h"
 #include "internal.hpp"
 
+struct WriteCallbackCtx {
+    media::Sender *sender;
+    std::string id;
+};
+
 struct media::Sender::impl final : BasePipeline {
     friend class media::Sender;
 
     GstElement *tee;
 
     impl(const std::string &name, media::MediaType type,
-         std::function<void()> onPlayingFn)
+         std::function<void()> onPlayingState,
+         std::function<void(std::chrono::duration<int, std::milli>)>
+             onLatencyMeasured)
         : BasePipeline(name + "-snd-" + (type ? "video" : "audio"),
-                       onPlayingFn),
+                       onPlayingState, onLatencyMeasured),
           tee(NULL) {}
 
     ~impl() override {}
@@ -79,19 +86,36 @@ struct media::Sender::impl final : BasePipeline {
 
         return source;
     }
+
+    static void handoff_callback(GstElement *identity, GstBuffer *buffer,
+                                 gpointer userdata) {
+        auto pimpl = static_cast<media::Sender::impl *>(userdata);
+        pimpl->addBufferCreateTimeMeta(identity, buffer);
+    }
+
+    static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
+        WriteCallbackCtx *ctx = static_cast<WriteCallbackCtx *>(userdata);
+        auto pimpl = ctx->sender->m_p;
+        auto &write_cb = ctx->sender->write_cbs[ctx->id];
+
+        return pimpl->writeSample(sink, write_cb, true);
+    }
 };
 
-media::Sender::Sender(const std::string &id, media::MediaType type,
-                      const media::CaptureDevice &device,
-                      const media::ClockInfo &clock,
-                      std::function<void()> onPlayingFn)
-    : m_p(new impl(id.c_str(), type, onPlayingFn)),
-      media_type(type),
+media::Sender::Sender(
+    const std::string &id, media::MediaType type,
+    const media::CaptureDevice &device, const media::ClockInfo &clock,
+    std::function<void()> onPlayingFn,
+    std::function<void(std::chrono::duration<int, std::milli>)>
+        onLatencyMeasured)
+    : m_p(new impl(id.c_str(), type, onPlayingFn, onLatencyMeasured)),
       write_cbs() {
-    GstElement *source, *conv, *rate, *scale, *capsf, *encoder, *payloader,
-        *queue, *fakesink;
+    GstElement *source, *identity, *conv, *rate, *scale, *capsf, *encoder,
+        *payloader, *queue, *fakesink;
 
     source = m_p->createSourceElement(device);
+
+    identity = m_p->makeElement("identity");
 
     const std::string &name_prefix = m_p->name;
 
@@ -106,6 +130,8 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
                                              (id + "-audiopayload").c_str());
         g_object_set(payloader, "pt", 97, "config-interval", 5, NULL);
     } else if (type == media::MediaType::Video) {
+        g_signal_connect(identity, "handoff",
+                         G_CALLBACK(&impl::handoff_callback), m_p.get());
         conv = m_p->makeElement("videoconvert");
         rate = m_p->makeElement("videorate");
         scale = m_p->makeElement("videoscale");
@@ -128,20 +154,21 @@ media::Sender::Sender(const std::string &id, media::MediaType type,
 
     gboolean link_succeed = FALSE;
     if (type == media::MediaType::Audio) {
-        gst_bin_add_many(GST_BIN(m_p->pipeline), source, conv, rate, capsf,
-                         encoder, payloader, m_p->tee, queue, fakesink, NULL);
-
-        link_succeed =
-            gst_element_link_many(source, conv, rate, capsf, encoder, payloader,
-                                  m_p->tee, queue, fakesink, NULL);
-    } else if (type == media::MediaType::Video) {
-        gst_bin_add_many(GST_BIN(m_p->pipeline), source, conv, rate, scale,
+        gst_bin_add_many(GST_BIN(m_p->pipeline), source, identity, conv, rate,
                          capsf, encoder, payloader, m_p->tee, queue, fakesink,
                          NULL);
 
         link_succeed =
-            gst_element_link_many(source, conv, rate, scale, capsf, encoder,
+            gst_element_link_many(source, identity, conv, rate, capsf, encoder,
                                   payloader, m_p->tee, queue, fakesink, NULL);
+    } else if (type == media::MediaType::Video) {
+        gst_bin_add_many(GST_BIN(m_p->pipeline), source, identity, conv, rate,
+                         scale, capsf, encoder, payloader, m_p->tee, queue,
+                         fakesink, NULL);
+
+        link_succeed = gst_element_link_many(source, identity, conv, rate,
+                                             scale, capsf, encoder, payloader,
+                                             m_p->tee, queue, fakesink, NULL);
     }
 
     if (!link_succeed) {
@@ -159,43 +186,15 @@ media::Sender::~Sender() {}
 
 void media::Sender::start() { m_p->start(); }
 
-void media::Sender::stop() { m_p->stop(); }
+media::double_millis_t media::Sender::averageLatency() {
+    return double_millis_t(m_p->average_latency);
+}
 
-struct WriteCallbackCtx {
-    media::Sender *sender;
-    std::string id;
-};
+void media::Sender::stop() { m_p->stop(); }
 
 static void write_cb_ctx_free(gpointer data) {
     WriteCallbackCtx *ctx = static_cast<WriteCallbackCtx *>(data);
     delete ctx;
-}
-
-static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
-    GstSample *sample;
-    WriteCallbackCtx *ctx = static_cast<WriteCallbackCtx *>(userdata);
-    media::WriteCallback &write_cb = ctx->sender->write_cbs[ctx->id];
-
-    /* Retrieve the buffer */
-    sample = gst_app_sink_pull_sample(sink);
-    if (sample) {
-        /* The only thing we do in this example is print a * to indicate a
-         * received buffer */
-        GstBuffer *buf = gst_sample_get_buffer(sample);
-        GstMapInfo info;
-        gst_buffer_map(buf, &info, GST_MAP_READ);
-
-        if (write_cb) {
-            write_cb((const uint8_t *)info.data, info.size);
-        }
-
-        gst_buffer_unmap(buf, &info);
-
-        gst_sample_unref(sample);
-        return GST_FLOW_OK;
-    }
-
-    return GST_FLOW_ERROR;
 }
 
 static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
@@ -251,7 +250,7 @@ void media::Sender::addReceiver(const std::string &id,
     ctx->sender = this;
     ctx->id = id;
     GstAppSinkCallbacks callbacks = {0};
-    callbacks.new_sample = new_sample;
+    callbacks.new_sample = &impl::new_sample;
     gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, ctx,
                                write_cb_ctx_free);
     g_object_set(appsink, "emit-signals", FALSE, nullptr);

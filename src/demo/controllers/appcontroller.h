@@ -63,6 +63,7 @@ class AppController : public QObject
     void stateChanged();
     void syncModeChanged();
     void syncDelayChanged();
+    void minSyncDelayChanged(const qint16 syncDelay);
     void setSenderBusy(bool busy);
     void setReceiverBusy(bool busy);
     void setGroupEditable(bool editable);

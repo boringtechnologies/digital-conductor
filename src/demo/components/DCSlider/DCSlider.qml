@@ -19,6 +19,12 @@ Row {
 
     signal valueSelected(int value)
 
+    function updateValue(newValue)
+    {
+        value = newValue;
+        valueText.label = value + qsTr(" ms.");
+    }
+
     DCText {
         id: labelText
         y: control.topPadding + control.availableHeight / 2 - height / 2

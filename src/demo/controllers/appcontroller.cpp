@@ -50,10 +50,24 @@ class AppController::impl : public QObject
     void onGatheringDone(juice_agent_t *agent, void *user_ptr);
     void onVideoRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr);
     void onAudioRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr);
+    void onLatencyRecv(juice_agent_t *agent, const dc::double_millis_t latency, void *user_ptr);
 
     dc::JuiceClientPtr getP2PClient(const std::string &id);
     dc::ReceiverPtr getVideoReceiver(const std::string &id);
     dc::ReceiverPtr getAudioReceiver(const std::string &id);
+
+    // https://stackoverflow.com/a/9194117/902217
+    inline int roundUp(int numToRound, int multiple)
+    {
+        if (multiple == 0)
+            return numToRound;
+
+        int remainder = numToRound % multiple;
+        if (remainder == 0)
+            return numToRound;
+
+        return numToRound + multiple - remainder;
+    }
 
   protected:
     static constexpr const char *networkClockHost = "66.228.38.186";
@@ -80,6 +94,7 @@ class AppController::impl : public QObject
     bool m_recieving                 = false;
     bool m_streaming                 = false;
     bool m_syncMode                  = true;
+    bool m_recieverLatencySet        = false;
     media::ClockInfo m_receiverclock = {networkClockHost, networkClockPort};
     std::chrono::duration<int, std::milli> m_delay{300};
     std::map<std::string, dc::ReceiverPtr> m_videoreceivers;
@@ -124,7 +139,9 @@ void AppController::impl::onGrpcMessage(const dc::Message &msg)
             std::bind(&impl::onVideoRecv, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                       std::placeholders::_4),
             std::bind(&impl::onAudioRecv, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                      std::placeholders::_4)));
+                      std::placeholders::_4),
+            std::bind(&impl::onLatencyRecv, this, std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3)));
         ptr->init(msg.data());
 
         if (!m_rpcClient->p2pAccept(from, ptr->sdp()))
@@ -379,6 +396,49 @@ void AppController::impl::onAudioRecv(juice_agent_t *agent, const char *data, si
     if (m_audiosender)
     {
         m_audiosender->push(id, reinterpret_cast<const uint8_t *>(data), size);
+    }
+}
+
+void AppController::impl::onLatencyRecv(juice_agent_t *agent, const dc::double_millis_t senderLatency, void *user_ptr)
+{
+    dc::JuiceClient *caller = reinterpret_cast<dc::JuiceClient *>(user_ptr);
+    auto senderId           = caller->id();
+    auto videoReciever      = m_videoreceivers[senderId];
+
+    if (!videoReciever)
+    {
+        fmt::print(stderr, "[appctrl] no video reciever found for {}\n", senderId);
+        return;
+    }
+    auto recieverLatency = m_videoreceivers[senderId]->averageLatency();
+
+    if (recieverLatency.count() < 100)
+    {
+        // if reciever latency less than 100 ms probably this happens
+        // on start when no actually frames comming
+        fmt::print(stderr, "[appctrl] reciever's latency not measured yet, skip update\n");
+        return;
+    }
+
+    auto networkLatency = caller->averagePing();
+
+    if (!m_recieverLatencySet)
+    {
+        auto totalLatency = senderLatency + networkLatency + recieverLatency;
+        auto totalRounded = roundUp(totalLatency.count(), 50);
+
+        fmt::print("[appctrl] sender {:.2f}ms + network {:.2f}ms + reciever {:.2f}ms\n", senderLatency.count(),
+                   networkLatency.count(), recieverLatency.count());
+        fmt::print("[appctrl] apply initial sender latency {:.2f}ms rounded to {}ms\n", totalLatency.count(),
+                   totalRounded);
+
+        emit m_o->minSyncDelayChanged(totalRounded);
+        m_recieverLatencySet = true;
+    }
+    else
+    {
+        fmt::print("[appctrl] skip recieved latency sender {:.2f}ms + network {:.2f}ms + reciever {:.2f}ms\n",
+                   senderLatency.count(), networkLatency.count(), recieverLatency.count());
     }
 }
 
@@ -686,11 +746,24 @@ void AppController::startStreaming()
     const auto &user = rpcClient->peer().id();
 
     // start senders
-    m_p->m_videosender.reset(
-        new media::Sender(user, media::MediaType::Video, videoDevice, m_p->m_mediaclock, [this, rpcClient]() {
+    m_p->m_videosender.reset(new media::Sender(
+        user, media::MediaType::Video, videoDevice, m_p->m_mediaclock,
+        [this, rpcClient]() {
             dc::PeerType peerType = (dc::PeerType)(rpcClient->peer().type() | dc::PeerType::WRITER);
             rpcClient->updateType(peerType);
             emit setSenderBusy(false);
+        },
+        [this, user](media::double_millis_t latency) {
+            for (const dc::Peer &peer : m_p->m_rpcPeers)
+            {
+                if ((peer.type() & dc::PeerType::READER))
+                {
+                    if (dc::JuiceClientPtr juiceClient = m_p->getP2PClient(peer.id()))
+                    {
+                        juiceClient->sendLatency(latency);
+                    }
+                }
+            }
         }));
     m_p->m_videosender->start();
 
@@ -717,7 +790,8 @@ void AppController::receiveStream(bool recreate)
         return;
     }
 
-    m_p->m_recieving = true;
+    m_p->m_recieving          = true;
+    m_p->m_recieverLatencySet = false;
     updateGroupEditable();
 
     auto rpcClient        = m_p->m_rpcClient;
@@ -766,7 +840,9 @@ void AppController::receiveStream(bool recreate)
             std::bind(&impl::onVideoRecv, m_p.get(), std::placeholders::_1, std::placeholders::_2,
                       std::placeholders::_3, std::placeholders::_4),
             std::bind(&impl::onAudioRecv, m_p.get(), std::placeholders::_1, std::placeholders::_2,
-                      std::placeholders::_3, std::placeholders::_4)));
+                      std::placeholders::_3, std::placeholders::_4),
+            std::bind(&impl::onLatencyRecv, m_p.get(), std::placeholders::_1, std::placeholders::_2,
+                      std::placeholders::_3)));
         ptr->init();
 
         // no need to select anything for video

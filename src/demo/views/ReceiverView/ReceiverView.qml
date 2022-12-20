@@ -55,6 +55,13 @@ Rectangle {
                 function onUpdatedGroup(group) {
                     receiverSwitch.textValue = group;
                 }
+
+                function onMinSyncDelayChanged(minSyncDelay) {
+                    if (syncLatency.value < minSyncDelay) {
+                        syncLatency.value = minSyncDelay
+                    }
+                    syncLatency.from = minSyncDelay;
+                }
             }
         }
 
@@ -134,7 +141,7 @@ Rectangle {
             DCSlider {
                 id: syncLatency
                 Layout.fillWidth: true
-                from: 300
+                from: 50
                 value: Controller.syncDelay;
                 to: 2000
                 stepSize: 50

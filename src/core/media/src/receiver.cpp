@@ -4,32 +4,6 @@
 #include "core/media/sync.hpp"
 #include "internal.hpp"
 
-static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
-    GstSample *sample;
-    media::Receiver *self = static_cast<media::Receiver *>(userdata);
-
-    /* Retrieve the buffer */
-    sample = gst_app_sink_pull_sample(sink);
-    if (sample) {
-        /* The only thing we do in this example is print a * to indicate a
-         * received buffer */
-        GstBuffer *buf = gst_sample_get_buffer(sample);
-        GstMapInfo info;
-        gst_buffer_map(buf, &info, GST_MAP_READ);
-
-        if (self->write_cb) {
-            self->write_cb((const uint8_t *)info.data, info.size);
-        }
-
-        gst_buffer_unmap(buf, &info);
-
-        gst_sample_unref(sample);
-        return GST_FLOW_OK;
-    }
-
-    return GST_FLOW_ERROR;
-}
-
 static void rtpbin_pad_padded(GstElement *ele, GstPad *pad, gpointer userdata) {
     gchar *padname = gst_pad_get_name(pad);
     gchar *prefix = g_strdup_printf("recv_rtp_src_");
@@ -66,31 +40,57 @@ static void actual_sink_added_callback(GstChildProxy *,
 struct media::Receiver::impl final : BasePipeline {
     friend class media::Receiver;
 
+    media::WriteCallback write_cb;
+
     GstElement *appsrc;
     GstElement *rtpbin;
 
     impl(const std::string &name, media::MediaType type,
-         std::function<void()> onPlayingFn)
+         media::WriteCallback write_cb, std::function<void()> onPlayingFn)
         : BasePipeline(name + "-rcv-" + (type ? "video" : "audio"),
                        onPlayingFn),
+          write_cb(write_cb),
           appsrc(NULL),
           rtpbin(NULL) {}
 
     ~impl() override {}
+
+    static GstFlowReturn new_sample(GstAppSink *sink, gpointer userdata) {
+        const media::Receiver *self = static_cast<media::Receiver *>(userdata);
+        auto pimpl = self->m_p;
+        return pimpl->writeSample(sink, pimpl->write_cb, false);
+    }
+
+    static void handoff_add_meta(GstElement *identity, GstBuffer *buffer,
+                                 gpointer userdata) {
+        auto pimpl = static_cast<media::Receiver::impl *>(userdata);
+        pimpl->addBufferCreateTimeMeta(identity, buffer);
+    }
+
+    static void handoff_handle_meta(GstElement *identity, GstBuffer *buffer,
+                                    gpointer userdata) {
+        auto pimpl = static_cast<media::Receiver::impl *>(userdata);
+        pimpl->measureLatencyForCreateTimeMeta(identity, buffer);
+    }
 };
 
 media::Receiver::Receiver(const std::string &id, MediaType type,
                           const PlaybackDevice &device,
                           media::WriteCallback write_cb,
                           std::function<void()> onPlayingFn)
-    : m_p(new impl(id.c_str(), type, onPlayingFn)),
-      media_type(type),
-      write_cb(write_cb) {
-    GstElement *depayloader, *decoder, *convert, *sink, *appsink;
+    : m_p(new impl(id.c_str(), type, write_cb, onPlayingFn)) {
+    GstElement *add_meta_identity, *depayloader, *decoder, *convert,
+        *handle_meta_identity, *sink, *appsink;
 
     const std::string &name_prefix = m_p->name;
 
     m_p->appsrc = m_p->makeElement("appsrc");
+    add_meta_identity = m_p->makeElement(
+        "identity", fmt::format("{}-rcv-{}-{}", id, (type ? "video" : "audio"),
+                                "add-meta"));
+    handle_meta_identity = m_p->makeElement(
+        "identity",
+        fmt::format("{}-rcv-{}-{}", id, (type ? "video" : "audio"), "handle"));
     g_object_set(m_p->appsrc, "format", GST_FORMAT_TIME, "do-timestamp", true,
                  "is-live", true, nullptr);
     m_p->rtpbin = m_p->makeElement("rtpbin");
@@ -112,6 +112,10 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
         convert = m_p->makeElement("audioconvert");
         sink = m_p->makeElement("autoaudiosink");
     } else if (type == media::MediaType::Video) {
+        g_signal_connect(add_meta_identity, "handoff",
+                         G_CALLBACK(&impl::handoff_add_meta), m_p.get());
+        g_signal_connect(handle_meta_identity, "handoff",
+                         G_CALLBACK(&impl::handoff_handle_meta), m_p.get());
         depayloader = m_p->makeElement("rtpvp8depay");
         decoder = m_p->makeElement("vp8dec");
         convert = m_p->makeElement("videoconvert");
@@ -128,23 +132,30 @@ media::Receiver::Receiver(const std::string &id, MediaType type,
 
     appsink = m_p->makeElement("appsink");
     GstAppSinkCallbacks callbacks = {0};
-    callbacks.new_sample = new_sample;
+    callbacks.new_sample = &impl::new_sample;
     gst_app_sink_set_callbacks(GST_APP_SINK(appsink), &callbacks, this, NULL);
     g_object_set(appsink, "emit-signals", FALSE, nullptr);
 
     g_signal_connect(m_p->rtpbin, "pad-added", G_CALLBACK(rtpbin_pad_padded),
                      depayloader);
 
-    GstPad *src_pad = gst_element_get_static_pad(m_p->appsrc, "src");
+    GstPad *src_src_pad = gst_element_get_static_pad(m_p->appsrc, "src");
+    GstPad *idnt_sink_pad =
+        gst_element_get_static_pad(add_meta_identity, "sink");
+
+    GstPad *idnt_src_pad = gst_element_get_static_pad(add_meta_identity, "src");
     GstPad *recv_rtp_sink_pad =
         gst_element_request_pad_simple(m_p->rtpbin, "recv_rtp_sink_%u");
 
-    gst_bin_add_many(GST_BIN(m_p->pipeline), m_p->appsrc, m_p->rtpbin,
-                     depayloader, decoder, convert, sink, appsink, nullptr);
+    gst_bin_add_many(GST_BIN(m_p->pipeline), m_p->appsrc, add_meta_identity,
+                     m_p->rtpbin, depayloader, decoder, convert,
+                     handle_meta_identity, sink, appsink, nullptr);
 
-    gst_pad_link(src_pad, recv_rtp_sink_pad);
+    gst_pad_link(src_src_pad, idnt_sink_pad);
+    gst_pad_link(idnt_src_pad, recv_rtp_sink_pad);
     gst_element_link_pads(m_p->rtpbin, "send_rtcp_src_%u", appsink, "sink");
-    if (!gst_element_link_many(depayloader, decoder, convert, sink, nullptr)) {
+    if (!gst_element_link_many(depayloader, decoder, convert,
+                               handle_meta_identity, sink, nullptr)) {
         fmt::print(stderr, "[gst-{}] failed to link the elements\n", m_p->name);
         return;
     }
@@ -185,6 +196,10 @@ void media::Receiver::setSyncDelay(
 }
 
 void media::Receiver::start() { m_p->start(); }
+
+media::double_millis_t media::Receiver::averageLatency() {
+    return double_millis_t(m_p->average_latency);
+}
 
 void media::Receiver::stop() { m_p->stop(); }
 

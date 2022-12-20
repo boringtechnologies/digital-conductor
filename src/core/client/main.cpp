@@ -126,6 +126,13 @@ void onRecv(juice_agent_t *agent, const char *data, size_t size, void *user_ptr)
 
 //******************************************************************************
 //******************************************************************************
+void onLatency(juice_agent_t *agent, const dc::double_millis_t latency, void *user_ptr)
+{
+    std::cout << "Sender latency changed to " << latency.count() << std::endl;
+}
+
+//******************************************************************************
+//******************************************************************************
 jcclient_ptr_t getJccClient(const std::string &id)
 {
     if (jcclients.count(id) == 0)
@@ -158,7 +165,8 @@ void onGrpcMessage(dc::Message message)
             return;
         }
 
-        ptr.reset(new dc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv, &onRecv));
+        ptr.reset(
+            new dc::JuiceClient(from, &onStateChanged, &onCandidate, &onGatheringDone, &onRecv, &onRecv, &onLatency));
         ptr->init(msg.substr(6));
 
         if (!grclient->p2pAccept(from, ptr->sdp()))
@@ -352,8 +360,8 @@ int main(int argc, char *argv[])
                 continue;
             }
 
-            jcclient_ptr_t ptr(
-                new dc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv, &onRecv));
+            jcclient_ptr_t ptr(new dc::JuiceClient(v[0], &onStateChanged, &onCandidate, &onGatheringDone, &onRecv,
+                                                   &onRecv, &onLatency));
             ptr->init();
 
             if (!grclient->p2pInit(v[0], ptr->sdp()))
